@@ -82,7 +82,7 @@ watch(mediaDetails, (details) => {
                     v-if="user"
                     @click="showAddCopy = true"
                     >
-                    Add new to collection
+                    Add to collection
                 </button>
 
             </div>

@@ -19,22 +19,21 @@
                 </p>
 
                 <div
-                    v-if="mode === 'collection'"
                     class="media-formats"
                 >
                     <div class="format">
                         <span>DVD</span>
-                        <strong>{{ media.dvd }}</strong>
+                        <strong>{{ media.dvd ?? 0 }}</strong>
                     </div>
 
                     <div class="format">
                         <span>Blu-ray</span>
-                        <strong>{{ media.bluray }}</strong>
+                        <strong>{{ media.bluray ?? 0 }}</strong>
                     </div>
 
                     <div class="format">
-                        <span>4K</span>
-                        <strong>{{ media.fourk }}</strong>
+                        <span>UHD</span>
+                        <strong>{{ media.fourk ?? 0 }}</strong>
                     </div>
                 </div>
 

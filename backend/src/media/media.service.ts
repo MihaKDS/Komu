@@ -8,7 +8,8 @@ export class MediaService {
   constructor(private prisma: PrismaService) {}
 
   async findAll() {
-    return this.prisma.media.findMany();
+    const media = await this.prisma.media.findMany();
+    return this.addCopyCounts(media);
   }
 
   async create(dto: CreateMediaDto) {
@@ -83,7 +84,7 @@ export class MediaService {
   }
 
   async search(query: string) {
-    return this.prisma.media.findMany({
+    const media = await this.prisma.media.findMany({
       where: {
         title: {
           contains: query,
@@ -95,5 +96,54 @@ export class MediaService {
       },
       take: 20,
     });
+
+    return this.addCopyCounts(media);
+  }
+
+  private async addCopyCounts(mediaItems: { id: number }[]) {
+    if (mediaItems.length === 0) {
+      return [];
+    }
+
+    const mediaIds = mediaItems.map((media) => media.id);
+
+    const copies = await this.prisma.copy.findMany({
+      where: {
+        mediaId: {
+          in: mediaIds,
+        },
+      },
+      select: {
+        mediaId: true,
+        edition: true,
+      },
+    });
+
+    const countsByMedia = new Map<number, { dvd: number; bluray: number; fourk: number }>();
+
+    for (const id of mediaIds) {
+      countsByMedia.set(id, { dvd: 0, bluray: 0, fourk: 0 });
+    }
+
+    for (const copy of copies) {
+      const counts = countsByMedia.get(copy.mediaId);
+      if (!counts) continue;
+      switch (copy.edition) {
+        case 'DVD':
+          counts.dvd++;
+          break;
+        case 'BLURAY':
+          counts.bluray++;
+          break;
+        case 'UHD_4K':
+          counts.fourk++;
+          break;
+      }
+    }
+
+    return mediaItems.map((item) => ({
+      ...item,
+      ...countsByMedia.get(item.id),
+    }));
   }
 }

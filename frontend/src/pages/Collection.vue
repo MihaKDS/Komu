@@ -1,7 +1,7 @@
 <template>
     <div class="page">
         <Breadcrumbs />
-        <h1>My Collection</h1>
+        <h1>My Collection ({{ totalCopies }})</h1>
 
         <!--<CategorySelector
             :categories="categories"
@@ -13,10 +13,17 @@
             v-model="search"
             placeholder="Search your collection..."
         />
+
+        <button
+            class="add-media-button"
+            @click="showAddMedia = true"
+        >
+            Add New Media.
+        </button>
         
         <hr class="section-divider">
 
-        <h2>Owned Media</h2>
+        <h2>Owned Media ({{ filteredMedia.length }})</h2>
 
         <div
             v-if="loading"
@@ -67,6 +74,11 @@
         -->
 
     </div>
+
+    <AddMedia
+        v-if="showAddMedia"
+        @close="showAddMedia = false"
+    />
 </template>
 
 <script setup>
@@ -79,12 +91,14 @@ import Breadcrumbs from "../components/layout/Breadcrumbs.vue";
 import MediaGrid from "../components/media/MediaGrid.vue";
 import CategorySelector from "../components/ui/CategorySelector.vue";
 import SearchBar from "../components/ui/SearchBar.vue";
+import AddMedia from "../components/ui/AddMedia.vue";
 
 import { getMyCopies } from "../api/copyAPI.js";
 
 const loading = ref(true);
 
 const search = ref("");
+const showAddMedia = ref(false);
 
 const selectedCategory = ref("MOVIE");
 
@@ -159,6 +173,9 @@ const filteredMedia = computed(() => {
     }
     return [...grouped.values()];
 });
+
+const totalCopies = computed(() => copies.value.length);
+
 function openMedia(filteredMedia) {
 
     router.push({
@@ -176,6 +193,9 @@ function openMedia(filteredMedia) {
 </script>
 
 <style scoped>
+.add-media-button {
+    margin-top: 1rem;
+}
 
 
 </style>
