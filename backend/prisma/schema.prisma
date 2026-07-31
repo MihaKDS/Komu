@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Media {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  releaseYear Int
+  poster      String?
+  category    Category
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  copies      Copy[]
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  city         String?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  copies       Copy[]
+}
+
+model BoxSet {
+  id        Int      @id @default(autoincrement())
+  title     String?
+  createdAt DateTime @default(now())
+
+  copies    Copy[]
+}
+
+model Copy {
+  id               Int       @id @default(autoincrement())
+
+  mediaId          Int
+  userId           Int
+
+  edition          Edition
+  includesBluRay   Boolean   @default(false)
+
+  listingNote      String?
+
+  boxSetId         Int?
+
+  condition        Condition @default(VERY_GOOD)
+
+  // Selling
+  canSell          Boolean   @default(false)
+  sellPrice        Float?
+
+  // Lending
+  canRent          Boolean   @default(false)
+  rentPrice        Float?
+  deposit          Float?
+
+  media            Media     @relation(fields: [mediaId], references: [id])
+  user             User      @relation(fields: [userId], references: [id])
+
+  boxSet           BoxSet?   @relation(fields: [boxSetId], references: [id])
+}
+
+enum Edition {
+  DVD
+  BLURAY
+  UHD_4K
+}
+
+enum Condition {
+  MINT
+  VERY_GOOD
+  GOOD
+  FAIR
+  POOR
+}
+
+enum Category {
+  MOVIE
+  BOOK
+  GAME
+  MUSIC
+}

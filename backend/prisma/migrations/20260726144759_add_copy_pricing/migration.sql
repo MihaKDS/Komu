@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Copy" ADD COLUMN     "deposit" DOUBLE PRECISION,
+ADD COLUMN     "rentPrice" DOUBLE PRECISION,
+ADD COLUMN     "sellPrice" DOUBLE PRECISION;
