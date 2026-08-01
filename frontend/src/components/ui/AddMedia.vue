@@ -1,7 +1,7 @@
 <script setup>
 import { reactive, ref } from "vue";
 import { createMedia } from "../../api/mediaAPI";
-import { searchTmdbMovies } from "../../api/tmdbService";
+import { searchTmdbMovies, getTmdbMovieDetails } from "../../api/tmdbService";
 
 const emit = defineEmits(["close", "saved"]);
 const query = ref("");
@@ -10,12 +10,15 @@ const results = ref([]);
 const error = ref("");
 const saving = ref(false);
 const selectedMovie = ref(null);
+const importCollection = ref(true);
 const form = reactive({
   title: "",
   description: "",
   releaseYear: new Date().getFullYear(),
   poster: "",
   category: "MOVIE",
+  // optional collection info populated from TMDb details
+  movieCollection: null,
 });
 
 async function search() {
@@ -35,13 +38,33 @@ async function search() {
   }
 }
 
-function selectMovie(movie) {
+async function selectMovie(movie) {
   selectedMovie.value = movie;
   form.title = movie.title;
   form.description = movie.description ?? "";
   form.releaseYear = movie.releaseYear ?? new Date().getFullYear();
   form.poster = movie.poster ?? "";
   form.category = "MOVIE";
+  form.movieCollection = null;
+  importCollection.value = true;
+  form.tmdbId = movie.id;
+
+  // Fetch TMDb details to see if this movie belongs to a collection
+  try {
+    const details = await getTmdbMovieDetails(movie.id);
+    if (details?.belongsToCollection) {
+      form.movieCollection = {
+        tmdbId: details.belongsToCollection.id,
+        title: details.belongsToCollection.name,
+        poster: details.belongsToCollection.poster_path
+          ? `https://image.tmdb.org/t/p/w342${details.belongsToCollection.poster_path}`
+          : null,
+      };
+    }
+  } catch (err) {
+    console.error('Failed to fetch TMDB details', err);
+    // proceed without collection info
+  }
 }
 
 function createManually() {
@@ -51,6 +74,9 @@ function createManually() {
   form.releaseYear = new Date().getFullYear();
   form.poster = "";
   form.category = "MOVIE";
+  form.tmdbId = undefined;
+  form.movieCollection = null;
+  importCollection.value = false;
 }
 
 async function saveMedia() {
@@ -58,11 +84,17 @@ async function saveMedia() {
   error.value = "";
 
   try {
-    await createMedia({
+    const payload = {
       ...form,
       releaseYear: Number(form.releaseYear),
       poster: form.poster || null,
-    });
+    };
+    // Only send collection info if user opted in and we have it
+    if (!importCollection.value) payload.movieCollection = null;
+    // Indicate whether to import the whole collection's members
+    payload.importCollectionMembers = !!importCollection.value;
+
+    await createMedia(payload);
     emit("saved");
     emit("close");
   } catch (err) {
@@ -105,6 +137,15 @@ async function saveMedia() {
         <label>Release year<input v-model.number="form.releaseYear" type="number" min="1888" :max="new Date().getFullYear() + 5" required /></label>
         <label>Description<textarea v-model.trim="form.description" required rows="4" /></label>
         <label>Poster URL<input v-model.trim="form.poster" type="url" /></label>
+
+        <div v-if="form.movieCollection" class="collection-info">
+          <label>
+            <input type="checkbox" v-model="importCollection" />
+            Link to collection: <strong>{{ form.movieCollection.title }}</strong>
+          </label>
+          <img v-if="form.movieCollection.poster" :src="form.movieCollection.poster" alt="Collection poster" style="width:80px;margin-top:8px;" />
+        </div>
+
         <div class="form-actions">
           <button type="submit" :disabled="saving">{{ saving ? "Adding..." : "Add media" }}</button>
           <button type="button" @click="selectedMovie = null">Back to results</button>

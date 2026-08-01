@@ -3,6 +3,7 @@ import { useAuth } from "../composables/useAuth"
 
 const auth = useAuth()
 
+import Home from "../pages/Home.vue";
 import Search from "../pages/Search.vue";
 import Collection from "../pages/Collection.vue";
 import Sharing from "../pages/Sharing.vue";
@@ -14,9 +15,19 @@ import Register from "../pages/Register.vue";
 
 const routes = [
 
-    // Search
+    // Home
     {
         path: "/",
+        name: "Home",
+        component: Home,
+        meta: {
+            title: "Home"
+        }
+    },
+
+    // Search
+    {
+        path: "/search",
         name: "Search",
         component: Search,
         meta: {

@@ -12,14 +12,26 @@
 
             <div class="content">
 
-                <h3>{{ media.title }}</h3>
+                <div class="card-meta">
+                    <h3>{{ media.title }}</h3>
+                    <span v-if="media.inCollection" class="collection-badge">In collection</span>
+                </div>
 
                 <p>
-                    {{ media.releaseYear }}                        
+                    {{ media.isCollectionGroup ? 'Collection' : media.releaseYear }}
+                </p>
+
+                <p v-if="media.isCollectionGroup" class="collection-summary">
+                    {{ media.collectionSize }} titles
+                </p>
+
+                <p v-else-if="media.availableCopies != null" class="available-copies">
+                    {{ media.availableCopies }} available for sale or rent
                 </p>
 
                 <div
                     class="media-formats"
+                    v-if="!media.isCollectionGroup"
                 >
                     <div class="format">
                         <span>DVD</span>
@@ -102,6 +114,34 @@ function posterSource(poster) {
     margin:0;
     color:#fff;
     font-size:1.25rem;
+}
+
+.card-meta{
+    display:flex;
+    flex-wrap:wrap;
+    gap:.5rem;
+    align-items:center;
+    margin-bottom:.5rem;
+}
+
+.collection-badge{
+    background:#3f8cff;
+    color:#fff;
+    padding:.25rem .6rem;
+    border-radius:999px;
+    font-size:.75rem;
+}
+
+.available-copies{
+    margin:.5rem 0;
+    color:#d4d4d4;
+    font-size:.9rem;
+}
+
+.collection-summary{
+    margin:.35rem 0;
+    color:#d4d4d4;
+    font-size:.95rem;
 }
 
 .media-card .meta{

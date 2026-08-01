@@ -19,6 +19,23 @@ export class CreateMediaDto {
   @IsUrl()
   poster?: string | null;
 
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  tmdbId?: number;
+
   @IsEnum(Category)
   category: Category;
+
+  // Optional collection info when creating from TMDb
+  @IsOptional()
+  movieCollection?: {
+    tmdbId?: number;
+    title?: string;
+    poster?: string | null;
+  };
+
+  @IsOptional()
+  importCollectionMembers?: boolean;
 }
+

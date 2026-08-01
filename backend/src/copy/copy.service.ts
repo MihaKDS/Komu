@@ -74,7 +74,11 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
         userId,
       },
       include: {
-        media: true,
+        media: {
+          include: {
+            movieCollection: true,
+          },
+        },
         boxSet: true,
       },
     });

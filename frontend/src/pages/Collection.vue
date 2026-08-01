@@ -14,16 +14,22 @@
             placeholder="Search your collection..."
         />
 
-        <button
-            class="add-media-button"
-            @click="showAddMedia = true"
-        >
-            Add New Media.
-        </button>
-        
-        <hr class="section-divider">
+            <div class="group-by-collection">
+              <label>
+                <input type="checkbox" v-model="groupByCollection" /> Group by collection
+              </label>
+            </div>
 
-        <h2>Owned Media ({{ filteredMedia.length }})</h2>
+            <button
+                class="add-media-button"
+                @click="showAddMedia = true"
+            >
+                Add New Media.
+            </button>
+        
+            <hr class="section-divider">
+
+            <h2>Owned Media ({{ filteredMedia.length }})</h2>
 
         <div
             v-if="loading"
@@ -46,15 +52,8 @@
             No media matches your search.
         </div>
 
-        <div
-            v-else
-            class="media-grid"
-        >
-            <MediaGrid
-                :mediaList="filteredMedia"
-                mode="collection"
-            
-            />
+        <div v-else>
+            <MediaGrid :mediaList="filteredMedia" mode="collection" />
         </div>
 
         <!--
@@ -99,6 +98,7 @@ const loading = ref(true);
 
 const search = ref("");
 const showAddMedia = ref(false);
+const groupByCollection = ref(true);
 
 const selectedCategory = ref("MOVIE");
 
@@ -121,27 +121,16 @@ function changeCategory(category) {
 }
 
 const filteredMedia = computed(() => {
-
     const grouped = new Map();
+    const searchValue = search.value.toLowerCase();
 
     for (const copy of copies.value) {
-
         const media = copy.media;
-
-        const matchesCategory =
-            media.category === selectedCategory.value;
-
-        const matchesSearch =
-            media.title
-                .toLowerCase()
-                .includes(search.value.toLowerCase());
-
-        if (!matchesCategory || !matchesSearch) {
+        if (media.category !== selectedCategory.value) {
             continue;
         }
 
         if (!grouped.has(media.id)) {
-
             grouped.set(media.id, {
                 ...media,
                 dvd: 0,
@@ -149,29 +138,77 @@ const filteredMedia = computed(() => {
                 fourk: 0,
                 copies: []
             });
-
         }
 
         const item = grouped.get(media.id);
-
         item.copies.push(copy);
 
         switch (copy.edition) {
-
             case "DVD":
                 item.dvd++;
                 break;
-
             case "BLURAY":
                 item.bluray++;
                 break;
-
             case "UHD_4K":
                 item.fourk++;
                 break;
         }
     }
-    return [...grouped.values()];
+
+    const flat = [...grouped.values()];
+    if (!groupByCollection.value) {
+        return flat.filter((media) =>
+            media.title.toLowerCase().includes(searchValue),
+        );
+    }
+
+    const byCollection = new Map();
+
+    for (const media of flat) {
+        const col = media.movieCollection;
+        const key = col ? `col-${col.id}` : `single-${media.id}`;
+        const title = col ? col.title : null;
+
+        if (!byCollection.has(key)) {
+            byCollection.set(key, {
+                key,
+                title,
+                medias: [],
+                matchesSearch: false,
+            });
+        }
+
+        const group = byCollection.get(key);
+        group.medias.push(media);
+        if (media.title.toLowerCase().includes(searchValue)) {
+            group.matchesSearch = true;
+        }
+    }
+
+    const result = [];
+    for (const g of byCollection.values()) {
+        g.medias.sort((a, b) => (a.collectionPosition ?? 0) - (b.collectionPosition ?? 0));
+        if (g.title) {
+            if (!g.matchesSearch) {
+                continue;
+            }
+            const representative = {
+                ...g.medias[0],
+                title: g.title,
+                isCollectionGroup: true,
+                collectionSize: g.medias.length,
+                id: g.medias[0].id,
+            };
+            result.push(representative);
+        } else {
+            result.push(...g.medias.filter((media) =>
+                media.title.toLowerCase().includes(searchValue),
+            ));
+        }
+    }
+
+    return result;
 });
 
 const totalCopies = computed(() => copies.value.length);

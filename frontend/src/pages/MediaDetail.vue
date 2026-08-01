@@ -172,6 +172,16 @@ watch(mediaDetails, (details) => {
 </details>
 
 
+        <div v-if="mediaDetails.collection" class="collection-block">
+            <h3>Part of</h3>
+            <div class="collection-list">
+                <div v-for="m in mediaDetails.collection.medias" :key="m.id" :class="[{ current: m.id === mediaDetails.media.id }, 'collection-item']">
+                    <span class="pos">{{ m.collectionPosition ?? '-' }}</span>
+                    <RouterLink :to="{ name: 'media', params: { id: m.id } }">{{ m.title }}</RouterLink>
+                </div>
+            </div>
+        </div>
+
         <AddCopyDialog
             v-if="showAddCopy"
             :media="mediaDetails.media"
@@ -303,6 +313,28 @@ summary {
 
     font-weight: bold;
 
+}
+
+.collection-block{
+  margin-top:2rem;
+}
+.collection-list{
+  display:flex;
+  flex-direction:column;
+  gap:.5rem;
+}
+.collection-item{
+  display:flex;
+  align-items:center;
+  gap: .75rem;
+}
+.collection-item.current{
+  font-weight:700;
+}
+.pos{
+  width:2rem;
+  text-align:right;
+  color:#bbb;
 }
 
 </style>

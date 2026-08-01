@@ -63,7 +63,7 @@ const items = computed(() => {
 
             breadcrumbs.push({
                 label: "Search",
-                to: "/"
+                to: "/search"
             });
 
             break;

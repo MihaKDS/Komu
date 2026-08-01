@@ -2,23 +2,143 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PublicCopyDto } from '../copy/dto/public-copy.dto';
 import { CreateMediaDto } from './dto/create-media.dto';
+import { TmdbService } from '../tmdb/tmdb.service';
 
 @Injectable()
 export class MediaService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private tmdb: TmdbService) {}
 
   async findAll() {
-    const media = await this.prisma.media.findMany();
+    const media = await this.prisma.media.findMany({
+      include: {
+        movieCollection: {
+          select: {
+            id: true,
+            title: true,
+            tmdbId: true,
+            poster: true,
+          },
+        },
+      },
+    });
+
     return this.addCopyCounts(media);
   }
 
   async create(dto: CreateMediaDto) {
-    return this.prisma.media.create({ data: dto });
+    // If the DTO carries TMDb collection info, upsert the MovieCollection and link it
+    let movieCollectionId: number | undefined = undefined;
+    let upsertedCollection: any = null;
+    if ((dto as any).movieCollection) {
+      const mc = (dto as any).movieCollection;
+      if (mc.tmdbId) {
+        upsertedCollection = await this.prisma.movieCollection.upsert({
+          where: { tmdbId: mc.tmdbId },
+          update: {
+            title: mc.title ?? undefined,
+            poster: mc.poster ?? undefined,
+          },
+          create: {
+            tmdbId: mc.tmdbId,
+            title: mc.title ?? 'Collection',
+            poster: mc.poster ?? null,
+          },
+        });
+        movieCollectionId = upsertedCollection.id;
+      } else if (mc.title) {
+        const existing = await this.prisma.movieCollection.findFirst({ where: { title: mc.title } });
+        if (existing) {
+          movieCollectionId = existing.id;
+          upsertedCollection = existing;
+        } else {
+          const created = await this.prisma.movieCollection.create({ data: { title: mc.title, poster: mc.poster ?? null } });
+          movieCollectionId = created.id;
+          upsertedCollection = created;
+        }
+      }
+    }
+
+    const createData: any = {
+      title: dto.title,
+      description: dto.description,
+      releaseYear: dto.releaseYear,
+      poster: dto.poster ?? null,
+      category: dto.category,
+      tmdbId: dto.tmdbId ?? undefined,
+    };
+    if (movieCollectionId) createData.movieCollectionId = movieCollectionId;
+
+    const createdMedia = await this.prisma.media.create({ data: createData });
+
+    // If requested, import other movies from the TMDb collection (best-effort matching by title/releaseYear)
+    if ((dto as any).importCollectionMembers && upsertedCollection && upsertedCollection.tmdbId) {
+      try {
+        const collection = await this.tmdb.getCollection(upsertedCollection.tmdbId);
+        if (collection && Array.isArray(collection.parts)) {
+          const ops: any[] = [];
+          for (let i = 0; i < collection.parts.length; i++) {
+            const part = collection.parts[i];
+            const year = part.release_date ? Number(part.release_date.slice(0, 4)) : dto.releaseYear || new Date().getFullYear();
+            const matchByTmdbId = part.id ? { tmdbId: part.id } : undefined;
+            const matchByTitleYear = { title: part.title, releaseYear: year };
+            const existing = await this.prisma.media.findFirst({
+              where: matchByTmdbId
+                ? {
+                    OR: [matchByTmdbId, matchByTitleYear],
+                  }
+                : matchByTitleYear,
+            });
+
+            if (existing) {
+              const updateData: any = {
+                movieCollectionId,
+                collectionPosition: i + 1,
+              };
+              if (!existing.tmdbId && part.id) {
+                updateData.tmdbId = part.id;
+              }
+              ops.push(this.prisma.media.update({ where: { id: existing.id }, data: updateData }));
+            } else {
+              ops.push(
+                this.prisma.media.create({
+                  data: {
+                    title: part.title,
+                    description: '',
+                    releaseYear: year,
+                    poster: part.poster_path ? `https://image.tmdb.org/t/p/w342${part.poster_path}` : null,
+                    category: 'MOVIE',
+                    tmdbId: part.id,
+                    movieCollectionId,
+                    collectionPosition: i + 1,
+                  },
+                }),
+              );
+            }
+          }
+          if (ops.length) await this.prisma.$transaction(ops);
+        }
+      } catch (err) {
+        // If TMDb fetch fails, ignore and return created media; admin can import later
+        console.error('Failed to import collection members', err);
+      }
+    }
+
+    return createdMedia;
   }
 
   async findOne(id: number, userId?: number) {
     const media = await this.prisma.media.findUnique({
       where: { id },
+      include: {
+        movieCollection: {
+          select: {
+            id: true,
+            title: true,
+            tmdbId: true,
+            poster: true,
+          },
+        },
+      },
     });
 
     if (!media) {
@@ -39,6 +159,16 @@ export class MediaService {
         },
       },
     });
+
+    // If this media belongs to a collection, load the other medias in that collection
+    let collectionMedias: Array<{ id: number; title: string; poster: string | null; collectionPosition: number | null }> = [];
+    if (media.movieCollectionId) {
+      collectionMedias = await this.prisma.media.findMany({
+        where: { movieCollectionId: media.movieCollectionId },
+        orderBy: { collectionPosition: 'asc' },
+        select: { id: true, title: true, collectionPosition: true, poster: true },
+      });
+    }
 
     const myCopies = userId
       ? copies.filter((c) => c.userId === userId)
@@ -80,6 +210,13 @@ export class MediaService {
       myCopies,
       otherOwnersCount,
       otherCopies,
+      collection: media.movieCollectionId
+        ? {
+            id: media.movieCollectionId,
+            title: media.movieCollection?.title ?? null,
+            medias: collectionMedias,
+          }
+        : null,
     };
   }
 
@@ -95,6 +232,16 @@ export class MediaService {
         title: 'asc',
       },
       take: 20,
+      include: {
+        movieCollection: {
+          select: {
+            id: true,
+            title: true,
+            tmdbId: true,
+            poster: true,
+          },
+        },
+      },
     });
 
     return this.addCopyCounts(media);
@@ -107,7 +254,21 @@ export class MediaService {
 
     const mediaIds = mediaItems.map((media) => media.id);
 
-    const copies = await this.prisma.copy.findMany({
+    const countsByMedia = new Map<
+      number,
+      { dvd: number; bluray: number; fourk: number; availableCopies: number }
+    >();
+
+    for (const id of mediaIds) {
+      countsByMedia.set(id, {
+        dvd: 0,
+        bluray: 0,
+        fourk: 0,
+        availableCopies: 0,
+      });
+    }
+
+    const copiesWithAvailability = await this.prisma.copy.findMany({
       where: {
         mediaId: {
           in: mediaIds,
@@ -116,18 +277,18 @@ export class MediaService {
       select: {
         mediaId: true,
         edition: true,
+        canSell: true,
+        canRent: true,
       },
     });
 
-    const countsByMedia = new Map<number, { dvd: number; bluray: number; fourk: number }>();
-
-    for (const id of mediaIds) {
-      countsByMedia.set(id, { dvd: 0, bluray: 0, fourk: 0 });
-    }
-
-    for (const copy of copies) {
+    for (const copy of copiesWithAvailability) {
       const counts = countsByMedia.get(copy.mediaId);
       if (!counts) continue;
+      if (copy.canSell || copy.canRent) {
+        counts.availableCopies++;
+      }
+
       switch (copy.edition) {
         case 'DVD':
           counts.dvd++;
