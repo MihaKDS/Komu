@@ -54,11 +54,22 @@ model User {
 }
 
 model BoxSet {
-  id        Int      @id @default(autoincrement())
-  title     String?
-  createdAt DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  title       String?
+  name        String?
+  listingNote String?
 
-  copies    Copy[]
+  canSell     Boolean  @default(false)
+  sellPrice   Float?
+
+  canRent     Boolean  @default(false)
+  rentPrice   Float?
+  deposit     Float?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  copies      Copy[]
 }
 
 model Copy {

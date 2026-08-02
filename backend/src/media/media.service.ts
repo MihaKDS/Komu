@@ -75,9 +75,16 @@ export class MediaService {
       try {
         const collection = await this.tmdb.getCollection(upsertedCollection.tmdbId);
         if (collection && Array.isArray(collection.parts)) {
+          // Sort by release_date ascending so collectionPosition reflects chronological order
+          const sortedParts = [...collection.parts].sort((a, b) => {
+            const yearA = a.release_date ? Number(a.release_date.slice(0, 4)) : 9999;
+            const yearB = b.release_date ? Number(b.release_date.slice(0, 4)) : 9999;
+            return yearA - yearB;
+          });
+
           const ops: any[] = [];
-          for (let i = 0; i < collection.parts.length; i++) {
-            const part = collection.parts[i];
+          for (let i = 0; i < sortedParts.length; i++) {
+            const part = sortedParts[i];
             const year = part.release_date ? Number(part.release_date.slice(0, 4)) : dto.releaseYear || new Date().getFullYear();
             const matchByTmdbId = part.id ? { tmdbId: part.id } : undefined;
             const matchByTitleYear = { title: part.title, releaseYear: year };
@@ -157,6 +164,24 @@ export class MediaService {
             city: true,
           },
         },
+        boxSet: {
+          select: {
+            id: true,
+            title: true,
+            name: true,
+            listingNote: true,
+            canSell: true,
+            sellPrice: true,
+            canRent: true,
+            rentPrice: true,
+            deposit: true,
+            _count: {
+              select: {
+                copies: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -178,7 +203,7 @@ export class MediaService {
         .filter(
           c =>
             c.userId !== userId &&
-            (c.canSell || c.canRent)
+            (c.canSell || c.canRent || c.boxSet?.canRent || c.boxSet?.canSell)
         )
       .map((copy) => ({
         id: copy.id,
@@ -194,6 +219,20 @@ export class MediaService {
         canRent: copy.canRent,
         rentPrice: copy.rentPrice,
         deposit: copy.deposit,
+
+        boxSet: copy.boxSet
+          ? {
+              id: copy.boxSet.id,
+              title: copy.boxSet.title,
+              name: copy.boxSet.name,
+              listingNote: copy.boxSet.listingNote,
+              canSell: copy.boxSet.canSell,
+              sellPrice: copy.boxSet.sellPrice,
+              canRent: copy.boxSet.canRent,
+              rentPrice: copy.boxSet.rentPrice,
+              deposit: copy.boxSet.deposit,
+            }
+          : null,
 
         owner: {
           username: copy.user.username,
@@ -256,7 +295,7 @@ export class MediaService {
 
     const countsByMedia = new Map<
       number,
-      { dvd: number; bluray: number; fourk: number; availableCopies: number }
+      { dvd: number; bluray: number; fourk: number; availableCopies: number; hasSell: boolean; hasRent: boolean }
     >();
 
     for (const id of mediaIds) {
@@ -265,6 +304,8 @@ export class MediaService {
         bluray: 0,
         fourk: 0,
         availableCopies: 0,
+        hasSell: false,
+        hasRent: false,
       });
     }
 
@@ -288,6 +329,8 @@ export class MediaService {
       if (copy.canSell || copy.canRent) {
         counts.availableCopies++;
       }
+      if (copy.canSell) counts.hasSell = true;
+      if (copy.canRent) counts.hasRent = true;
 
       switch (copy.edition) {
         case 'DVD':

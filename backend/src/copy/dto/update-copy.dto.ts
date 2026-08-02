@@ -24,4 +24,34 @@ export class UpdateCopyDto {
   @IsOptional()
   @IsNumber()
   deposit?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  boxSetName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  boxSetListingNote?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  boxSetCanSell?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  boxSetSellPrice?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  boxSetCanRent?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  boxSetRentPrice?: number;
+
+  @IsOptional()
+  @IsNumber()
+  boxSetDeposit?: number;
 }

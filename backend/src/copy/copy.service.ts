@@ -36,6 +36,20 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
       rentPrice: true,
       deposit: true,
 
+      boxSet: {
+        select: {
+          id: true,
+          title: true,
+          name: true,
+          listingNote: true,
+          canSell: true,
+          sellPrice: true,
+          canRent: true,
+          rentPrice: true,
+          deposit: true,
+        },
+      },
+
       user: {
         select: {
           username: true,
@@ -113,7 +127,16 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
     return this.prisma.$transaction(async (prisma) => {
 
       const boxSet = await prisma.boxSet.create({
-        data: {},
+        data: {
+          title: dto.boxSetName ?? null,
+          name: dto.boxSetName ?? null,
+          listingNote: dto.boxSetListingNote ?? null,
+          canSell: dto.boxSetCanSell ?? false,
+          sellPrice: dto.boxSetCanSell ? dto.boxSetSellPrice : null,
+          canRent: dto.boxSetCanRent ?? false,
+          rentPrice: dto.boxSetCanRent ? dto.boxSetRentPrice : null,
+          deposit: dto.boxSetCanRent ? dto.boxSetDeposit : null,
+        },
       });
 
       const copies = await Promise.all(
@@ -157,20 +180,63 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
       );
     }
 
+    const copyData: any = {
+      listingNote: dto.listingNote ? dto.listingNote : null,
+
+      canSell: dto.canSell,
+      sellPrice: dto.canSell ? dto.sellPrice : null,
+
+      canRent: dto.canRent,
+      rentPrice: dto.canRent ? dto.rentPrice : null,
+      deposit: dto.canRent ? dto.deposit : null,
+    };
+
+    const boxSetData: any = {};
+    if (copy.boxSetId) {
+      if (dto.boxSetName !== undefined) {
+        boxSetData.name = dto.boxSetName;
+        boxSetData.title = dto.boxSetName;
+      }
+      if (dto.boxSetListingNote !== undefined) {
+        boxSetData.listingNote = dto.boxSetListingNote;
+      }
+      if (dto.boxSetCanSell !== undefined) {
+        boxSetData.canSell = dto.boxSetCanSell;
+        boxSetData.sellPrice = dto.boxSetCanSell ? dto.boxSetSellPrice : null;
+      }
+      if (dto.boxSetCanRent !== undefined) {
+        boxSetData.canRent = dto.boxSetCanRent;
+        boxSetData.rentPrice = dto.boxSetCanRent ? dto.boxSetRentPrice : null;
+        boxSetData.deposit = dto.boxSetCanRent ? dto.boxSetDeposit : null;
+      }
+    }
+
+    const boxSetId = copy.boxSetId;
+    if (boxSetId != null && Object.keys(boxSetData).length > 0) {
+      return this.prisma.$transaction(async (prisma) => {
+        const updatedCopy = await prisma.copy.update({
+          where: {
+            id,
+          },
+          data: copyData,
+        });
+
+        await prisma.boxSet.update({
+          where: {
+            id: boxSetId,
+          },
+          data: boxSetData,
+        });
+
+        return updatedCopy;
+      });
+    }
+
     return this.prisma.copy.update({
       where: {
         id,
       },
-      data: {
-        listingNote: dto.listingNote ? dto.listingNote : null,
-
-        canSell: dto.canSell,
-        sellPrice: dto.canSell ? dto.sellPrice : null,
-
-        canRent: dto.canRent,
-        rentPrice: dto.canRent ? dto.rentPrice : null,
-        deposit: dto.canRent ? dto.deposit : null,
-      },
+      data: copyData,
     });
   }
 

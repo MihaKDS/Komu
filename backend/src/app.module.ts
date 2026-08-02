@@ -6,9 +6,10 @@ import { PrismaModule } from './prisma/prisma.module';
 import { CopyModule } from './copy/copy.module';
 import { AuthModule } from './auth/auth.module';
 import { TmdbModule } from './tmdb/tmdb.module';
+import { BoxSetModule } from './boxset/boxset.module';
 
 @Module({
-  imports: [MediaModule, PrismaModule, CopyModule, AuthModule, TmdbModule],
+  imports: [MediaModule, PrismaModule, CopyModule, AuthModule, TmdbModule, BoxSetModule],
   controllers: [AppController],
   providers: [AppService],
 })

@@ -15,6 +15,8 @@
                 <div class="card-meta">
                     <h3>{{ media.title }}</h3>
                     <span v-if="media.inCollection" class="collection-badge">In collection</span>
+                    <span v-if="media.hasSell" class="sell-badge">Selling</span>
+                    <span v-if="media.hasRent" class="rent-badge">Renting</span>
                 </div>
 
                 <p>

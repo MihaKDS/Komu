@@ -10,6 +10,7 @@ import Sharing from "../pages/Sharing.vue";
 import Lists from "../pages/Lists.vue";
 import Profile from "../pages/Profile.vue";
 import MediaDetail from "../pages/MediaDetail.vue";
+import BoxSetDetail from "../pages/BoxSetDetail.vue";
 import Login from '../pages/Login.vue'
 import Register from "../pages/Register.vue";
 
@@ -89,7 +90,16 @@ const routes = [
     },
 
     {
-    path: '/login',
+        path: '/boxsets/:id',
+        name: 'boxset',
+        component: BoxSetDetail,
+        meta: {
+            title: 'Box Set',
+        }
+    },
+
+        {
+        path: '/login',
     name: 'login',
     component: Login,
     },

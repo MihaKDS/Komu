@@ -35,7 +35,7 @@
         </div>
     
         <div v-if="form.partOfBox">
-    
+
             <h3>Items in box</h3>
                 <MediaSearch
                     :exclude-ids="form.items.map(item => item.id)"
@@ -51,7 +51,38 @@
                     <hr>
                 </li>
             </ul>
-    
+
+            <div>
+                <label>Box set name</label><br>
+                <input v-model="form.boxSetName" placeholder="Harry Potter 4K Collector's Box" />
+            </div>
+
+            <div>
+                <label>Box listing note</label><br>
+                <input v-model="form.boxSetListingNote" placeholder="Complete 8-movie set" />
+            </div>
+
+            <div>
+                <label>
+                    <input type="checkbox" v-model="form.boxSetCanSell" />
+                    Sell entire box
+                </label>
+                <div v-if="form.boxSetCanSell">
+                    Price: <input type="number" v-model.number="form.boxSetSellPrice" />
+                </div>
+            </div>
+
+            <div>
+                <label>
+                    <input type="checkbox" v-model="form.boxSetCanRent" />
+                    Rent entire box
+                </label>
+                <div v-if="form.boxSetCanRent">
+                    Price / month: <input type="number" v-model.number="form.boxSetRentPrice" />
+                    Deposit: <input type="number" v-model.number="form.boxSetDeposit" />
+                </div>
+            </div>
+
         </div>
     
         <button @click="saveCopy">
@@ -86,7 +117,14 @@ const form = reactive({
     partOfBox: false,
     items: [
         props.media 
-    ]
+    ],
+    boxSetName: '',
+    boxSetListingNote: '',
+    boxSetCanSell: false,
+    boxSetSellPrice: null,
+    boxSetCanRent: false,
+    boxSetRentPrice: null,
+    boxSetDeposit: null,
 });
 
 const is4K = computed(() => form.edition === "UHD_4K");
@@ -98,6 +136,13 @@ async function saveCopy() {
             includesBluRay: form.includesBluRay,
             partOfBox: form.partOfBox,
             mediaIds: form.items.map(item => item.id),
+            boxSetName: form.boxSetName,
+            boxSetListingNote: form.boxSetListingNote,
+            boxSetCanSell: form.boxSetCanSell,
+            boxSetSellPrice: form.boxSetSellPrice,
+            boxSetCanRent: form.boxSetCanRent,
+            boxSetRentPrice: form.boxSetRentPrice,
+            boxSetDeposit: form.boxSetDeposit,
         });
 
         emit("saved");

@@ -109,21 +109,40 @@ watch(mediaDetails, (details) => {
                 <strong>{{ copy.edition }} <div v-if="copy.includesBluRay" >with Blue Ray</div></strong>
 
                 <p>{{ copy.condition }}</p>
+                <p v-if="copy.boxSet">
+                    Part of boxset
+                    <RouterLink :to="{ name: 'boxset', params: { id: copy.boxSet.id } }">
+                        {{ copy.boxSet.name || copy.boxSet.title }}
+                    </RouterLink>
+                </p>
+                <p v-if="copy.boxSet?._count?.copies">
+                    Movie {{ mediaDetails.media.collectionPosition || '?' }} / {{ copy.boxSet._count.copies }}
+                </p>
                 <p>{{ copy.listingNote }}</p>
 
                 <div class="actions">
 
                     <button @click="showEditCopy = true, idEditCopy= copy.id">Edit</button>
 
-                    <button v-if="copy.canSell">
-                        Selling
-                    </button>
+                            <p v-if="copy.canSell">
+                                💰 For sale
+                            </p>
 
-                    <button v-if="copy.canRent">
-                        Renting
-                    </button>
+                            <p v-if="copy.canRent">
+                                🎬 For rent
+                            </p>
+                            
+                            <div v-if="copy.boxSet !== null">
+                                <p v-if="copy.boxSet.canSell">
+                                    💰 Boxset for sale
+                                </p>
+    
+                                <p v-if="copy.boxSet.canRent">
+                                    🎬 Boxset for rent
+                                </p>
+                            </div>
 
-                </div>
+                        </div>
 
             </div>
 
@@ -140,26 +159,54 @@ watch(mediaDetails, (details) => {
         :key="copy.id"
         class="copy-card"
     >
-        <strong>{{ copy.owner.username }}</strong>
-
-        <p>
-            {{ copy.edition }}
-            •
-            {{ copy.condition }}
-        </p>
-        <p>
-            {{ copy.listingNote }}
-        </p>
-
-        <p v-if="copy.canSell">
-            💰 For sale: {{ copy.sellPrice }} €
-        </p>
-
-        <p v-if="copy.canRent">
-            🎬 For rent: {{ copy.rentPrice }} €
-            <br>
-            Deposit: {{ copy.deposit }} €
-        </p>
+     <div v-if="copy.canRent || copy.canSell ">
+         <strong>{{ copy.owner.username }}</strong>
+ 
+         <p>
+             {{ copy.edition }}
+             •
+             {{ copy.condition }}
+         </p>
+         <!--<p v-if="copy.boxSet">
+             Part of boxset
+             <RouterLink :to="{ name: 'boxset', params: { id: copy.boxSet.id } }">
+                 {{ copy.boxSet.name || copy.boxSet.title }}
+             </RouterLink>
+         </p>-->
+         <p>
+             {{ copy.listingNote }}
+         </p>
+ 
+         <p v-if="copy.canSell">
+             💰 For sale: {{ copy.sellPrice }} €
+         </p>
+ 
+         <p v-if="copy.canRent">
+             🎬 For rent: {{ copy.rentPrice }} €
+             <br>
+             Deposit: {{ copy.deposit }} €
+         </p>
+     </div>
+     <div v-if="copy.boxSet !== null ">
+         <div v-if="copy.boxSet.canRent || copy.boxSet.canSell ">
+             <strong>{{ copy.owner.username }}</strong>
+             <p v-if="copy.boxSet.canRent || copy.boxSet.canSell">
+                 Part of boxset
+                 <RouterLink :to="{ name: 'boxset', params: { id: copy.boxSet.id } }">
+                     {{ copy.boxSet.name || copy.boxSet.title }}
+                 </RouterLink>
+             </p>
+             <p v-if="copy.boxSet.canSell">
+                 💰 Boxset for sale: {{ copy.boxSet.sellPrice }} €
+             </p>
+     
+             <p v-if="copy.boxSet.canRent">
+                 🎬 Boxset for rent: {{ copy.boxSet.deposit }} €
+                 <br>
+                 € Per Month: {{ copy.boxSet.rentPrice }} €
+             </p>
+         </div>
+     </div>
 
     </div>
     <div

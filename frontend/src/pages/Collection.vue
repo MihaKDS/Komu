@@ -103,9 +103,18 @@ const groupByCollection = ref(true);
 const selectedCategory = ref("MOVIE");
 
 const copies = ref([]);
+const mediaMap = ref(new Map());
 
 onMounted(async () => {
     copies.value = await getMyCopies();
+    // also load global media counts to detect if any title (or collection group) is being sold or rented
+    try {
+        const all = await import('../api/mediaAPI.js').then(m => m.getAllMedia());
+        // build a map by media id
+        mediaMap.value = new Map(all.map(item => [item.id, item]));
+    } catch (err) {
+        mediaMap.value = new Map();
+    }
     loading.value = false;
 });
 
@@ -158,9 +167,15 @@ const filteredMedia = computed(() => {
 
     const flat = [...grouped.values()];
     if (!groupByCollection.value) {
-        return flat.filter((media) =>
-            media.title.toLowerCase().includes(searchValue),
-        );
+    return flat
+      .map(m => ({
+        ...m,
+        hasSell: mediaMap.value.get(m.id)?.hasSell ?? false,
+        hasRent: mediaMap.value.get(m.id)?.hasRent ?? false,
+      }))
+      .filter((media) =>
+        media.title.toLowerCase().includes(searchValue),
+    );
     }
 
     const byCollection = new Map();
@@ -199,6 +214,8 @@ const filteredMedia = computed(() => {
                 isCollectionGroup: true,
                 collectionSize: g.medias.length,
                 id: g.medias[0].id,
+                hasSell: g.medias.some(m => mediaMap.value.get(m.id)?.hasSell) || false,
+                hasRent: g.medias.some(m => mediaMap.value.get(m.id)?.hasRent) || false,
             };
             result.push(representative);
         } else {

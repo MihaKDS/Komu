@@ -124,6 +124,12 @@ function mediaLink(media) {
   border-radius: 999px;
   font-size: 0.8rem;
 }
+.badge.sell {
+  background: #ff9f3f;
+}
+.badge.rent {
+  background: #ffd24d;
+}
 
 .meta {
   margin: 0;
