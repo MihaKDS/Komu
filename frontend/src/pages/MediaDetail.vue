@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, computed } from "vue";
 import { useRoute } from "vue-router";
 
 import { useAuth } from "../composables/useAuth"
@@ -13,6 +13,8 @@ import AddCopyDialog from "../components/ui/AddCopyDialog.vue";
 
 import { getMedia } from "../api/mediaAPI.js";
 import EditCopy from "../components/ui/EditCopy.vue";
+import MediaList from "../components/media/MediaList.vue";
+import MediaGrid from "../components/media/MediaGrid.vue";
 
 const route = useRoute();
 const mediaDetails = ref(null);
@@ -44,6 +46,29 @@ watch(mediaDetails, (details) => {
     if (details) {
         document.title = `Komu - ${details.media.title}`;
     }
+});
+
+const sortedCollectionMedias = computed(() => {
+    if (!mediaDetails.value || !mediaDetails.value.collection || !Array.isArray(mediaDetails.value.collection.medias)) return [];
+    return [...mediaDetails.value.collection.medias].sort((a, b) => (a.collectionPosition ?? 0) - (b.collectionPosition ?? 0));
+});
+
+// View and filter state for the collection block
+const collectionFormat = ref('ALL'); // ALL, DVD, BLURAY, UHD_4K
+const collectionViewMode = ref('list'); // 'list' or 'grid'
+
+function mediaHasFormat(media, format) {
+    if (format === 'ALL') return true;
+    const map = {
+        DVD: media.dvd,
+        BLURAY: media.bluray,
+        UHD_4K: media.fourk,
+    };
+    return Boolean(map[format]);
+}
+
+const filteredCollectionMedias = computed(() => {
+    return sortedCollectionMedias.value.filter((m) => mediaHasFormat(m, collectionFormat.value));
 });
 </script>
 
@@ -109,6 +134,15 @@ watch(mediaDetails, (details) => {
                 <strong>{{ copy.edition }} <div v-if="copy.includesBluRay" >with Blue Ray</div></strong>
 
                 <p>{{ copy.condition }}</p>
+                <p v-if="copy.activeTrade">
+                    Status:
+                    <RouterLink :to="{ name: 'trade-detail', params: { id: copy.activeTrade.id }, query: { from: 'collection' } }">
+                        {{ copy.activeTrade.status === 'RENTING' ? 'Renting' : 'Reserved' }}
+                    </RouterLink>
+                </p>
+                <p v-else>
+                    Status: Available
+                </p>
                 <p v-if="copy.boxSet">
                     Part of boxset
                     <RouterLink :to="{ name: 'boxset', params: { id: copy.boxSet.id } }">
@@ -160,7 +194,11 @@ watch(mediaDetails, (details) => {
         class="copy-card"
     >
      <div v-if="copy.canRent || copy.canSell ">
-         <strong>{{ copy.owner.username }}</strong>
+         <strong>
+             <RouterLink :to="{ name: 'seller-listings', params: { username: copy.owner.username } }">
+                 {{ copy.owner.username }}
+             </RouterLink>
+         </strong>
  
          <p>
              {{ copy.edition }}
@@ -189,7 +227,11 @@ watch(mediaDetails, (details) => {
      </div>
      <div v-if="copy.boxSet !== null ">
          <div v-if="copy.boxSet.canRent || copy.boxSet.canSell ">
-             <strong>{{ copy.owner.username }}</strong>
+             <strong>
+                 <RouterLink :to="{ name: 'seller-listings', params: { username: copy.owner.username } }">
+                     {{ copy.owner.username }}
+                 </RouterLink>
+             </strong>
              <p v-if="copy.boxSet.canRent || copy.boxSet.canSell">
                  Part of boxset
                  <RouterLink :to="{ name: 'boxset', params: { id: copy.boxSet.id } }">
@@ -221,11 +263,32 @@ watch(mediaDetails, (details) => {
 
         <div v-if="mediaDetails.collection" class="collection-block">
             <h3>Part of</h3>
-            <div class="collection-list">
-                <div v-for="m in mediaDetails.collection.medias" :key="m.id" :class="[{ current: m.id === mediaDetails.media.id }, 'collection-item']">
-                    <span class="pos">{{ m.collectionPosition ?? '-' }}</span>
-                    <RouterLink :to="{ name: 'media', params: { id: m.id } }">{{ m.title }}</RouterLink>
+
+            <div class="collection-controls">
+                <label>
+                    <!--Format:
+                    <select v-model="collectionFormat">
+                        <option value="ALL">All</option>
+                        <option value="DVD">DVD</option>
+                        <option value="BLURAY">Blu-ray</option>
+                        <option value="UHD_4K">UHD / 4K</option>
+                    </select>-->
+                </label>
+
+                <div class="view-toggle">
+                    <button :class="{ active: collectionViewMode === 'list' }" @click.prevent="collectionViewMode = 'list'">List</button>
+                    <button :class="{ active: collectionViewMode === 'grid' }" @click.prevent="collectionViewMode = 'grid'">Grid</button>
                 </div>
+            </div>
+
+            <div class="collection-list-container">
+                <component
+                    :is="collectionViewMode === 'grid' ? MediaGrid : MediaList"
+                    :mediaList="filteredCollectionMedias.map(m => ({ ...m, inCollection: true }))"
+                    :mode="'collection'"
+                    :compact="collectionViewMode === 'list'"
+                    :currentId="mediaDetails.media.id"
+                />
             </div>
         </div>
 
@@ -365,23 +428,46 @@ summary {
 .collection-block{
   margin-top:2rem;
 }
-.collection-list{
-  display:flex;
-  flex-direction:column;
-  gap:.5rem;
-}
-.collection-item{
-  display:flex;
-  align-items:center;
-  gap: .75rem;
-}
-.collection-item.current{
-  font-weight:700;
-}
+
+/* Horizontally scrollable list of media cards for the collection */
+/* keep previous .pos style available if needed elsewhere */
 .pos{
   width:2rem;
   text-align:right;
   color:#bbb;
+}
+
+
+.collection-block .collection-controls{
+  display:flex;
+  gap:1rem;
+  align-items:center;
+  margin-top:.5rem;
+}
+.collection-block .collection-controls select{
+  background:#222;
+  color:#fff;
+  border:1px solid #333;
+  padding:.25rem .5rem;
+  border-radius:6px;
+}
+.collection-block .view-toggle button{
+  background:transparent;
+  color:#ddd;
+  border:1px solid #333;
+  padding:.35rem .6rem;
+  border-radius:6px;
+  margin-left:.25rem;
+  cursor:pointer;
+}
+.collection-block .view-toggle button.active{
+  background:#3f8cff;
+  color:#fff;
+  border-color:rgba(63,140,255,0.6);
+}
+
+.collection-list-container{
+  margin-top:1rem;
 }
 
 </style>

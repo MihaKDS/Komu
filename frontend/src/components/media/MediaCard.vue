@@ -31,6 +31,18 @@
                     {{ media.availableCopies }} available for sale or rent
                 </p>
 
+                <div v-if="media.tradeStatusLabel" class="trade-status">
+                    <button
+                        v-if="media.tradeId"
+                        type="button"
+                        class="trade-status-link"
+                        @click.stop.prevent="openTrade(media.tradeId)"
+                    >
+                        {{ media.tradeStatusLabel }}
+                    </button>
+                    <span v-else>{{ media.tradeStatusLabel }}</span>
+                </div>
+
                 <div
                     class="media-formats"
                     v-if="!media.isCollectionGroup"
@@ -58,6 +70,9 @@
 </template>
 
 <script setup>
+import { useRouter } from "vue-router";
+
+const router = useRouter();
 
 defineProps({
 
@@ -78,6 +93,18 @@ defineProps({
 
 function posterSource(poster) {
     return poster?.startsWith("http") ? poster : `/posters/${poster}`;
+}
+
+function openTrade(tradeId) {
+    router.push({
+        name: "trade-detail",
+        params: {
+            id: tradeId,
+        },
+        query: {
+            from: "collection",
+        },
+    });
 }
 </script>
 
@@ -144,6 +171,23 @@ function posterSource(poster) {
     margin:.35rem 0;
     color:#d4d4d4;
     font-size:.95rem;
+}
+
+.trade-status{
+    margin:.35rem 0;
+    color:#d4d4d4;
+    font-size:.95rem;
+    font-weight:600;
+}
+
+.trade-status-link{
+    border:none;
+    background:none;
+    color:#7acbff;
+    padding:0;
+    cursor:pointer;
+    font:inherit;
+    text-decoration:underline;
 }
 
 .media-card .meta{

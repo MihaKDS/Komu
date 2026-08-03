@@ -68,6 +68,23 @@ const items = computed(() => {
 
             break;
 
+        case "seller":
+
+            breadcrumbs.push({
+                label: "Seller Listings",
+            });
+
+            break;
+
+        case "trades":
+
+            breadcrumbs.push({
+                label: "Trades",
+                to: "/trades"
+            });
+
+            break;
+
         case "books":
 
             breadcrumbs.push({

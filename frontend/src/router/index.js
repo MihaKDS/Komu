@@ -6,11 +6,13 @@ const auth = useAuth()
 import Home from "../pages/Home.vue";
 import Search from "../pages/Search.vue";
 import Collection from "../pages/Collection.vue";
-import Sharing from "../pages/Sharing.vue";
+import Trades from "../pages/Trades.vue";
 import Lists from "../pages/Lists.vue";
 import Profile from "../pages/Profile.vue";
 import MediaDetail from "../pages/MediaDetail.vue";
 import BoxSetDetail from "../pages/BoxSetDetail.vue";
+import SellerListings from "../pages/SellerListings.vue";
+import TradeDetail from "../pages/TradeDetail.vue";
 import Login from '../pages/Login.vue'
 import Register from "../pages/Register.vue";
 
@@ -47,14 +49,24 @@ const routes = [
         }
     },
 
-    // Sharing
+    // Trades
     {
-        path: "/sharing",
-        name: "Sharing",
-        component: Sharing,
+        path: "/trades",
+        alias: "/sharing",
+        name: "trades",
+        component: Trades,
         meta: {
-            title: "Sharing",
+            title: "Trades",
             requiresAuth: true
+        }
+    },
+    {
+        path: "/trades/:id",
+        name: "trade-detail",
+        component: TradeDetail,
+        meta: {
+            title: "Trade",
+            requiresAuth: true,
         }
     },
 
@@ -95,6 +107,14 @@ const routes = [
         component: BoxSetDetail,
         meta: {
             title: 'Box Set',
+        }
+    },
+    {
+        path: '/seller/:username',
+        name: 'seller-listings',
+        component: SellerListings,
+        meta: {
+            title: 'Seller Listings',
         }
     },
 

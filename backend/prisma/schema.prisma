@@ -51,6 +51,9 @@ model User {
   updatedAt    DateTime @updatedAt
 
   copies       Copy[]
+  tradesAsBuyer Trade[] @relation("TradeBuyer")
+  tradesAsSeller Trade[] @relation("TradeSeller")
+  tradeMessages TradeMessage[]
 }
 
 model BoxSet {
@@ -100,6 +103,46 @@ model Copy {
   user             User      @relation(fields: [userId], references: [id])
 
   boxSet           BoxSet?   @relation(fields: [boxSetId], references: [id])
+  tradeItems       TradeItem[]
+}
+
+model Trade {
+  id                       Int          @id @default(autoincrement())
+  buyerId                  Int
+  sellerId                 Int
+  type                     TradeType
+  status                   TradeStatus  @default(REQUESTED)
+  sellerConfirmedTransfer  Boolean      @default(false)
+  buyerConfirmedTransfer   Boolean      @default(false)
+  createdAt                DateTime     @default(now())
+  updatedAt                DateTime     @updatedAt
+
+  buyer                    User         @relation("TradeBuyer", fields: [buyerId], references: [id])
+  seller                   User         @relation("TradeSeller", fields: [sellerId], references: [id])
+  items                    TradeItem[]
+  messages                 TradeMessage[]
+}
+
+model TradeItem {
+  id        Int    @id @default(autoincrement())
+  tradeId   Int
+  copyId    Int
+
+  trade      Trade @relation(fields: [tradeId], references: [id])
+  copy       Copy  @relation(fields: [copyId], references: [id])
+
+  @@unique([tradeId, copyId])
+}
+
+model TradeMessage {
+  id         Int      @id @default(autoincrement())
+  tradeId     Int
+  senderId    Int
+  message     String
+  createdAt   DateTime @default(now())
+
+  trade       Trade    @relation(fields: [tradeId], references: [id])
+  sender      User     @relation(fields: [senderId], references: [id])
 }
 
 enum Edition {
@@ -121,4 +164,18 @@ enum Category {
   BOOK
   GAME
   MUSIC
+}
+
+enum TradeType {
+  BUY
+  RENT
+}
+
+enum TradeStatus {
+  REQUESTED
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  RENTING
+  COMPLETED
 }

@@ -3,15 +3,23 @@
         <Breadcrumbs />
         <h1>My Collection ({{ totalCopies }})</h1>
 
-        <!--<CategorySelector
+        <CategorySelector
             :categories="categories"
             :selected="selectedCategory"
             @change="changeCategory"
-        />-->
+        />
 
         <SearchBar
-            v-model="search"
+            @search="search = $event"
             placeholder="Search your collection..."
+        />
+
+        <FilterBar
+            :format="selectedFormat"
+            :viewMode="viewMode"
+            :showCollectionFilter="false"
+            @update:format="selectedFormat = $event"
+            @update:viewMode="viewMode = $event"
         />
 
             <div class="group-by-collection">
@@ -53,7 +61,11 @@
         </div>
 
         <div v-else>
-            <MediaGrid :mediaList="filteredMedia" mode="collection" />
+            <component
+                :is="viewMode === 'list' ? MediaList : MediaGrid"
+                :mediaList="filteredMedia"
+                mode="collection"
+            />
         </div>
 
         <!--
@@ -88,7 +100,9 @@ const router = useRouter();
 
 import Breadcrumbs from "../components/layout/Breadcrumbs.vue";
 import MediaGrid from "../components/media/MediaGrid.vue";
+import MediaList from "../components/media/MediaList.vue";
 import CategorySelector from "../components/ui/CategorySelector.vue";
+import FilterBar from "../components/ui/FilterBar.vue";
 import SearchBar from "../components/ui/SearchBar.vue";
 import AddMedia from "../components/ui/AddMedia.vue";
 
@@ -99,6 +113,8 @@ const loading = ref(true);
 const search = ref("");
 const showAddMedia = ref(false);
 const groupByCollection = ref(true);
+const selectedFormat = ref("ALL");
+const viewMode = ref("list");
 
 const selectedCategory = ref("MOVIE");
 
@@ -129,6 +145,60 @@ function changeCategory(category) {
   selectedCategory.value = category;
 }
 
+function tradePriority(status) {
+    switch (status) {
+        case "RENTING":
+            return 2;
+        case "REQUESTED":
+        case "ACCEPTED":
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+function pickTrade(primary, candidate) {
+    if (!candidate) {
+        return primary;
+    }
+
+    if (!primary) {
+        return candidate;
+    }
+
+    return tradePriority(candidate.status) > tradePriority(primary.status) ? candidate : primary;
+}
+
+function tradeStatusLabel(activeTrade) {
+    if (!activeTrade) {
+        return "Available";
+    }
+
+    switch (activeTrade.status) {
+        case "RENTING":
+            return "Renting";
+        case "REQUESTED":
+        case "ACCEPTED":
+            return "Reserved";
+        default:
+            return "Available";
+    }
+}
+
+function matchesFormat(media) {
+    if (selectedFormat.value === "ALL") {
+        return true;
+    }
+
+    const formats = {
+        DVD: media.dvd,
+        BLURAY: media.bluray,
+        UHD_4K: media.fourk,
+    };
+
+    return Boolean(formats[selectedFormat.value]);
+}
+
 const filteredMedia = computed(() => {
     const grouped = new Map();
     const searchValue = search.value.toLowerCase();
@@ -145,12 +215,14 @@ const filteredMedia = computed(() => {
                 dvd: 0,
                 bluray: 0,
                 fourk: 0,
-                copies: []
+                copies: [],
+                activeTrade: null,
             });
         }
 
         const item = grouped.get(media.id);
         item.copies.push(copy);
+        item.activeTrade = pickTrade(item.activeTrade, copy.activeTrade);
 
         switch (copy.edition) {
             case "DVD":
@@ -165,13 +237,15 @@ const filteredMedia = computed(() => {
         }
     }
 
-    const flat = [...grouped.values()];
+    const flat = [...grouped.values()].filter(matchesFormat);
     if (!groupByCollection.value) {
     return flat
       .map(m => ({
         ...m,
         hasSell: mediaMap.value.get(m.id)?.hasSell ?? false,
         hasRent: mediaMap.value.get(m.id)?.hasRent ?? false,
+        tradeId: m.activeTrade?.id ?? null,
+        tradeStatusLabel: tradeStatusLabel(m.activeTrade),
       }))
       .filter((media) =>
         media.title.toLowerCase().includes(searchValue),
@@ -216,12 +290,23 @@ const filteredMedia = computed(() => {
                 id: g.medias[0].id,
                 hasSell: g.medias.some(m => mediaMap.value.get(m.id)?.hasSell) || false,
                 hasRent: g.medias.some(m => mediaMap.value.get(m.id)?.hasRent) || false,
+                activeTrade: g.medias.reduce((selected, media) => pickTrade(selected, media.activeTrade), null),
             };
+            representative.tradeId = representative.activeTrade?.id ?? null;
+            representative.tradeStatusLabel = tradeStatusLabel(representative.activeTrade);
             result.push(representative);
         } else {
-            result.push(...g.medias.filter((media) =>
-                media.title.toLowerCase().includes(searchValue),
-            ));
+            result.push(
+                ...g.medias
+                    .filter((media) =>
+                        media.title.toLowerCase().includes(searchValue),
+                    )
+                    .map((media) => ({
+                        ...media,
+                        tradeId: media.activeTrade?.id ?? null,
+                        tradeStatusLabel: tradeStatusLabel(media.activeTrade),
+                    })),
+            );
         }
     }
 

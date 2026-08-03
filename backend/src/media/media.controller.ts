@@ -38,6 +38,11 @@ export class MediaController {
     return this.mediaService.search(query);
   }
 
+  @Get('seller/:username')
+  findSellerListings(@Param('username') username: string) {
+    return this.mediaService.findSellerListings(username);
+  }
+
   @UseGuards(OptionalJwtAuthGuard)
   @Get(':id')
   findOne(

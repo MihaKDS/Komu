@@ -3,11 +3,14 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
+import { TradeStatus } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCopyDto } from './dto/create-copy.dto';
 import { UpdateCopyDto } from './dto/update-copy.dto';
 import { PublicCopyDto } from './dto/public-copy.dto';
+
+const ACTIVE_TRADE_STATUSES = [TradeStatus.REQUESTED, TradeStatus.ACCEPTED, TradeStatus.RENTING];
 
 @Injectable()
 export class CopyService {
@@ -18,6 +21,15 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
   const copies = await this.prisma.copy.findMany({
     where: {
       mediaId,
+      tradeItems: {
+        none: {
+          trade: {
+            status: {
+              in: ACTIVE_TRADE_STATUSES,
+            },
+          },
+        },
+      },
     },
 
     select: {
@@ -83,7 +95,7 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
 }
 
   async findByUser(userId: number) {
-    return this.prisma.copy.findMany({
+    const copies = await this.prisma.copy.findMany({
       where: {
         userId,
       },
@@ -94,8 +106,37 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
           },
         },
         boxSet: true,
+        tradeItems: {
+          where: {
+            trade: {
+              status: {
+                in: ACTIVE_TRADE_STATUSES,
+              },
+            },
+          },
+          orderBy: {
+            trade: {
+              updatedAt: 'desc',
+            },
+          },
+          take: 1,
+          include: {
+            trade: {
+              select: {
+                id: true,
+                status: true,
+                type: true,
+              },
+            },
+          },
+        },
       },
     });
+
+    return copies.map((copy) => ({
+      ...copy,
+      activeTrade: copy.tradeItems[0]?.trade ?? null,
+    }));
   }
 
   async create(dto: CreateCopyDto, userId: number) {
@@ -180,6 +221,8 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
       );
     }
 
+    await this.assertCopyNotInActiveTrade(id);
+
     const copyData: any = {
       listingNote: dto.listingNote ? dto.listingNote : null,
 
@@ -259,6 +302,8 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
       );
     }
 
+    await this.assertCopyNotInActiveTrade(id);
+
     return this.prisma.copy.delete({
       where: {
         id,
@@ -286,6 +331,8 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
           'You do not own this copy',
         );
       }
+
+      await this.assertCopyNotInActiveTrade(id);
 
       if (!original.includesBluRay) {
         throw new Error('Copy does not contain a Blu-ray');
@@ -337,5 +384,25 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
         bluRay: bluRayCopy,
       };
     });
+  }
+
+  private async assertCopyNotInActiveTrade(copyId: number) {
+    const activeTradeItem = await this.prisma.tradeItem.findFirst({
+      where: {
+        copyId,
+        trade: {
+          status: {
+            in: ACTIVE_TRADE_STATUSES,
+          },
+        },
+      },
+      select: {
+        tradeId: true,
+      },
+    });
+
+    if (activeTradeItem) {
+      throw new ForbiddenException('This copy is currently part of an active trade');
+    }
   }
 }

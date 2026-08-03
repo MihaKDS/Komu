@@ -8,6 +8,8 @@
       <RouterLink :to="{ path: '/search', query: { category: 'MOVIE' } }" class="sector-button">Film</RouterLink>
       <RouterLink :to="{ path: '/search', query: { category: 'BOOK' } }" class="sector-button">Books</RouterLink>
       <RouterLink :to="{ path: '/search', query: { category: 'MANGA' } }" class="sector-button">Manga</RouterLink>
+      <hr>
+      <RouterLink :to="{ path: '/collection', query: { category: 'MOVIE' } }" class="sector-button">My Collection</RouterLink>
     </div>
   </div>
 </template>

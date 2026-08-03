@@ -14,7 +14,7 @@
       </select>
     </div>
 
-    <div class="group">
+    <div v-if="showCollectionFilter" class="group">
       <label for="collection-select">Collection</label>
       <select
         id="collection-select"
@@ -27,7 +27,7 @@
       </select>
     </div>
 
-    <div class="view-toggle">
+    <div v-if="showViewToggle" class="view-toggle">
       <button
         type="button"
         :class="{ active: viewMode === 'grid' }"
@@ -61,6 +61,14 @@ const props = defineProps({
   viewMode: {
     type: String,
     default: 'grid',
+  },
+  showCollectionFilter: {
+    type: Boolean,
+    default: true,
+  },
+  showViewToggle: {
+    type: Boolean,
+    default: true,
   },
 });
 

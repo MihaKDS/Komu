@@ -1,8 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { TradeStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PublicCopyDto } from '../copy/dto/public-copy.dto';
 import { CreateMediaDto } from './dto/create-media.dto';
 import { TmdbService } from '../tmdb/tmdb.service';
+
+const ACTIVE_TRADE_STATUSES = [TradeStatus.REQUESTED, TradeStatus.ACCEPTED, TradeStatus.RENTING];
 
 @Injectable()
 export class MediaService {
@@ -182,6 +185,30 @@ export class MediaService {
             },
           },
         },
+        tradeItems: {
+          where: {
+            trade: {
+              status: {
+                in: ACTIVE_TRADE_STATUSES,
+              },
+            },
+          },
+          orderBy: {
+            trade: {
+              updatedAt: 'desc',
+            },
+          },
+          take: 1,
+          include: {
+            trade: {
+              select: {
+                id: true,
+                status: true,
+                type: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -196,13 +223,19 @@ export class MediaService {
     }
 
     const myCopies = userId
-      ? copies.filter((c) => c.userId === userId)
+      ? copies
+          .filter((c) => c.userId === userId)
+          .map((copy) => ({
+            ...copy,
+            activeTrade: copy.tradeItems[0]?.trade ?? null,
+          }))
       : [];
 
       const otherCopies: PublicCopyDto[] = copies
         .filter(
           c =>
             c.userId !== userId &&
+            c.tradeItems.length === 0 &&
             (c.canSell || c.canRent || c.boxSet?.canRent || c.boxSet?.canSell)
         )
       .map((copy) => ({
@@ -240,9 +273,7 @@ export class MediaService {
         },
       }));
       
-      const otherOwnersCount = copies.filter(
-        c => c.userId !== userId
-      ).length;
+      const otherOwnersCount = otherCopies.length;
 
     return {
       media,
@@ -286,6 +317,145 @@ export class MediaService {
     return this.addCopyCounts(media);
   }
 
+  async findSellerListings(username: string) {
+    const seller = await this.prisma.user.findUnique({
+      where: { username },
+      select: {
+        id: true,
+        username: true,
+        city: true,
+      },
+    });
+
+    if (!seller) {
+      throw new NotFoundException();
+    }
+
+    const copies = await this.prisma.copy.findMany({
+      where: {
+        userId: seller.id,
+        tradeItems: {
+          none: {
+            trade: {
+              status: {
+                in: ACTIVE_TRADE_STATUSES,
+              },
+            },
+          },
+        },
+        OR: [
+          { canSell: true },
+          { canRent: true },
+          { boxSet: { is: { canSell: true } } },
+          { boxSet: { is: { canRent: true } } },
+        ],
+      },
+      include: {
+        media: {
+          include: {
+            movieCollection: {
+              select: {
+                id: true,
+                title: true,
+                tmdbId: true,
+                poster: true,
+              },
+            },
+          },
+        },
+        boxSet: {
+          select: {
+            canSell: true,
+            canRent: true,
+          },
+        },
+      },
+    });
+
+    const grouped = new Map<
+      number,
+      {
+        id: number;
+        title: string;
+        description: string;
+        releaseYear: number;
+        poster: string | null;
+        category: string;
+        movieCollectionId: number | null;
+        collectionPosition: number | null;
+        movieCollection: {
+          id: number;
+          title: string;
+          tmdbId: number | null;
+          poster: string | null;
+        } | null;
+        dvd: number;
+        bluray: number;
+        fourk: number;
+        availableCopies: number;
+        hasSell: boolean;
+        hasRent: boolean;
+        availableCopyIds: number[];
+      }
+    >();
+
+    for (const copy of copies) {
+      const media = copy.media;
+      if (!grouped.has(media.id)) {
+        grouped.set(media.id, {
+          id: media.id,
+          title: media.title,
+          description: media.description,
+          releaseYear: media.releaseYear,
+          poster: media.poster,
+          category: media.category,
+          movieCollectionId: media.movieCollectionId,
+          collectionPosition: media.collectionPosition,
+          movieCollection: media.movieCollection
+            ? {
+                id: media.movieCollection.id,
+                title: media.movieCollection.title,
+                tmdbId: media.movieCollection.tmdbId,
+                poster: media.movieCollection.poster,
+              }
+            : null,
+          dvd: 0,
+          bluray: 0,
+          fourk: 0,
+          availableCopies: 0,
+          hasSell: false,
+          hasRent: false,
+          availableCopyIds: [],
+        });
+      }
+
+      const item = grouped.get(media.id);
+      if (!item) continue;
+
+      item.availableCopies++;
+      item.hasSell = item.hasSell || copy.canSell || Boolean(copy.boxSet?.canSell);
+      item.hasRent = item.hasRent || copy.canRent || Boolean(copy.boxSet?.canRent);
+      item.availableCopyIds.push(copy.id);
+
+      switch (copy.edition) {
+        case 'DVD':
+          item.dvd++;
+          break;
+        case 'BLURAY':
+          item.bluray++;
+          break;
+        case 'UHD_4K':
+          item.fourk++;
+          break;
+      }
+    }
+
+    return {
+      seller,
+      items: [...grouped.values()].sort((a, b) => a.title.localeCompare(b.title)),
+    };
+  }
+
   private async addCopyCounts(mediaItems: { id: number }[]) {
     if (mediaItems.length === 0) {
       return [];
@@ -314,23 +484,38 @@ export class MediaService {
         mediaId: {
           in: mediaIds,
         },
+        tradeItems: {
+          none: {
+            trade: {
+              status: {
+                in: ACTIVE_TRADE_STATUSES,
+              },
+            },
+          },
+        },
       },
       select: {
         mediaId: true,
         edition: true,
         canSell: true,
         canRent: true,
+        boxSet: {
+          select: {
+            canSell: true,
+            canRent: true,
+          },
+        },
       },
     });
 
     for (const copy of copiesWithAvailability) {
       const counts = countsByMedia.get(copy.mediaId);
       if (!counts) continue;
-      if (copy.canSell || copy.canRent) {
+      if (copy.canSell || copy.canRent || copy.boxSet?.canSell || copy.boxSet?.canRent) {
         counts.availableCopies++;
       }
-      if (copy.canSell) counts.hasSell = true;
-      if (copy.canRent) counts.hasRent = true;
+      if (copy.canSell || copy.boxSet?.canSell) counts.hasSell = true;
+      if (copy.canRent || copy.boxSet?.canRent) counts.hasRent = true;
 
       switch (copy.edition) {
         case 'DVD':
