@@ -322,6 +322,8 @@ const filteredCollectionMedias = computed(() => {
     gap:3rem;
 
     padding:2rem;
+    width:100%;
+    max-width:100%;
 
 }
 
@@ -332,18 +334,21 @@ const filteredCollectionMedias = computed(() => {
     gap:3rem;
 
     align-items:flex-start;
+    width:100%;
+    max-width:100%;
 
 }
 
 .poster{
 
     flex-shrink:0;
+    max-width:100%;
 
 }
 
 .poster img{
 
-    width:280px;
+    width:min(280px, 100%);
 
     border-radius:12px;
 
@@ -354,6 +359,7 @@ const filteredCollectionMedias = computed(() => {
 .summary{
 
     flex:1;
+    min-width:0;
 
 }
 
@@ -400,6 +406,7 @@ const filteredCollectionMedias = computed(() => {
     gap: .5rem;
 
     margin-top: 1rem;
+    flex-wrap: wrap;
 
 }
 
@@ -443,6 +450,7 @@ summary {
   gap:1rem;
   align-items:center;
   margin-top:.5rem;
+  flex-wrap:wrap;
 }
 .collection-block .collection-controls select{
   background:#222;
@@ -468,6 +476,49 @@ summary {
 
 .collection-list-container{
   margin-top:1rem;
+}
+
+@media (max-width: 768px) {
+  .media-detail {
+    gap: 1.5rem;
+    padding: 1rem;
+  }
+
+  .media-header {
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .poster {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .poster img {
+    width: min(220px, 100%);
+  }
+
+  .summary h1,
+  .summary p,
+  .description,
+  .copy-card p {
+    overflow-wrap: anywhere;
+  }
+
+  .collection-block .collection-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .collection-block .view-toggle {
+    display: flex;
+    width: 100%;
+  }
+
+  .collection-block .view-toggle button {
+    flex: 1;
+  }
 }
 
 </style>

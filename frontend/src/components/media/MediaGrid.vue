@@ -52,4 +52,15 @@ defineProps({
 
 }
 
+@media (max-width: 768px) {
+
+    .media-grid {
+
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+
+        gap: 1rem;
+
+    }
+}
+
 </style>

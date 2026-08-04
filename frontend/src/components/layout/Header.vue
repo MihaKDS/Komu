@@ -60,6 +60,7 @@ defineEmits([
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 0.75rem;
 
     padding: 1rem;
 
@@ -79,6 +80,16 @@ defineEmits([
 
 .logo {
     margin: 0;
+}
+
+@media (max-width: 768px) {
+    .header {
+        flex-wrap: wrap;
+    }
+
+    .logo {
+        font-size: 1.5rem;
+    }
 }
 
 </style>

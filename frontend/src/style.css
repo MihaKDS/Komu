@@ -52,6 +52,29 @@
 
 body {
   margin: 0;
+  overflow-x: hidden;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+img {
+  max-width: 100%;
+}
+
+.page {
+  width: 100%;
+  max-width: 100%;
+  padding: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: 1rem;
+  }
 }
 
 h1,
@@ -166,6 +189,12 @@ code {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  #app {
+    border-inline: none;
+  }
 }
 
 #center {

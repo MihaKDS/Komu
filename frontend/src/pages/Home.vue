@@ -34,6 +34,12 @@
 .sectors {
   display: flex;
   gap: 1rem;
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+
+.sectors hr {
+  display: none;
 }
 
 .sector-button {
@@ -47,5 +53,22 @@
 
 .sector-button:hover {
   background: #3677d1;
+}
+
+@media (max-width: 768px) {
+  .home {
+    padding: 1rem;
+    align-items: stretch;
+  }
+
+  .sectors {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .sector-button {
+    width: 100%;
+    text-align: center;
+  }
 }
 </style>
