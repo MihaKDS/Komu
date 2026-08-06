@@ -1,49 +1,32 @@
-const API_URL = "/api/auth";
+import { apiFetch } from "../api/client";
 
-export async function login(email, password) {
-  const response = await fetch(`${API_URL}/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      email,
-      password,
-    }),
+export async function login(credentials, passwordMaybe) {
+  const payload = typeof credentials === "object"
+    ? credentials
+    : {
+        email: credentials,
+        password: passwordMaybe,
+      };
+
+  return apiFetch("/auth/login", {
+    method: "POST",
+    body: JSON.stringify(payload),
   });
-
-  if (!response.ok) {
-    throw new Error('Invalid email or password');
-  }
-
-  return await response.json();
 }
 
-export async function register(user) {
-  const response = await fetch(`${API_URL}/register`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(user),
+export async function register(userData) {
+  return apiFetch("/auth/register", {
+    method: "POST",
+    body: JSON.stringify(userData),
   });
-
-  if (!response.ok) {
-    throw new Error('Registration failed');
-  }
-
-  return await response.json();
 }
 
 export async function getCurrentUser(token) {
-  const response = await fetch(`${API_URL}/me`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+  return apiFetch("/auth/me", {
+    headers: token
+      ? {
+          Authorization: `Bearer ${token}`,
+        }
+      : undefined,
   });
-
-  if (!response.ok) {
-    throw new Error('Unauthorized');
-  }
-  return await response.json();
 }

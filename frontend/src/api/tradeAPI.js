@@ -45,3 +45,15 @@ export function confirmBuyerTransfer(id) {
     method: "POST",
   });
 }
+
+export function requestTradeReturn(id) {
+  return apiFetch(`/trades/${id}/return-request`, {
+    method: "POST",
+  });
+}
+
+export function acceptTradeReturn(id) {
+  return apiFetch(`/trades/${id}/accept-return`, {
+    method: "POST",
+  });
+}

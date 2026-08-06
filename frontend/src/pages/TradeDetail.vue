@@ -12,6 +12,7 @@
       <p><strong>Seller:</strong> {{ trade.seller.username }}</p>
       <p><strong>Seller confirmed transfer:</strong> {{ trade.sellerConfirmedTransfer ? "Yes" : "No" }}</p>
       <p><strong>Buyer confirmed transfer:</strong> {{ trade.buyerConfirmedTransfer ? "Yes" : "No" }}</p>
+      <p v-if="trade.type === 'RENT'"><strong>Return requested:</strong> {{ trade.returnRequested ? "Yes" : "No" }}</p>
     </section>
 
     <section>
@@ -48,7 +49,16 @@ import Breadcrumbs from "../components/layout/Breadcrumbs.vue";
 import TradeItems from "../components/trade/TradeItems.vue";
 import TradeMessages from "../components/trade/TradeMessages.vue";
 import TradeStatus from "../components/trade/TradeStatus.vue";
-import { addTradeMessage, acceptTrade, confirmBuyerTransfer, confirmSellerTransfer, getTrade, rejectTrade } from "../api/tradeAPI.js";
+import {
+  acceptTradeReturn,
+  addTradeMessage,
+  acceptTrade,
+  confirmBuyerTransfer,
+  confirmSellerTransfer,
+  getTrade,
+  rejectTrade,
+  requestTradeReturn,
+} from "../api/tradeAPI.js";
 
 const route = useRoute();
 
@@ -88,6 +98,28 @@ const actionButtons = computed(() => {
     buttons.push({
       label: "Confirm transfer as buyer",
       handler: () => runAction(() => confirmBuyerTransfer(trade.value.id)),
+    });
+  }
+
+  if (
+    trade.value.status === "RENTING" &&
+    trade.value.viewerRole === "buyer" &&
+    !trade.value.returnRequested
+  ) {
+    buttons.push({
+      label: "Return",
+      handler: () => runAction(() => requestTradeReturn(trade.value.id)),
+    });
+  }
+
+  if (
+    trade.value.status === "RENTING" &&
+    trade.value.viewerRole === "seller" &&
+    trade.value.returnRequested
+  ) {
+    buttons.push({
+      label: "Accept return",
+      handler: () => runAction(() => acceptTradeReturn(trade.value.id)),
     });
   }
 

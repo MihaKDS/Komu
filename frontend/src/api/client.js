@@ -1,4 +1,27 @@
-﻿const API_URL = "/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+async function readErrorMessage(response) {
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    const data = await response.json();
+
+    if (typeof data.message === "string") {
+      return data.message;
+    }
+
+    if (Array.isArray(data.message)) {
+      return data.message.join(", ");
+    }
+
+    if (typeof data.error === "string") {
+      return data.error;
+    }
+  }
+
+  const text = await response.text();
+  return text || `HTTP ${response.status}`;
+}
 
 export async function apiFetch(url, options = {}) {
   const token = localStorage.getItem("token");
@@ -18,7 +41,7 @@ export async function apiFetch(url, options = {}) {
   });
 
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
+    throw new Error(await readErrorMessage(response));
   }
 
   if (response.status === 204) {

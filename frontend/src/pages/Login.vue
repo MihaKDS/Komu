@@ -57,14 +57,13 @@ const password = ref('')
 const error = ref('')
 
 async function handleLogin() {
-    console.log("Loading user...");
   error.value = ''
 
   try {
-    const result = await login(
-      email.value,
-      password.value,
-    )
+    const result = await login({
+      email: email.value,
+      password: password.value,
+    })
 
     auth.login(result.token)
 

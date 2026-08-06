@@ -1,113 +1,130 @@
 <template>
-    <nav class="breadcrumbs">
-
-        <template
-            v-for="(item, index) in items"
-            :key="index"
-        >
-
-            <RouterLink
-                v-if="item.to"
-                :to="item.to"
+    <nav v-if="showBreadcrumbs" class="breadcrumbs-container">
+        <div class="breadcrumbs">
+            <button 
+                v-if="showBackButton"
+                type="button"
+                @click="goBack"
+                class="back-button"
+                title="Go back to previous page"
             >
-                {{ item.label }}
-            </RouterLink>
+                ← Back
+            </button>
 
-            <span v-else>
-                {{ item.label }}
-            </span>
-
-            <span
-                v-if="index < items.length - 1"
-                class="separator"
+            <template
+                v-for="(item, index) in items"
+                :key="index"
             >
+
+                <RouterLink
+                    v-if="item.to"
+                    :to="item.to"
                 >
-            </span>
+                    {{ item.label }}
+                </RouterLink>
 
-        </template>
+                <span v-else>
+                    {{ item.label }}
+                </span>
 
+                <span
+                    v-if="index < items.length - 1"
+                    class="separator"
+                >
+                    >
+                </span>
+
+            </template>
+        </div>
     </nav>
 </template>
 
 <script setup>
-import { computed } from "vue";
-import { useRoute } from "vue-router";
+import { computed, onMounted, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 const props = defineProps({
     title: String
 });
 const route = useRoute();
+const router = useRouter();
+
+const showBackButton = ref(false);
+
+// Pages that are directly accessible from Home (one route away)
+// Don't show back button on these pages
+const mainPages = ['Search', 'Collection', 'Lists', 'Profile', 'trades'];
+
+// Track navigation history to enable proper back functionality
+onMounted(() => {
+    // Show back button only if:
+    // 1. User has navigation history (not first page load)
+    // 2. Current page is NOT a main page
+    const isMainPage = mainPages.includes(route.name);
+    showBackButton.value = !isMainPage && window.history.length > 1;
+});
+
+function goBack() {
+    router.back();
+}
+
+const showBreadcrumbs = computed(() => {
+    return route.meta.showBreadcrumbs !== false;
+});
+
+// Map query parameter values to breadcrumb context
+const contextBreadcrumbMap = {
+    'collection': { label: 'My Collection', to: '/collection' },
+    'search': { label: 'Search', to: '/search' },
+    'seller': { label: 'Seller Listings', to: null },
+    'trades': { label: 'Trades', to: '/trades' },
+    'books': { label: 'Books', to: null },
+    'games': { label: 'Games', to: null },
+};
 
 const items = computed(() => {
 
     const breadcrumbs = [
-
         {
             label: "Home",
             to: "/"
         }
-
     ];
-    switch (route.query.from) {
 
-        case "collection":
+    // Check if there's a context query parameter (from where user came)
+    const fromContext = route.query.from;
+    const contextBreadcrumb = contextBreadcrumbMap[fromContext];
 
-            breadcrumbs.push({
-                label: "My Collection",
-                to: "/collection"
-            });
+    if (contextBreadcrumb) {
+        // Use context-based breadcrumb if available
+        breadcrumbs.push(contextBreadcrumb);
+    } else if (route.meta.parentBreadcrumb && route.meta.parentRoute) {
+        // Fall back to route metadata parent breadcrumb
+        breadcrumbs.push({
+            label: route.meta.parentBreadcrumb,
+            to: route.meta.parentRoute
+        });
+    }
 
-            break;
+    // Add current page breadcrumb
+    let currentLabel = props.title || route.meta.breadcrumb || route.meta.title;
 
-        case "search":
-
-            breadcrumbs.push({
-                label: "Search",
-                to: "/search"
-            });
-
-            break;
-
-        case "seller":
-
-            breadcrumbs.push({
-                label: "Seller Listings",
-            });
-
-            break;
-
-        case "trades":
-
-            breadcrumbs.push({
-                label: "Trades",
-                to: "/trades"
-            });
-
-            break;
-
-        case "books":
-
-            breadcrumbs.push({
-                label: "Books",
-                to: "/books"
-            });
-
-            break;
-
-        case "games":
-
-            breadcrumbs.push({
-                label: "Games",
-                to: "/games"
-            });
-
-            break;
-
+    // Handle dynamic page titles
+    if (route.name === 'seller-listings') {
+        currentLabel = `${route.params.username}'s Listings`;
+    }
+    if (route.name === 'media' || route.name === 'boxset') {
+        // Will be overridden by component's title prop
+        currentLabel = props.title || currentLabel;
+    }
+    if (route.name === 'trade-detail') {
+        currentLabel = props.title || `Trade #${route.params.id}`;
     }
 
     breadcrumbs.push({
-        label: props.title || route.meta.title
+        label: currentLabel
     });
+
     return breadcrumbs;
 
 });
@@ -115,11 +132,30 @@ const items = computed(() => {
 
 <style scoped>
 
+.breadcrumbs-container {
+    margin-bottom: 1rem;
+}
+
 .breadcrumbs {
     display: flex;
     align-items: center;
-    gap: .5rem;
-    margin-bottom: 1rem;
+    gap: .75rem;
+}
+
+.back-button {
+    background: #3f8cff;
+    color: white;
+    border: none;
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    transition: background-color 0.2s;
+}
+
+.back-button:hover {
+    background: #2e6dcc;
 }
 
 .separator {

@@ -20,27 +20,190 @@
       <div class="boxset-media">
         <h2>Movies</h2>
         <div v-for="media in boxSet.medias" :key="media.id" class="media-row">
-          <RouterLink :to="{ name: 'media', params: { id: media.id } }">
+          <RouterLink :to="{ name: 'media', params: { id: media.id }, query: { from: 'collection' } }">
             {{ media.collectionPosition ? `${media.collectionPosition}. ` : '' }}{{ media.title }}
           </RouterLink>
+          <button
+            v-if="canEdit"
+            type="button"
+            class="danger-btn"
+            :disabled="removingMediaId === media.id || addingMedia"
+            @click="removeMedia(media.id)"
+          >
+            {{ removingMediaId === media.id ? 'Removing...' : 'Remove' }}
+          </button>
         </div>
       </div>
+
+      <section v-if="canEdit" class="edit-section">
+        <h2>Edit box set</h2>
+
+        <div class="form-row">
+          <label>Edition</label>
+          <select v-model="addForm.edition">
+            <option value="DVD">DVD</option>
+            <option value="BLURAY">Blu-ray</option>
+            <option value="UHD_4K">4K UHD</option>
+          </select>
+        </div>
+
+        <div class="form-row" v-if="is4K">
+          <label>
+            <input type="checkbox" v-model="addForm.includesBluRay" />
+            Includes Blu-ray
+          </label>
+        </div>
+
+        <div class="form-row">
+          <h3>Add movies</h3>
+          <MediaSearch
+            :exclude-ids="excludeMediaIds"
+            @selected="addItem"
+          />
+        </div>
+
+        <div v-if="addForm.items.length" class="selected-items">
+          <div v-for="item in addForm.items" :key="item.id" class="selected-item">
+            <span>{{ item.title }} | {{ item.releaseYear }}</span>
+            <button type="button" class="danger-btn" @click="removeItem(item.id)">Remove</button>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          :disabled="addForm.items.length === 0 || addingMedia"
+          @click="saveAddedMedia"
+        >
+          {{ addingMedia ? 'Adding...' : 'Add selected movies' }}
+        </button>
+        <button
+          type="button"
+          class="danger-btn delete-boxset-btn"
+          :disabled="deletingBoxSet || addingMedia || removingMediaId !== null"
+          @click="removeBoxSet"
+        >
+          {{ deletingBoxSet ? 'Deleting...' : 'Delete box set (and all copies)' }}
+        </button>
+        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+      </section>
+      <section v-else-if="auth.user.value" class="read-only-note">
+        <p>Only the owner can edit this box set.</p>
+      </section>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, onMounted, reactive, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useAuth } from '../composables/useAuth';
 
 import Breadcrumbs from '../components/layout/Breadcrumbs.vue';
-import { getBoxSetById } from '../api/boxsetAPI.js';
+import MediaSearch from '../components/media/MediaSearch.vue';
+import { addBoxSetMedia, deleteBoxSet, getBoxSetById, removeBoxSetMedia } from '../api/boxsetAPI.js';
 
 const route = useRoute();
+const router = useRouter();
+const auth = useAuth();
 const boxSet = ref(null);
+const addingMedia = ref(false);
+const removingMediaId = ref(null);
+const deletingBoxSet = ref(false);
+const errorMessage = ref('');
+
+const addForm = reactive({
+  edition: 'BLURAY',
+  includesBluRay: false,
+  items: [],
+});
+
+const canEdit = computed(() => {
+  if (!boxSet.value || !auth.user.value) {
+    return false;
+  }
+  return boxSet.value.ownerId === auth.user.value.id;
+});
+
+const is4K = computed(() => addForm.edition === 'UHD_4K');
+
+const excludeMediaIds = computed(() => {
+  const existing = boxSet.value ? boxSet.value.medias.map((media) => media.id) : [];
+  const selected = addForm.items.map((item) => item.id);
+  return [...existing, ...selected];
+});
 
 async function loadBoxSet() {
   boxSet.value = await getBoxSetById(route.params.id);
+}
+
+function addItem(media) {
+  addForm.items.push(media);
+}
+
+function removeItem(mediaId) {
+  const index = addForm.items.findIndex((item) => item.id === mediaId);
+  if (index !== -1) {
+    addForm.items.splice(index, 1);
+  }
+}
+
+async function saveAddedMedia() {
+  if (!canEdit.value || addForm.items.length === 0) {
+    return;
+  }
+
+  addingMedia.value = true;
+  errorMessage.value = '';
+  try {
+    boxSet.value = await addBoxSetMedia(route.params.id, {
+      edition: addForm.edition,
+      includesBluRay: addForm.includesBluRay,
+      mediaIds: addForm.items.map((item) => item.id),
+    });
+    addForm.items = [];
+  } catch (error) {
+    errorMessage.value = error.message || 'Failed to add movies to box set';
+  } finally {
+    addingMedia.value = false;
+  }
+}
+
+async function removeMedia(mediaId) {
+  if (!canEdit.value) {
+    return;
+  }
+
+  removingMediaId.value = mediaId;
+  errorMessage.value = '';
+  try {
+    boxSet.value = await removeBoxSetMedia(route.params.id, mediaId);
+  } catch (error) {
+    errorMessage.value = error.message || 'Failed to remove movie from box set';
+  } finally {
+    removingMediaId.value = null;
+  }
+}
+
+async function removeBoxSet() {
+  if (!canEdit.value || deletingBoxSet.value) {
+    return;
+  }
+
+  const confirmed = window.confirm('Delete this box set and all of its copies from your collection? This cannot be undone.');
+  if (!confirmed) {
+    return;
+  }
+
+  deletingBoxSet.value = true;
+  errorMessage.value = '';
+  try {
+    await deleteBoxSet(route.params.id);
+    router.push({ name: 'Collection' });
+  } catch (error) {
+    errorMessage.value = error.message || 'Failed to delete box set';
+  } finally {
+    deletingBoxSet.value = false;
+  }
 }
 
 onMounted(loadBoxSet);
@@ -49,6 +212,9 @@ onMounted(loadBoxSet);
 <style scoped>
 .media-row {
   margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 .copy-card {
   border: 1px solid #333;
@@ -58,5 +224,62 @@ onMounted(loadBoxSet);
 }
 .boxset-summary {
   margin-bottom: 1.5rem;
+}
+
+.edit-section {
+  margin-top: 2rem;
+  padding: 1rem;
+  border: 1px solid #333;
+  border-radius: 10px;
+  background: #1d1d1d;
+}
+
+.form-row {
+  margin-bottom: 1rem;
+}
+
+.selected-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.selected-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+}
+
+.danger-btn {
+  background: #8f2828;
+  border: none;
+  color: #fff;
+  border-radius: 6px;
+  padding: 0.35rem 0.65rem;
+  cursor: pointer;
+}
+
+.danger-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.delete-boxset-btn {
+  margin-left: 0.75rem;
+}
+
+.error-message {
+  margin-top: 0.75rem;
+  color: #ff8c8c;
+}
+
+.read-only-note {
+  margin-top: 1.5rem;
+  color: #bbb;
 }
 </style>

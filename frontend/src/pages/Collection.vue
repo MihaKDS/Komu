@@ -15,6 +15,7 @@
         />
 
         <FilterBar
+        v-if="selectedCategory === 'MOVIE'"
             :format="selectedFormat"
             :viewMode="viewMode"
             :showCollectionFilter="false"
@@ -32,7 +33,7 @@
                 class="add-media-button"
                 @click="showAddMedia = true"
             >
-                Add New Media.
+                Add New {{ selectedCategory.toLowerCase() }}
             </button>
         
             <hr class="section-divider">
@@ -112,7 +113,7 @@ const loading = ref(true);
 
 const search = ref("");
 const showAddMedia = ref(false);
-const groupByCollection = ref(true);
+const groupByCollection = ref(false);
 const selectedFormat = ref("ALL");
 const viewMode = ref("list");
 

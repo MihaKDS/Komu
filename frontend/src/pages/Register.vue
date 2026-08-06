@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from "vue";
 import { useRouter } from "vue-router";
+import { register as registerUser } from "../services/authService";
 
 const router = useRouter();
 
@@ -17,24 +18,12 @@ async function register() {
     loading.value = true;
 
     try {
-        const response = await fetch("/api/auth/register", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                username: username.value,
-                email: email.value,
-                password: password.value,
-                city: city.value || null,
-            }),
+        await registerUser({
+            username: username.value,
+            email: email.value,
+            password: password.value,
+            city: city.value || null,
         });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.message || "Registration failed");
-        }
 
         router.push("/login");
     } catch (err) {

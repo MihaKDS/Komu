@@ -11,6 +11,7 @@
 
   <SearchBar @search="searchMedia" />
   <FilterBar
+    v-if="selectedCategory === 'MOVIE'"
     :format="selectedFormat"
     :collection="collectionFilter"
     :viewMode="viewMode"
@@ -21,7 +22,7 @@
 
   <div class="group-by-collection">
     <label>
-      <input type="checkbox" v-model="groupByCollection" /> Group by collection
+      <input type="checkbox" v-model="groupByCollection" /> Group {{ selectedCategory.toLowerCase() }}
     </label>
   </div>
 
@@ -70,10 +71,9 @@ const selectedCategory = ref((route.query.category || "MOVIE").toString().toUppe
 const selectedFormat = ref("ALL");
 const collectionFilter = ref("ALL");
 const viewMode = ref("list");
-const groupByCollection = ref(true);
+const groupByCollection = ref(false);
 
 const categories = ["MOVIE", "BOOK", "GAME", "MUSIC"];
-
 watch(
   () => route.query.category,
   (category) => {
@@ -178,6 +178,7 @@ async function loadMedia() {
   } catch (error) {
     console.error("Failed to load media:", error);
   }
+  console.log("Media loaded:", selectedCategory.value);
 }
 
 async function loadOwnedMedia() {

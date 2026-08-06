@@ -24,7 +24,9 @@ const routes = [
         name: "Home",
         component: Home,
         meta: {
-            title: "Home"
+            title: "Home",
+            breadcrumb: "Home",
+            showBreadcrumbs: false
         }
     },
 
@@ -34,7 +36,8 @@ const routes = [
         name: "Search",
         component: Search,
         meta: {
-            title: "Search"
+            title: "Search",
+            breadcrumb: "Search"
         }
     },
 
@@ -45,6 +48,7 @@ const routes = [
         component: Collection,
         meta: {
             title: "Collection",
+            breadcrumb: "My Collection",
             requiresAuth: true
         }
     },
@@ -57,6 +61,7 @@ const routes = [
         component: Trades,
         meta: {
             title: "Trades",
+            breadcrumb: "Trades",
             requiresAuth: true
         }
     },
@@ -66,6 +71,9 @@ const routes = [
         component: TradeDetail,
         meta: {
             title: "Trade",
+            breadcrumb: "Trade Details",
+            parentBreadcrumb: "Trades",
+            parentRoute: "/trades",
             requiresAuth: true,
         }
     },
@@ -77,6 +85,7 @@ const routes = [
         component: Lists,
         meta: {
             title: "Lists",
+            breadcrumb: "My Lists",
             requiresAuth: true
         }
     },
@@ -88,45 +97,68 @@ const routes = [
         component: Profile,
         meta: {
             title: "Profile",
+            breadcrumb: "My Profile",
             requiresAuth: true
         }
     },
-    // Profile
+
+    // Media Detail
     {
         path: "/media/:id",
         name: "media",
         component: MediaDetail,
         meta: {
-            title: "Media Details"
+            title: "Media Details",
+            breadcrumb: "Media",
+            parentBreadcrumb: "Search",
+            parentRoute: "/search"
         }
     },
 
+    // Box Set Detail
     {
         path: '/boxsets/:id',
         name: 'boxset',
         component: BoxSetDetail,
         meta: {
             title: 'Box Set',
+            breadcrumb: 'Box Set',
+            parentBreadcrumb: "Search",
+            parentRoute: "/search"
         }
     },
+
+    // Seller Listings
     {
         path: '/seller/:username',
         name: 'seller-listings',
         component: SellerListings,
         meta: {
             title: 'Seller Listings',
+            breadcrumb: 'Seller Listings',
+            parentBreadcrumb: "Search",
+            parentRoute: "/search"
         }
     },
 
-        {
+    // Authentication pages (no breadcrumbs)
+    {
         path: '/login',
-    name: 'login',
-    component: Login,
+        name: 'login',
+        component: Login,
+        meta: {
+            title: 'Login',
+            showBreadcrumbs: false
+        }
     },
     {
-    path: '/register',
-    name: 'register',
-    component: Register,
+        path: '/register',
+        name: 'register',
+        component: Register,
+        meta: {
+            title: 'Register',
+            showBreadcrumbs: false
+        }
     },
 
 ];

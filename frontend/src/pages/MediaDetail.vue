@@ -22,6 +22,9 @@ const showAddCopy = ref(false);
 const showEditCopy = ref(false);
 const idEditCopy = ref(null);
 
+// Get the current context from where user came
+const currentContext = computed(() => route.query.from || 'search');
+
 async function loadMedia() {
     mediaDetails.value = await getMedia(route.params.id);
     console.log(mediaDetails.value)
@@ -185,7 +188,7 @@ const filteredCollectionMedias = computed(() => {
 <details v-if="mediaDetails.otherCopies.length">
 
     <summary>
-        Other owners ({{ mediaDetails.otherOwnersCount }})
+        Trade offers ({{ mediaDetails.otherOwnersCount }})
     </summary>
 
     <div
@@ -195,22 +198,10 @@ const filteredCollectionMedias = computed(() => {
     >
      <div v-if="copy.canRent || copy.canSell ">
          <strong>
-             <RouterLink :to="{ name: 'seller-listings', params: { username: copy.owner.username } }">
+             <RouterLink :to="{ name: 'seller-listings', params: { username: copy.owner.username }, query: { from: currentContext } }">
                  {{ copy.owner.username }}
              </RouterLink>
          </strong>
- 
-         <p>
-             {{ copy.edition }}
-             •
-             {{ copy.condition }}
-         </p>
-         <!--<p v-if="copy.boxSet">
-             Part of boxset
-             <RouterLink :to="{ name: 'boxset', params: { id: copy.boxSet.id } }">
-                 {{ copy.boxSet.name || copy.boxSet.title }}
-             </RouterLink>
-         </p>-->
          <p>
              {{ copy.listingNote }}
          </p>
@@ -228,13 +219,13 @@ const filteredCollectionMedias = computed(() => {
      <div v-if="copy.boxSet !== null ">
          <div v-if="copy.boxSet.canRent || copy.boxSet.canSell ">
              <strong>
-                 <RouterLink :to="{ name: 'seller-listings', params: { username: copy.owner.username } }">
+                 <RouterLink :to="{ name: 'seller-listings', params: { username: copy.owner.username }, query: { from: currentContext } }">
                      {{ copy.owner.username }}
                  </RouterLink>
              </strong>
              <p v-if="copy.boxSet.canRent || copy.boxSet.canSell">
                  Part of boxset
-                 <RouterLink :to="{ name: 'boxset', params: { id: copy.boxSet.id } }">
+                 <RouterLink :to="{ name: 'boxset', params: { id: copy.boxSet.id }, query: { from: currentContext } }">
                      {{ copy.boxSet.name || copy.boxSet.title }}
                  </RouterLink>
              </p>
