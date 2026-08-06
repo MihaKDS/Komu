@@ -52,4 +52,14 @@ export class TradeController {
   confirmBuyerTransfer(@Param('id', ParseIntPipe) id: number, @Request() req) {
     return this.tradeService.confirmBuyerTransfer(id, req.user.id);
   }
+
+  @Post(':id/return-request')
+  requestReturn(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    return this.tradeService.requestReturn(id, req.user.id);
+  }
+
+  @Post(':id/accept-return')
+  acceptReturn(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    return this.tradeService.acceptReturn(id, req.user.id);
+  }
 }

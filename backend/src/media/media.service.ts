@@ -365,94 +365,159 @@ export class MediaService {
         },
         boxSet: {
           select: {
+            id: true,
+            title: true,
+            name: true,
+            listingNote: true,
             canSell: true,
+            sellPrice: true,
             canRent: true,
+            rentPrice: true,
+            deposit: true,
+            _count: {
+              select: {
+                copies: true,
+              },
+            },
           },
         },
       },
     });
 
-    const grouped = new Map<
-      number,
-      {
-        id: number;
-        title: string;
-        description: string;
-        releaseYear: number;
-        poster: string | null;
-        category: string;
-        movieCollectionId: number | null;
-        collectionPosition: number | null;
-        movieCollection: {
-          id: number;
-          title: string;
-          tmdbId: number | null;
-          poster: string | null;
-        } | null;
-        dvd: number;
-        bluray: number;
-        fourk: number;
-        availableCopies: number;
-        hasSell: boolean;
-        hasRent: boolean;
-        availableCopyIds: number[];
-      }
-    >();
+    const saleItems: any[] = [];
+    const rentItems: any[] = [];
+    const boxGroups = new Map<string, any>();
 
-    for (const copy of copies) {
-      const media = copy.media;
-      if (!grouped.has(media.id)) {
-        grouped.set(media.id, {
-          id: media.id,
-          title: media.title,
-          description: media.description,
-          releaseYear: media.releaseYear,
-          poster: media.poster,
-          category: media.category,
-          movieCollectionId: media.movieCollectionId,
-          collectionPosition: media.collectionPosition,
-          movieCollection: media.movieCollection
-            ? {
-                id: media.movieCollection.id,
-                title: media.movieCollection.title,
-                tmdbId: media.movieCollection.tmdbId,
-                poster: media.movieCollection.poster,
-              }
-            : null,
-          dvd: 0,
-          bluray: 0,
-          fourk: 0,
-          availableCopies: 0,
-          hasSell: false,
-          hasRent: false,
-          availableCopyIds: [],
+    const buildMediaShape = (media: any) => ({
+      id: media.id,
+      title: media.title,
+      description: media.description,
+      releaseYear: media.releaseYear,
+      poster: media.poster,
+      category: media.category,
+      movieCollectionId: media.movieCollectionId,
+      collectionPosition: media.collectionPosition,
+      movieCollection: media.movieCollection
+        ? {
+            id: media.movieCollection.id,
+            title: media.movieCollection.title,
+            tmdbId: media.movieCollection.tmdbId,
+            poster: media.movieCollection.poster,
+          }
+        : null,
+    });
+
+    const pushBoxGroup = (copy: any, listingType: 'SELL' | 'RENT') => {
+      if (!copy.boxSet) return;
+      const key = `${listingType}-${copy.boxSet.id}`;
+      if (!boxGroups.has(key)) {
+        boxGroups.set(key, {
+          key,
+          type: 'boxSet',
+          listingType,
+          boxSetId: copy.boxSet.id,
+          title: copy.boxSet.name || copy.boxSet.title || copy.media.title,
+          poster: copy.media.poster,
+          category: copy.media.category,
+          releaseYear: copy.media.releaseYear,
+          boxSet: {
+            id: copy.boxSet.id,
+            title: copy.boxSet.title,
+            name: copy.boxSet.name,
+            listingNote: copy.boxSet.listingNote,
+            canSell: copy.boxSet.canSell,
+            sellPrice: copy.boxSet.sellPrice,
+            canRent: copy.boxSet.canRent,
+            rentPrice: copy.boxSet.rentPrice,
+            deposit: copy.boxSet.deposit,
+            copyCount: copy.boxSet._count?.copies ?? 0,
+          },
+          copyIds: [],
+          mediaTitles: [],
+          mediaCount: 0,
+          formats: {
+            DVD: 0,
+            BLURAY: 0,
+            UHD_4K: 0,
+          },
+          price: listingType === 'SELL' ? copy.boxSet.sellPrice : copy.boxSet.rentPrice,
+          deposit: listingType === 'RENT' ? copy.boxSet.deposit : null,
         });
       }
 
-      const item = grouped.get(media.id);
-      if (!item) continue;
+      const group = boxGroups.get(key);
+      group.copyIds.push(copy.id);
+      group.mediaTitles.push(copy.media.title);
+      group.mediaCount = group.copyIds.length;
+      group.formats[copy.edition] = (group.formats[copy.edition] ?? 0) + 1;
+    };
 
-      item.availableCopies++;
-      item.hasSell = item.hasSell || copy.canSell || Boolean(copy.boxSet?.canSell);
-      item.hasRent = item.hasRent || copy.canRent || Boolean(copy.boxSet?.canRent);
-      item.availableCopyIds.push(copy.id);
+    const pushCopyItem = (copy: any, listingType: 'SELL' | 'RENT') => {
+      const item = {
+        key: `${listingType}-${copy.id}`,
+        type: 'copy',
+        listingType,
+        mediaId: copy.media.id,
+        copyIds: [copy.id],
+        title: copy.media.title,
+        poster: copy.media.poster,
+        category: copy.media.category,
+        releaseYear: copy.media.releaseYear,
+        edition: copy.edition,
+        condition: copy.condition,
+        media: buildMediaShape(copy.media),
+        price: listingType === 'SELL' ? copy.sellPrice : copy.rentPrice,
+        deposit: listingType === 'RENT' ? copy.deposit : null,
+        availableCopies: 1,
+        formats: {
+          DVD: copy.edition === 'DVD' ? 1 : 0,
+          BLURAY: copy.edition === 'BLURAY' ? 1 : 0,
+          UHD_4K: copy.edition === 'UHD_4K' ? 1 : 0,
+        },
+      };
 
-      switch (copy.edition) {
-        case 'DVD':
-          item.dvd++;
-          break;
-        case 'BLURAY':
-          item.bluray++;
-          break;
-        case 'UHD_4K':
-          item.fourk++;
-          break;
+      if (listingType === 'SELL') {
+        saleItems.push(item);
+      } else {
+        rentItems.push(item);
+      }
+    };
+
+    for (const copy of copies) {
+      const hasBoxSetListing = Boolean(copy.boxSet && (copy.boxSet.canSell || copy.boxSet.canRent));
+
+      if (hasBoxSetListing) {
+        if (copy.boxSet?.canSell) {
+          pushBoxGroup(copy, 'SELL');
+        }
+        if (copy.boxSet?.canRent) {
+          pushBoxGroup(copy, 'RENT');
+        }
+        continue;
+      }
+
+      if (copy.canSell) {
+        pushCopyItem(copy, 'SELL');
+      }
+      if (copy.canRent) {
+        pushCopyItem(copy, 'RENT');
+      }
+    }
+
+    const boxItems = [...boxGroups.values()].sort((a, b) => a.title.localeCompare(b.title));
+    for (const item of boxItems) {
+      if (item.listingType === 'SELL') {
+        saleItems.push(item);
+      } else {
+        rentItems.push(item);
       }
     }
 
     return {
       seller,
-      items: [...grouped.values()].sort((a, b) => a.title.localeCompare(b.title)),
+      saleItems,
+      rentItems,
+      items: [...saleItems, ...rentItems],
     };
   }
 

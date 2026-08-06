@@ -114,6 +114,7 @@ model Trade {
   status                   TradeStatus  @default(REQUESTED)
   sellerConfirmedTransfer  Boolean      @default(false)
   buyerConfirmedTransfer   Boolean      @default(false)
+  returnRequested          Boolean      @default(false)
   createdAt                DateTime     @default(now())
   updatedAt                DateTime     @updatedAt
 

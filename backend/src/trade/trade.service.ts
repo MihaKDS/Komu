@@ -171,6 +171,7 @@ export class TradeService {
       seller: trade.seller,
       sellerConfirmedTransfer: trade.sellerConfirmedTransfer,
       buyerConfirmedTransfer: trade.buyerConfirmedTransfer,
+      returnRequested: trade.returnRequested,
       viewerRole: trade.buyerId === userId ? 'buyer' : 'seller',
       items: trade.items.map((item) => ({
         copyId: item.copyId,
@@ -260,6 +261,7 @@ export class TradeService {
       status: trade.status,
       sellerConfirmedTransfer: trade.sellerConfirmedTransfer,
       buyerConfirmedTransfer: trade.buyerConfirmedTransfer,
+      returnRequested: trade.returnRequested,
       createdAt: trade.createdAt,
       updatedAt: trade.updatedAt,
       viewerRole: trade.buyerId === userId ? 'buyer' : 'seller',
@@ -398,6 +400,111 @@ export class TradeService {
     return this.findOne(id, userId);
   }
 
+  async requestReturn(id: number, userId: number) {
+    const trade = await this.getTradeForAction(id);
+    this.ensureBuyer(trade, userId);
+
+    if (trade.type !== TradeType.RENT) {
+      throw new BadRequestException('Return can only be requested for rent trades');
+    }
+
+    if (trade.status !== TradeStatus.RENTING) {
+      throw new BadRequestException('Return can only be requested while trade is renting');
+    }
+
+    if (trade.returnRequested) {
+      throw new BadRequestException('Return has already been requested');
+    }
+
+    await this.prisma.trade.update({
+      where: { id },
+      data: {
+        returnRequested: true,
+      },
+    });
+
+    return this.findOne(id, userId);
+  }
+
+  async acceptReturn(id: number, userId: number) {
+    const trade = await this.prisma.trade.findUnique({
+      where: { id },
+      include: {
+        items: {
+          include: {
+            copy: {
+              select: {
+                id: true,
+                boxSetId: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!trade) {
+      throw new NotFoundException('Trade not found');
+    }
+
+    this.ensureSeller(trade, userId);
+
+    if (trade.type !== TradeType.RENT) {
+      throw new BadRequestException('Only rent trades can be returned');
+    }
+
+    if (trade.status !== TradeStatus.RENTING) {
+      throw new BadRequestException('Only renting trades can be completed by return');
+    }
+
+    if (!trade.returnRequested) {
+      throw new BadRequestException('Return has not been requested by borrower');
+    }
+
+    const copyIds = trade.items.map((item) => item.copyId);
+    const boxSetIds = [...new Set(trade.items.map((item) => item.copy.boxSetId).filter((boxSetId): boxSetId is number => boxSetId != null))];
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.copy.updateMany({
+        where: {
+          id: {
+            in: copyIds,
+          },
+        },
+        data: {
+          userId: trade.sellerId,
+        },
+      });
+
+      if (boxSetIds.length > 0) {
+        await tx.boxSet.updateMany({
+          where: {
+            id: {
+              in: boxSetIds,
+            },
+          },
+          data: {
+            canSell: false,
+            sellPrice: null,
+            canRent: false,
+            rentPrice: null,
+            deposit: null,
+          },
+        });
+      }
+
+      await tx.trade.update({
+        where: { id: trade.id },
+        data: {
+          status: TradeStatus.COMPLETED,
+          returnRequested: false,
+        },
+      });
+    });
+
+    return this.findOne(id, userId);
+  }
+
   async findActiveTradeByCopyIds(copyIds: number[]) {
     if (copyIds.length === 0) {
       return [];
@@ -505,6 +612,8 @@ export class TradeService {
         buyerId: true,
         sellerId: true,
         status: true,
+        type: true,
+        returnRequested: true,
       },
     });
 
