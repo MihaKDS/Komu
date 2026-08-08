@@ -1,4 +1,5 @@
-import { IsBoolean, IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
+import { Condition } from '@prisma/client';
+import { IsBoolean, IsEnum, IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class UpdateCopyDto {
 
@@ -9,6 +10,10 @@ export class UpdateCopyDto {
   @IsString()
   @MaxLength(50)
   listingNote?: string;
+
+  @IsOptional()
+  @IsEnum(Condition)
+  condition?: Condition;
 
   @IsOptional()
   @IsNumber()

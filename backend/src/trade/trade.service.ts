@@ -4,7 +4,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { CreateTradeMessageDto } from './dto/create-trade-message.dto';
 
-const ACTIVE_TRADE_STATUSES = [TradeStatus.REQUESTED, TradeStatus.ACCEPTED, TradeStatus.RENTING];
+const RESERVED_TRADE_STATUSES = [TradeStatus.ACCEPTED, TradeStatus.RENTING];
+const AUTO_CANCELLED_REASON = 'Cancelled automatically. Item is no longer available.';
 
 @Injectable()
 export class TradeService {
@@ -34,8 +35,17 @@ export class TradeService {
         },
         boxSet: {
           select: {
+            id: true,
             canSell: true,
+            sellPrice: true,
             canRent: true,
+            rentPrice: true,
+            deposit: true,
+            _count: {
+              select: {
+                copies: true,
+              },
+            },
           },
         },
       },
@@ -62,7 +72,7 @@ export class TradeService {
         },
         trade: {
           status: {
-            in: ACTIVE_TRADE_STATUSES,
+            in: RESERVED_TRADE_STATUSES,
           },
         },
       },
@@ -75,14 +85,7 @@ export class TradeService {
       throw new BadRequestException('One or more selected copies are already part of an active trade');
     }
 
-    for (const copy of copies) {
-      if (dto.type === TradeType.BUY && !copy.canSell && !copy.boxSet?.canSell) {
-        throw new BadRequestException(`"${copy.media.title}" is not available for purchase`);
-      }
-      if (dto.type === TradeType.RENT && !copy.canRent && !copy.boxSet?.canRent) {
-        throw new BadRequestException(`"${copy.media.title}" is not available for rent`);
-      }
-    }
+    const tradeItemCreates = this.buildTradeItemCreates(copies, dto.type);
 
     const trade = await this.prisma.trade.create({
       data: {
@@ -90,9 +93,7 @@ export class TradeService {
         sellerId,
         type: dto.type,
         items: {
-          create: uniqueCopyIds.map((copyId) => ({
-            copyId,
-          })),
+          create: tradeItemCreates,
         },
         messages: dto.message
           ? {
@@ -172,12 +173,14 @@ export class TradeService {
       sellerConfirmedTransfer: trade.sellerConfirmedTransfer,
       buyerConfirmedTransfer: trade.buyerConfirmedTransfer,
       returnRequested: trade.returnRequested,
+      cancelledReason: trade.cancelledReason,
       viewerRole: trade.buyerId === userId ? 'buyer' : 'seller',
       items: trade.items.map((item) => ({
         copyId: item.copyId,
         mediaId: item.copy.media.id,
         title: item.copy.media.title,
         poster: item.copy.media.poster,
+        agreedPrice: item.agreedPrice,
       })),
       lastMessage: trade.messages[0]
         ? {
@@ -259,6 +262,7 @@ export class TradeService {
       id: trade.id,
       type: trade.type,
       status: trade.status,
+      cancelledReason: trade.cancelledReason,
       sellerConfirmedTransfer: trade.sellerConfirmedTransfer,
       buyerConfirmedTransfer: trade.buyerConfirmedTransfer,
       returnRequested: trade.returnRequested,
@@ -270,6 +274,7 @@ export class TradeService {
       items: trade.items.map((item) => ({
         id: item.id,
         copyId: item.copyId,
+        agreedPrice: item.agreedPrice,
         edition: item.copy.edition,
         media: {
           id: item.copy.media.id,
@@ -327,18 +332,79 @@ export class TradeService {
   }
 
   async accept(id: number, userId: number) {
-    const trade = await this.getTradeForAction(id);
+    const trade = await this.prisma.trade.findUnique({
+      where: { id },
+      include: {
+        items: {
+          select: {
+            copyId: true,
+          },
+        },
+      },
+    });
+
+    if (!trade) {
+      throw new NotFoundException('Trade not found');
+    }
+
     this.ensureSeller(trade, userId);
 
     if (trade.status !== TradeStatus.REQUESTED) {
       throw new BadRequestException('Only requested trades can be accepted');
     }
 
-    await this.prisma.trade.update({
-      where: { id },
-      data: {
-        status: TradeStatus.ACCEPTED,
+    const copyIds = trade.items.map((item) => item.copyId);
+    const reservedByOtherTrade = await this.prisma.tradeItem.findFirst({
+      where: {
+        copyId: {
+          in: copyIds,
+        },
+        tradeId: {
+          not: id,
+        },
+        trade: {
+          status: {
+            in: RESERVED_TRADE_STATUSES,
+          },
+        },
       },
+      select: {
+        tradeId: true,
+      },
+    });
+
+    if (reservedByOtherTrade) {
+      throw new BadRequestException('One or more items are no longer available');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.trade.update({
+        where: { id },
+        data: {
+          status: TradeStatus.ACCEPTED,
+          cancelledReason: null,
+        },
+      });
+
+      await tx.trade.updateMany({
+        where: {
+          id: {
+            not: id,
+          },
+          status: TradeStatus.REQUESTED,
+          items: {
+            some: {
+              copyId: {
+                in: copyIds,
+              },
+            },
+          },
+        },
+        data: {
+          status: TradeStatus.CANCELLED,
+          cancelledReason: AUTO_CANCELLED_REASON,
+        },
+      });
     });
 
     return this.findOne(id, userId);
@@ -356,6 +422,7 @@ export class TradeService {
       where: { id },
       data: {
         status: TradeStatus.REJECTED,
+        cancelledReason: null,
       },
     });
 
@@ -517,7 +584,7 @@ export class TradeService {
         },
         trade: {
           status: {
-            in: ACTIVE_TRADE_STATUSES,
+            in: RESERVED_TRADE_STATUSES,
           },
         },
       },
@@ -599,8 +666,79 @@ export class TradeService {
         where: { id: trade.id },
         data: {
           status: trade.type === TradeType.RENT ? TradeStatus.RENTING : TradeStatus.COMPLETED,
+          cancelledReason: null,
         },
       });
+    });
+  }
+
+  private buildTradeItemCreates(
+    copies: Array<{
+      id: number;
+      canSell: boolean;
+      sellPrice: number | null;
+      canRent: boolean;
+      deposit: number | null;
+      media: { title: string };
+      boxSet: {
+        id: number;
+        canSell: boolean;
+        sellPrice: number | null;
+        canRent: boolean;
+        deposit: number | null;
+        _count: { copies: number };
+      } | null;
+    }>,
+    tradeType: TradeType,
+  ) {
+    const selectedCountsByBoxSet = new Map<number, number>();
+
+    for (const copy of copies) {
+      if (!copy.boxSet?.id) {
+        continue;
+      }
+      selectedCountsByBoxSet.set(copy.boxSet.id, (selectedCountsByBoxSet.get(copy.boxSet.id) ?? 0) + 1);
+    }
+
+    return copies.map((copy, index) => {
+      const fullBoxSetSelected = Boolean(
+        copy.boxSet?.id &&
+        selectedCountsByBoxSet.get(copy.boxSet.id) === copy.boxSet._count.copies,
+      );
+
+      if (tradeType === TradeType.BUY) {
+        if (fullBoxSetSelected && copy.boxSet?.canSell && copy.boxSet.sellPrice != null) {
+          return {
+            copyId: copy.id,
+            agreedPrice: index === copies.findIndex((item) => item.boxSet?.id === copy.boxSet?.id) ? copy.boxSet.sellPrice : 0,
+          };
+        }
+
+        if (!copy.canSell || copy.sellPrice == null) {
+          throw new BadRequestException(`"${copy.media.title}" is not available for purchase`);
+        }
+
+        return {
+          copyId: copy.id,
+          agreedPrice: copy.sellPrice,
+        };
+      }
+
+      if (fullBoxSetSelected && copy.boxSet?.canRent && copy.boxSet.deposit != null) {
+        return {
+          copyId: copy.id,
+          agreedPrice: index === copies.findIndex((item) => item.boxSet?.id === copy.boxSet?.id) ? copy.boxSet.deposit : 0,
+        };
+      }
+
+      if (!copy.canRent || copy.deposit == null) {
+        throw new BadRequestException(`"${copy.media.title}" is not available for rent`);
+      }
+
+      return {
+        copyId: copy.id,
+        agreedPrice: copy.deposit,
+      };
     });
   }
 

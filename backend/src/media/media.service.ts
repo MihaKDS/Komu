@@ -5,7 +5,7 @@ import { PublicCopyDto } from '../copy/dto/public-copy.dto';
 import { CreateMediaDto } from './dto/create-media.dto';
 import { TmdbService } from '../tmdb/tmdb.service';
 
-const ACTIVE_TRADE_STATUSES = [TradeStatus.REQUESTED, TradeStatus.ACCEPTED, TradeStatus.RENTING];
+const RESERVED_TRADE_STATUSES = [TradeStatus.ACCEPTED, TradeStatus.RENTING];
 
 @Injectable()
 export class MediaService {
@@ -189,7 +189,7 @@ export class MediaService {
           where: {
             trade: {
               status: {
-                in: ACTIVE_TRADE_STATUSES,
+                in: RESERVED_TRADE_STATUSES,
               },
             },
           },
@@ -338,7 +338,7 @@ export class MediaService {
           none: {
             trade: {
               status: {
-                in: ACTIVE_TRADE_STATUSES,
+                in: RESERVED_TRADE_STATUSES,
               },
             },
           },
@@ -440,7 +440,7 @@ export class MediaService {
             BLURAY: 0,
             UHD_4K: 0,
           },
-          price: listingType === 'SELL' ? copy.boxSet.sellPrice : copy.boxSet.rentPrice,
+          price: listingType === 'SELL' ? copy.boxSet.sellPrice : copy.boxSet.deposit,
           deposit: listingType === 'RENT' ? copy.boxSet.deposit : null,
         });
       }
@@ -466,7 +466,7 @@ export class MediaService {
         edition: copy.edition,
         condition: copy.condition,
         media: buildMediaShape(copy.media),
-        price: listingType === 'SELL' ? copy.sellPrice : copy.rentPrice,
+        price: listingType === 'SELL' ? copy.sellPrice : copy.deposit,
         deposit: listingType === 'RENT' ? copy.deposit : null,
         availableCopies: 1,
         formats: {
@@ -553,7 +553,7 @@ export class MediaService {
           none: {
             trade: {
               status: {
-                in: ACTIVE_TRADE_STATUSES,
+                in: RESERVED_TRADE_STATUSES,
               },
             },
           },

@@ -3,14 +3,14 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
-import { TradeStatus } from '@prisma/client';
+import { Prisma, TradeStatus } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCopyDto } from './dto/create-copy.dto';
 import { UpdateCopyDto } from './dto/update-copy.dto';
 import { PublicCopyDto } from './dto/public-copy.dto';
 
-const ACTIVE_TRADE_STATUSES = [TradeStatus.REQUESTED, TradeStatus.ACCEPTED, TradeStatus.RENTING];
+const RESERVED_TRADE_STATUSES = [TradeStatus.ACCEPTED, TradeStatus.RENTING];
 
 @Injectable()
 export class CopyService {
@@ -25,7 +25,7 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
         none: {
           trade: {
             status: {
-              in: ACTIVE_TRADE_STATUSES,
+              in: RESERVED_TRADE_STATUSES,
             },
           },
         },
@@ -110,7 +110,7 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
           where: {
             trade: {
               status: {
-                in: ACTIVE_TRADE_STATUSES,
+                in: RESERVED_TRADE_STATUSES,
               },
             },
           },
@@ -141,6 +141,9 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
 
   async create(dto: CreateCopyDto, userId: number) {
     if (dto.partOfBox) {
+      if (dto.existingBoxSetId) {
+        return this.addCopiesToExistingBoxSet(dto, userId);
+      }
       return this.createBoxSet(dto, userId);
     }
 
@@ -201,6 +204,54 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
     });
   }
 
+  private async addCopiesToExistingBoxSet(
+    dto: CreateCopyDto,
+    userId: number,
+  ) {
+    const boxSet = await this.prisma.boxSet.findUnique({
+      where: {
+        id: dto.existingBoxSetId,
+      },
+      select: {
+        id: true,
+        copies: {
+          select: {
+            userId: true,
+          },
+        },
+      },
+    });
+
+    if (!boxSet) {
+      throw new NotFoundException('Box set not found');
+    }
+
+    if (boxSet.copies.some((copy) => copy.userId !== userId)) {
+      throw new ForbiddenException('You do not own this box set');
+    }
+
+    return this.prisma.$transaction(async (prisma) => {
+      const copies = await Promise.all(
+        dto.mediaIds.map((mediaId) =>
+          prisma.copy.create({
+            data: {
+              mediaId,
+              userId,
+              edition: dto.edition,
+              includesBluRay: dto.includesBluRay,
+              boxSetId: boxSet.id,
+            },
+          }),
+        ),
+      );
+
+      return {
+        boxSetId: boxSet.id,
+        copies,
+      };
+    });
+  }
+
   async update(
     id: number,
     dto: UpdateCopyDto,
@@ -223,8 +274,9 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
 
     await this.assertCopyNotInActiveTrade(id);
 
-    const copyData: any = {
+    const copyData: Prisma.CopyUpdateInput = {
       listingNote: dto.listingNote ? dto.listingNote : null,
+      condition: dto.condition,
 
       canSell: dto.canSell,
       sellPrice: dto.canSell ? dto.sellPrice : null,
@@ -392,7 +444,7 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
         copyId,
         trade: {
           status: {
-            in: ACTIVE_TRADE_STATUSES,
+            in: RESERVED_TRADE_STATUSES,
           },
         },
       },

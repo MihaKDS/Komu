@@ -46,4 +46,9 @@ export class CreateCopyDto {
   @IsOptional()
   @IsNumber()
   boxSetDeposit?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  existingBoxSetId?: number;
 }

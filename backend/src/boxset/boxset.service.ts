@@ -2,8 +2,9 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { TradeStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AddBoxSetMediaDto } from './dto/add-boxset-media.dto';
+import { UpdateBoxSetDto } from './dto/update-boxset.dto';
 
-const ACTIVE_TRADE_STATUSES = [TradeStatus.REQUESTED, TradeStatus.ACCEPTED, TradeStatus.RENTING];
+const RESERVED_TRADE_STATUSES = [TradeStatus.ACCEPTED, TradeStatus.RENTING];
 
 @Injectable()
 export class BoxSetService {
@@ -100,6 +101,35 @@ export class BoxSetService {
     };
   }
 
+  async findByUser(userId: number) {
+    const boxSets = await this.prisma.boxSet.findMany({
+      where: {
+        copies: {
+          some: {
+            userId,
+          },
+        },
+      },
+      include: {
+        _count: {
+          select: {
+            copies: true,
+          },
+        },
+      },
+      orderBy: {
+        id: 'asc',
+      },
+    });
+
+    return boxSets.map((boxSet) => ({
+      id: boxSet.id,
+      name: boxSet.name,
+      title: boxSet.title,
+      copyCount: boxSet._count.copies,
+    }));
+  }
+
   async addMedia(id: number, dto: AddBoxSetMediaDto, userId: number) {
     await this.ensureBoxSetOwnedByUser(id, userId);
 
@@ -181,7 +211,7 @@ export class BoxSetService {
         },
         trade: {
           status: {
-            in: ACTIVE_TRADE_STATUSES,
+            in: RESERVED_TRADE_STATUSES,
           },
         },
       },
@@ -260,6 +290,28 @@ export class BoxSetService {
     return {
       success: true,
     };
+  }
+
+  async update(id: number, dto: UpdateBoxSetDto, userId: number) {
+    await this.ensureBoxSetOwnedByUser(id, userId);
+
+    await this.prisma.boxSet.update({
+      where: {
+        id,
+      },
+      data: {
+        name: dto.name ?? null,
+        title: dto.name ?? null,
+        listingNote: dto.listingNote ?? null,
+        canSell: dto.canSell ?? false,
+        sellPrice: dto.canSell ? dto.sellPrice ?? null : null,
+        canRent: dto.canRent ?? false,
+        rentPrice: dto.canRent ? dto.rentPrice ?? null : null,
+        deposit: dto.canRent ? dto.deposit ?? null : null,
+      },
+    });
+
+    return this.findOne(id);
   }
 
   private async ensureBoxSetOwnedByUser(id: number, userId: number) {

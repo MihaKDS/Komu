@@ -112,6 +112,7 @@ model Trade {
   sellerId                 Int
   type                     TradeType
   status                   TradeStatus  @default(REQUESTED)
+  cancelledReason          String?
   sellerConfirmedTransfer  Boolean      @default(false)
   buyerConfirmedTransfer   Boolean      @default(false)
   returnRequested          Boolean      @default(false)
@@ -125,9 +126,10 @@ model Trade {
 }
 
 model TradeItem {
-  id        Int    @id @default(autoincrement())
-  tradeId   Int
-  copyId    Int
+  id         Int    @id @default(autoincrement())
+  tradeId    Int
+  copyId     Int
+  agreedPrice Float
 
   trade      Trade @relation(fields: [tradeId], references: [id])
   copy       Copy  @relation(fields: [copyId], references: [id])
