@@ -13,11 +13,12 @@
       <p><strong>Seller confirmed transfer:</strong> {{ trade.sellerConfirmedTransfer ? "Yes" : "No" }}</p>
       <p><strong>Buyer confirmed transfer:</strong> {{ trade.buyerConfirmedTransfer ? "Yes" : "No" }}</p>
       <p v-if="trade.type === 'RENT'"><strong>Return requested:</strong> {{ trade.returnRequested ? "Yes" : "No" }}</p>
+      <p v-if="trade.cancelledReason"><strong>Cancellation reason:</strong> {{ trade.cancelledReason }}</p>
     </section>
 
     <section>
       <h2>Items</h2>
-      <TradeItems :items="trade.items" />
+      <TradeItems :items="trade.items" :tradeType="trade.type" />
     </section>
 
     <section class="actions" v-if="actionButtons.length">

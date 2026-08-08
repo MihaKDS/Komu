@@ -22,7 +22,7 @@
 
   <div class="group-by-collection">
     <label>
-      <input type="checkbox" v-model="groupByCollection" /> Group {{ selectedCategory.toLowerCase() }}
+      <input type="checkbox" v-model="groupByCollection" /> Group {{ selectedCategory.toLowerCase() }}s
     </label>
   </div>
 
@@ -71,7 +71,7 @@ const selectedCategory = ref((route.query.category || "MOVIE").toString().toUppe
 const selectedFormat = ref("ALL");
 const collectionFilter = ref("ALL");
 const viewMode = ref("list");
-const groupByCollection = ref(false);
+const groupByCollection = ref(true);
 
 const categories = ["MOVIE", "BOOK", "GAME", "MUSIC"];
 watch(

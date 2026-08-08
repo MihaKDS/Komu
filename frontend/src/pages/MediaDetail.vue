@@ -147,9 +147,9 @@ const filteredCollectionMedias = computed(() => {
                     Status: Available
                 </p>
                 <p v-if="copy.boxSet">
-                    Part of boxset
-                    <RouterLink :to="{ name: 'boxset', params: { id: copy.boxSet.id } }">
-                        {{ copy.boxSet.name || copy.boxSet.title }}
+                    Part of
+                    <RouterLink :to="{ name: 'boxset', params: { id: copy.boxSet.id }, query: { from: 'collection' } }">
+                        Box Set #{{ copy.boxSet.id }}
                     </RouterLink>
                 </p>
                 <p v-if="copy.boxSet?._count?.copies">
@@ -211,8 +211,6 @@ const filteredCollectionMedias = computed(() => {
          </p>
  
          <p v-if="copy.canRent">
-             🎬 For rent: {{ copy.rentPrice }} €
-             <br>
              Deposit: {{ copy.deposit }} €
          </p>
      </div>
@@ -224,9 +222,9 @@ const filteredCollectionMedias = computed(() => {
                  </RouterLink>
              </strong>
              <p v-if="copy.boxSet.canRent || copy.boxSet.canSell">
-                 Part of boxset
+                 Part of
                  <RouterLink :to="{ name: 'boxset', params: { id: copy.boxSet.id }, query: { from: currentContext } }">
-                     {{ copy.boxSet.name || copy.boxSet.title }}
+                     Box Set #{{ copy.boxSet.id }}
                  </RouterLink>
              </p>
              <p v-if="copy.boxSet.canSell">
@@ -234,9 +232,7 @@ const filteredCollectionMedias = computed(() => {
              </p>
      
              <p v-if="copy.boxSet.canRent">
-                 🎬 Boxset for rent: {{ copy.boxSet.deposit }} €
-                 <br>
-                 € Per Month: {{ copy.boxSet.rentPrice }} €
+                 Deposit: {{ copy.boxSet.deposit }} €
              </p>
          </div>
      </div>
@@ -265,11 +261,6 @@ const filteredCollectionMedias = computed(() => {
                         <option value="UHD_4K">UHD / 4K</option>
                     </select>-->
                 </label>
-
-                <div class="view-toggle">
-                    <button :class="{ active: collectionViewMode === 'list' }" @click.prevent="collectionViewMode = 'list'">List</button>
-                    <button :class="{ active: collectionViewMode === 'grid' }" @click.prevent="collectionViewMode = 'grid'">Grid</button>
-                </div>
             </div>
 
             <div class="collection-list-container">

@@ -35,6 +35,38 @@
         </div>
     
         <div v-if="form.partOfBox">
+            <div>
+                <label>
+                    <input
+                        type="radio"
+                        value="new"
+                        v-model="form.boxSetMode"
+                    >
+                    Create new box set
+                </label>
+                <label>
+                    <input
+                        type="radio"
+                        value="existing"
+                        v-model="form.boxSetMode"
+                    >
+                    Add to existing box set
+                </label>
+            </div>
+
+            <div v-if="form.boxSetMode === 'existing'">
+                <label>Existing box set</label><br>
+                <select v-model="form.existingBoxSetId">
+                    <option value="">Select box set</option>
+                    <option
+                        v-for="boxSet in existingBoxSets"
+                        :key="boxSet.id"
+                        :value="boxSet.id"
+                    >
+                        {{ boxSet.name || boxSet.title || `Box Set #${boxSet.id}` }} ({{ boxSet.copyCount }})
+                    </option>
+                </select>
+            </div>
 
             <h3>Items in box</h3>
                 <MediaSearch
@@ -52,40 +84,42 @@
                 </li>
             </ul>
 
-            <div>
-                <label>Box set name</label><br>
-                <input v-model="form.boxSetName" placeholder="Harry Potter 4K Collector's Box" />
-            </div>
-
-            <div>
-                <label>Box listing note</label><br>
-                <input v-model="form.boxSetListingNote" placeholder="Complete 8-movie set" />
-            </div>
-
-            <div>
-                <label>
-                    <input type="checkbox" v-model="form.boxSetCanSell" />
-                    Sell entire box
-                </label>
-                <div v-if="form.boxSetCanSell">
-                    Price: <input type="number" v-model.number="form.boxSetSellPrice" />
+            <template v-if="form.boxSetMode === 'new'">
+                <div>
+                    <label>Box set name</label><br>
+                    <input v-model="form.boxSetName" placeholder="Harry Potter 4K Collector's Box" />
                 </div>
-            </div>
 
-            <div>
-                <label>
-                    <input type="checkbox" v-model="form.boxSetCanRent" />
-                    Rent entire box
-                </label>
-                <div v-if="form.boxSetCanRent">
-                    Price / month: <input type="number" v-model.number="form.boxSetRentPrice" />
-                    Deposit: <input type="number" v-model.number="form.boxSetDeposit" />
+                <div>
+                    <label>Box listing note</label><br>
+                    <input v-model="form.boxSetListingNote" placeholder="Complete 8-movie set" />
                 </div>
-            </div>
+
+                <div>
+                    <label>
+                        <input type="checkbox" v-model="form.boxSetCanSell" />
+                        Sell entire box
+                    </label>
+                    <div v-if="form.boxSetCanSell">
+                        Price: <input type="number" v-model.number="form.boxSetSellPrice" />
+                    </div>
+                </div>
+
+                <div>
+                    <label>
+                        <input type="checkbox" v-model="form.boxSetCanRent" />
+                        Rent entire box
+                    </label>
+                    <div v-if="form.boxSetCanRent">
+                        Price / month: <input type="number" v-model.number="form.boxSetRentPrice" />
+                        Deposit: <input type="number" v-model.number="form.boxSetDeposit" />
+                    </div>
+                </div>
+            </template>
 
         </div>
     
-        <button @click="saveCopy">
+        <button @click="saveCopy" :disabled="form.partOfBox && form.boxSetMode === 'existing' && !form.existingBoxSetId">
             Add
         </button>
     
@@ -98,8 +132,9 @@
 </template>
 
 <script setup>
-import { reactive, computed } from "vue";
+import { reactive, computed, onMounted, ref } from "vue";
 import { createCopy } from "../../api/copyAPI";
+import { getMyBoxSets } from "../../api/boxsetAPI";
 import MediaSearch from "../media/MediaSearch.vue";
 
 const props = defineProps({
@@ -111,10 +146,14 @@ const props = defineProps({
 
 const emit = defineEmits(["close", "saved"]);
 
+const existingBoxSets = ref([]);
+
 const form = reactive({
     edition: "BLURAY",
     includesBluRay: false,
     partOfBox: false,
+    boxSetMode: 'new',
+    existingBoxSetId: '',
     items: [
         props.media 
     ],
@@ -129,20 +168,33 @@ const form = reactive({
 
 const is4K = computed(() => form.edition === "UHD_4K");
 
+onMounted(async () => {
+    try {
+        existingBoxSets.value = await getMyBoxSets();
+    } catch (err) {
+        console.error(err);
+    }
+});
+
 async function saveCopy() {
     try {
+        if (form.partOfBox && form.boxSetMode === 'existing' && !form.existingBoxSetId) {
+            return;
+        }
+
         await createCopy({
             edition: form.edition,
             includesBluRay: form.includesBluRay,
             partOfBox: form.partOfBox,
             mediaIds: form.items.map(item => item.id),
-            boxSetName: form.boxSetName,
-            boxSetListingNote: form.boxSetListingNote,
-            boxSetCanSell: form.boxSetCanSell,
-            boxSetSellPrice: form.boxSetSellPrice,
-            boxSetCanRent: form.boxSetCanRent,
-            boxSetRentPrice: form.boxSetRentPrice,
-            boxSetDeposit: form.boxSetDeposit,
+            existingBoxSetId: form.boxSetMode === 'existing' && form.existingBoxSetId ? Number(form.existingBoxSetId) : undefined,
+            boxSetName: form.boxSetMode === 'new' ? form.boxSetName : undefined,
+            boxSetListingNote: form.boxSetMode === 'new' ? form.boxSetListingNote : undefined,
+            boxSetCanSell: form.boxSetMode === 'new' ? form.boxSetCanSell : undefined,
+            boxSetSellPrice: form.boxSetMode === 'new' ? form.boxSetSellPrice : undefined,
+            boxSetCanRent: form.boxSetMode === 'new' ? form.boxSetCanRent : undefined,
+            boxSetRentPrice: form.boxSetMode === 'new' ? form.boxSetRentPrice : undefined,
+            boxSetDeposit: form.boxSetMode === 'new' ? form.boxSetDeposit : undefined,
         });
 
         emit("saved");

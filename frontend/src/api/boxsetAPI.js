@@ -4,6 +4,10 @@ export function getBoxSetById(id) {
   return apiFetch(`/boxsets/${id}`);
 }
 
+export function getMyBoxSets() {
+  return apiFetch('/boxsets/my');
+}
+
 export function addBoxSetMedia(id, payload) {
   return apiFetch(`/boxsets/${id}/media`, {
     method: 'POST',
@@ -20,5 +24,12 @@ export function removeBoxSetMedia(id, mediaId) {
 export function deleteBoxSet(id) {
   return apiFetch(`/boxsets/${id}`, {
     method: 'DELETE',
+  });
+}
+
+export function updateBoxSet(id, payload) {
+  return apiFetch(`/boxsets/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
   });
 }

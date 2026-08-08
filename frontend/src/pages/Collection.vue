@@ -113,7 +113,7 @@ const loading = ref(true);
 
 const search = ref("");
 const showAddMedia = ref(false);
-const groupByCollection = ref(false);
+const groupByCollection = ref(true);
 const selectedFormat = ref("ALL");
 const viewMode = ref("list");
 

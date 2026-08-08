@@ -107,7 +107,7 @@
             </p>
 
             <p class="listing-price">
-              {{ activeMode === 'SELL' ? `${listing.price} €` : `${listing.price} €/month` }}
+              {{ activeMode === 'SELL' ? `${listing.price} €` : `Deposit: ${listing.price} €` }}
             </p>
 
             <p v-if="listing.type === 'boxSet'" class="listing-subtitle">

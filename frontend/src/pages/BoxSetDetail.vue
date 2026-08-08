@@ -1,13 +1,22 @@
 <template>
   <div class="page">
-    <Breadcrumbs :title="boxSet?.name || boxSet?.title || 'Box Set'" />
+    <Breadcrumbs :title="displayTitle" />
 
     <div v-if="!boxSet" class="loading">
       Loading box set...
     </div>
 
     <div v-else>
-      <h1>{{ boxSet.name || boxSet.title || 'Box Set' }}</h1>
+      <div class="title-row">
+        <h1>{{ displayTitle }}</h1>
+        <button
+          v-if="canEdit"
+          type="button"
+          @click="toggleEditing"
+        >
+          {{ isEditing ? 'Done' : 'Edit' }}
+        </button>
+      </div>
 
       <p v-if="boxSet.listingNote">{{ boxSet.listingNote }}</p>
 
@@ -24,7 +33,7 @@
             {{ media.collectionPosition ? `${media.collectionPosition}. ` : '' }}{{ media.title }}
           </RouterLink>
           <button
-            v-if="canEdit"
+            v-if="canEdit && isEditing"
             type="button"
             class="danger-btn"
             :disabled="removingMediaId === media.id || addingMedia"
@@ -35,8 +44,58 @@
         </div>
       </div>
 
-      <section v-if="canEdit" class="edit-section">
+      <section v-if="canEdit && isEditing" class="edit-section">
         <h2>Edit box set</h2>
+
+        <div class="form-row">
+          <label>Title</label>
+          <input
+            v-model="boxSetForm.name"
+            type="text"
+            placeholder="Optional box set title"
+          >
+        </div>
+
+        <div class="form-row">
+          <label>Listing note</label>
+          <textarea
+            v-model="boxSetForm.listingNote"
+            rows="2"
+            placeholder="Complete box set with slipcase"
+          />
+        </div>
+
+        <div class="form-row">
+          <label>
+            <input type="checkbox" v-model="boxSetForm.canSell" />
+            Sell entire box
+          </label>
+          <div v-if="boxSetForm.canSell" class="nested-fields">
+            <label>Price</label>
+            <input v-model.number="boxSetForm.sellPrice" type="number">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>
+            <input type="checkbox" v-model="boxSetForm.canRent" />
+            Rent entire box
+          </label>
+          <div v-if="boxSetForm.canRent" class="nested-fields">
+            <label>Price / month</label>
+            <input v-model.number="boxSetForm.rentPrice" type="number">
+            <label>Deposit</label>
+            <input v-model.number="boxSetForm.deposit" type="number">
+          </div>
+        </div>
+
+        <button
+          type="button"
+          :disabled="savingBoxSet"
+          @click="saveBoxSet"
+        >
+          {{ savingBoxSet ? 'Saving...' : 'Save box set details' }}
+        </button>
 
         <div class="form-row">
           <label>Edition</label>
@@ -87,7 +146,6 @@
         <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
       </section>
       <section v-else-if="auth.user.value" class="read-only-note">
-        <p>Only the owner can edit this box set.</p>
       </section>
     </div>
   </div>
@@ -100,21 +158,40 @@ import { useAuth } from '../composables/useAuth';
 
 import Breadcrumbs from '../components/layout/Breadcrumbs.vue';
 import MediaSearch from '../components/media/MediaSearch.vue';
-import { addBoxSetMedia, deleteBoxSet, getBoxSetById, removeBoxSetMedia } from '../api/boxsetAPI.js';
+import { addBoxSetMedia, deleteBoxSet, getBoxSetById, removeBoxSetMedia, updateBoxSet } from '../api/boxsetAPI.js';
 
 const route = useRoute();
 const router = useRouter();
 const auth = useAuth();
 const boxSet = ref(null);
+const isEditing = ref(false);
+const savingBoxSet = ref(false);
 const addingMedia = ref(false);
 const removingMediaId = ref(null);
 const deletingBoxSet = ref(false);
 const errorMessage = ref('');
 
+const boxSetForm = reactive({
+  name: '',
+  listingNote: '',
+  canSell: false,
+  sellPrice: null,
+  canRent: false,
+  rentPrice: null,
+  deposit: null,
+});
+
 const addForm = reactive({
   edition: 'BLURAY',
   includesBluRay: false,
   items: [],
+});
+
+const displayTitle = computed(() => {
+  if (!boxSet.value) {
+    return 'Box Set';
+  }
+  return boxSet.value.name || boxSet.value.title || `Box Set #${boxSet.value.id}`;
 });
 
 const canEdit = computed(() => {
@@ -134,6 +211,7 @@ const excludeMediaIds = computed(() => {
 
 async function loadBoxSet() {
   boxSet.value = await getBoxSetById(route.params.id);
+  syncBoxSetForm();
 }
 
 function addItem(media) {
@@ -160,7 +238,8 @@ async function saveAddedMedia() {
       includesBluRay: addForm.includesBluRay,
       mediaIds: addForm.items.map((item) => item.id),
     });
-    addForm.items = [];
+    addForm.items.splice(0, addForm.items.length);
+    syncBoxSetForm();
   } catch (error) {
     errorMessage.value = error.message || 'Failed to add movies to box set';
   } finally {
@@ -177,10 +256,57 @@ async function removeMedia(mediaId) {
   errorMessage.value = '';
   try {
     boxSet.value = await removeBoxSetMedia(route.params.id, mediaId);
+    syncBoxSetForm();
   } catch (error) {
     errorMessage.value = error.message || 'Failed to remove movie from box set';
   } finally {
     removingMediaId.value = null;
+  }
+}
+
+function syncBoxSetForm() {
+  if (!boxSet.value) {
+    return;
+  }
+  boxSetForm.name = boxSet.value.name || boxSet.value.title || '';
+  boxSetForm.listingNote = boxSet.value.listingNote || '';
+  boxSetForm.canSell = Boolean(boxSet.value.canSell);
+  boxSetForm.sellPrice = boxSet.value.sellPrice;
+  boxSetForm.canRent = Boolean(boxSet.value.canRent);
+  boxSetForm.rentPrice = boxSet.value.rentPrice;
+  boxSetForm.deposit = boxSet.value.deposit;
+}
+
+function toggleEditing() {
+  isEditing.value = !isEditing.value;
+  errorMessage.value = '';
+  if (isEditing.value) {
+    syncBoxSetForm();
+  }
+}
+
+async function saveBoxSet() {
+  if (!canEdit.value) {
+    return;
+  }
+
+  savingBoxSet.value = true;
+  errorMessage.value = '';
+  try {
+    boxSet.value = await updateBoxSet(route.params.id, {
+      name: boxSetForm.name.trim() || null,
+      listingNote: boxSetForm.listingNote.trim() || null,
+      canSell: boxSetForm.canSell,
+      sellPrice: boxSetForm.canSell ? boxSetForm.sellPrice : null,
+      canRent: boxSetForm.canRent,
+      rentPrice: boxSetForm.canRent ? boxSetForm.rentPrice : null,
+      deposit: boxSetForm.canRent ? boxSetForm.deposit : null,
+    });
+    syncBoxSetForm();
+  } catch (error) {
+    errorMessage.value = error.message || 'Failed to update box set';
+  } finally {
+    savingBoxSet.value = false;
   }
 }
 
@@ -210,6 +336,13 @@ onMounted(loadBoxSet);
 </script>
 
 <style scoped>
+.title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .media-row {
   margin-bottom: 0.75rem;
   display: flex;
@@ -236,6 +369,19 @@ onMounted(loadBoxSet);
 
 .form-row {
   margin-bottom: 1rem;
+}
+
+.form-row input[type="text"],
+.form-row input[type="number"],
+.form-row select,
+.form-row textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 0.35rem;
+}
+
+.nested-fields {
+  margin-top: 0.5rem;
 }
 
 .selected-items {

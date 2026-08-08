@@ -19,7 +19,7 @@ const normalizedStatus = computed(() => props.status || "REQUESTED");
 const label = computed(() => {
   switch (normalizedStatus.value) {
     case "REQUESTED":
-      return "Reserved";
+      return "Pending";
     case "ACCEPTED":
       return "Reserved";
     case "RENTING":
