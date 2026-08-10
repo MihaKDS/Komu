@@ -647,6 +647,36 @@ async function importSelectedTmdbMovies(collectionId) {
   );
 }
 
+function resetForm() {
+  form.category = "MOVIE";
+  form.title = "";
+  form.author = "";
+  form.releaseYear = null;
+  form.description = "";
+  form.poster = "";
+  form.partOfCollection = false;
+  form.collectionId = null;
+
+  selectedCollection.value = null;
+  collectionQuery.value = "";
+  collectionResults.value = [];
+
+  createNewCollection.value = false;
+  newCollection.title = "";
+  newCollection.poster = "";
+
+  selectedTmdbMovie.value = null;
+  tmdbCollection.value = null;
+  tmdbCollectionMovies.value = [];
+  selectedCollectionMovieIds.value = [];
+  importCollection.value = false;
+
+  tmdbQuery.value = "";
+  tmdbResults.value = [];
+  tmdbError.value = "";
+  error.value = "";
+}
+
 async function saveMedia() {
   if (!SUPPORTED_CATEGORIES.has(form.category)) {
     error.value = categoryNotice.value;
@@ -667,10 +697,11 @@ async function saveMedia() {
       await importSelectedTmdbMovies(collectionId);
     } else {
       await createSingleMedia(collectionId);
-      alert("Media added successfully.");
     }
 
-    router.push("/add-media");
+    resetForm();
+
+    alert("Media added successfully.");
   } catch (saveError) {
     console.error("Failed to save media:", saveError);
     error.value = saveError.message || "Failed to save media.";
