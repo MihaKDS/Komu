@@ -1,72 +1,120 @@
 <template>
-    <RouterLink
-        :to="to"
-        class="media-card"
-    >
-        <article class="media-card">
+<RouterLink
+    :to="to"
+    class="media-card-link"
+>
+    <article class="media-card">
 
-            <img
-                :src="posterSource(media.poster)"
-                :alt="media.title"
-            >
+        <img
+            :src="posterSource(media.poster)"
+            :alt="media.title"
+            class="media-poster"
+        >
 
-            <div class="content">
+        <div class="content">
 
-                <div class="card-meta">
-                    <h3>{{ media.title }}</h3>
-                    <span v-if="media.inCollection" class="collection-badge">In collection</span>
-                    <span v-if="media.hasSell" class="sell-badge">Selling</span>
-                    <span v-if="media.hasRent" class="rent-badge">Renting</span>
-                </div>
+            <div class="card-meta">
 
-                <p>
-                    {{ media.isCollectionGroup ? 'Collection' : media.releaseYear }}
-                </p>
+                <h3>
+                    {{ media.title }}
+                </h3>
 
-                <p v-if="media.isCollectionGroup" class="collection-summary">
-                    {{ media.collectionSize }} titles
-                </p>
-
-                <p v-else-if="media.availableCopies != null" class="available-copies">
-                    {{ media.availableCopies }} available for sale or rent
-                </p>
-
-                <div v-if="media.tradeStatusLabel" class="trade-status">
-                    <button
-                        v-if="media.tradeId"
-                        type="button"
-                        class="trade-status-link"
-                        @click.stop.prevent="openTrade(media.tradeId)"
+                <div class="badges">
+                    <span
+                        v-if="media.inCollection"
+                        class="collection-badge"
                     >
-                        {{ media.tradeStatusLabel }}
-                    </button>
-                    <span v-else>{{ media.tradeStatusLabel }}</span>
-                </div>
+                        In collection
+                    </span>
 
-                <div
-                    class="media-formats"
-                    v-if="!media.isCollectionGroup"
-                >
-                    <div class="format">
-                        <span>DVD</span>
-                        <strong>{{ media.dvd ?? 0 }}</strong>
-                    </div>
+                    <span
+                        v-if="media.hasSell"
+                        class="sell-badge"
+                    >
+                        Selling
+                    </span>
 
-                    <div class="format">
-                        <span>Blu-ray</span>
-                        <strong>{{ media.bluray ?? 0 }}</strong>
-                    </div>
-
-                    <div class="format">
-                        <span>UHD</span>
-                        <strong>{{ media.fourk ?? 0 }}</strong>
-                    </div>
+                    <span
+                        v-if="media.hasRent"
+                        class="rent-badge"
+                    >
+                        Renting
+                    </span>
                 </div>
 
             </div>
 
-        </article>
-    </RouterLink>
+
+            <p class="year">
+                {{
+                    media.isCollectionGroup
+                        ? "Collection"
+                        : media.releaseYear
+                }}
+            </p>
+
+
+            <p
+                v-if="media.isCollectionGroup"
+                class="collection-summary"
+            >
+                {{ media.collectionSize }}
+                {{ media.collectionSize === 1 ? "title" : "titles" }}
+            </p>
+
+
+            <p
+                v-else-if="media.availableCopies != null"
+                class="available-copies"
+            >
+                {{ media.availableCopies }}
+                available for sale
+            </p>
+
+
+            <div
+                v-if="media.tradeStatusLabel"
+                class="trade-status"
+            >
+                <button
+                    v-if="media.tradeId"
+                    type="button"
+                    class="trade-status-link"
+                    @click.stop.prevent="openTrade(media.tradeId)"
+                >
+                    {{ media.tradeStatusLabel }}
+                </button>
+
+                <span v-else>
+                    {{ media.tradeStatusLabel }}
+                </span>
+            </div>
+
+
+            <div
+                v-if="!media.isCollectionGroup && (media.category === 'MOVIE' || media.category === 'TV_SHOW')"
+                class="media-formats"
+            >
+                <div class="format">
+                    <span>DVD</span>
+                    <strong>{{ media.dvd ?? 0 }}</strong>
+                </div>
+
+                <div class="format">
+                    <span>BR</span>
+                    <strong>{{ media.bluray ?? 0 }}</strong>
+                </div>
+
+                <div class="format">
+                    <span>UHD</span>
+                    <strong>{{ media.fourk ?? 0 }}</strong>
+                </div>
+            </div>
+
+        </div>
+
+    </article>
+</RouterLink>
 </template>
 
 <script setup>
@@ -109,115 +157,260 @@ function openTrade(tradeId) {
 </script>
 
 <style scoped>
-.media-card{
-    width:220px;
-    background:#2b2b2b;
-    border-radius:12px;
-    overflow:hidden;
-    color: white;
+.media-card-link {
+    display: block;
+
+    color: inherit;
     text-decoration: none;
-
-    transition:transform .2s ease,
-               box-shadow .2s ease;
-
-    cursor:pointer;
 }
 
-.media-card:hover{
-    transform:translateY(-4px);
-    box-shadow:0 8px 20px rgba(0,0,0,.35);
+.media-card {
+    width: 100%;
+    overflow: hidden;
+
+    background: var(--bg-card);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+
+    transition:
+        transform 0.15s ease,
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
 }
 
-.media-card img{
-    width:100%;
-    height:320px;
-    object-fit:cover;
-    display:block;
+.media-card:hover {
+    color: inherit;
+
+    border-color: var(--border-light);
+
+    transform: translateY(-2px);
+
+    box-shadow: var(--shadow-small);
 }
 
-.media-card-content{
-    padding:1rem;
+
+/* Poster */
+
+.media-poster {
+    display: block;
+
+    width: 100%;
+
+    aspect-ratio: 2 / 3;
+
+    object-fit: cover;
+
+    background: var(--bg-secondary);
 }
 
-.media-card h3{
-    margin:0;
-    color:#fff;
-    font-size:1.25rem;
+
+/* Content */
+
+.content {
+    padding: 12px;
 }
 
-.card-meta{
-    display:flex;
-    flex-wrap:wrap;
-    gap:.5rem;
-    align-items:center;
-    margin-bottom:.5rem;
+.card-meta {
+    min-width: 0;
 }
 
-.collection-badge{
-    background:#3f8cff;
-    color:#fff;
-    padding:.25rem .6rem;
-    border-radius:999px;
-    font-size:.75rem;
+.card-meta h3 {
+    margin: 0;
+
+    color: var(--text-h);
+
+    font-size: 16px;
+    line-height: 1.3;
+    font-weight: 600;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
 }
 
-.available-copies{
-    margin:.5rem 0;
-    color:#d4d4d4;
-    font-size:.9rem;
+.badges {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 5px;
+
+    margin-top: 7px;
 }
 
-.collection-summary{
-    margin:.35rem 0;
-    color:#d4d4d4;
-    font-size:.95rem;
+.collection-badge,
+.sell-badge,
+.rent-badge {
+    display: inline-flex;
+
+    padding: 3px 6px;
+
+    border-radius: 999px;
+
+    font-size: 10px;
+    font-weight: 600;
+
+    white-space: nowrap;
 }
 
-.trade-status{
-    margin:.35rem 0;
-    color:#d4d4d4;
-    font-size:.95rem;
-    font-weight:600;
+.collection-badge {
+    color: var(--text-secondary);
+    background: var(--accent-bg);
+    border: 1px solid var(--accent-border);
 }
 
-.trade-status-link{
-    border:none;
-    background:none;
-    color:#7acbff;
-    padding:0;
-    cursor:pointer;
-    font:inherit;
-    text-decoration:underline;
+.sell-badge {
+    color: var(--text-h);
+    background: var(--bg-hover);
+    border: 1px solid var(--border-light);
 }
 
-.media-card .meta{
-    margin:.4rem 0 1rem;
-    color:#aaa;
-    font-size:.9rem;
+.rent-badge {
+    color: var(--text-h);
+    background: var(--bg-hover);
+    border: 1px solid var(--border-light);
 }
 
-.media-formats{
-    display:flex;
-    justify-content:space-between;
-    border-top:1px solid #444;
-    padding-top:.75rem;
+
+/* Metadata */
+
+.year {
+    margin: 6px 0 0;
+
+    color: var(--text-muted);
+
+    font-size: 13px;
 }
 
-.format{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
+.collection-summary,
+.available-copies {
+    margin: 6px 0 0;
+
+    color: var(--text-secondary);
+
+    font-size: 12px;
 }
 
-.format span{
-    font-size:.75rem;
-    color:#999;
-    text-transform:uppercase;
+
+/* Formats */
+
+.media-formats {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 5px;
+
+    margin-top: 10px;
 }
 
-.format strong{
-    color:#fff;
-    font-size:1rem;
-    margin-top:.2rem;
+.format {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    min-width: 0;
+
+    padding: 4px 6px;
+
+    color: var(--text-muted);
+    background: var(--bg-secondary);
+
+    border: 1px solid var(--border);
+    border-radius: 4px;
+
+    font-size: 10px;
+}
+
+.format strong {
+    color: var(--text-h);
+
+    font-size: 11px;
+}
+
+
+/* Trade */
+
+.trade-status {
+    margin-top: 7px;
+}
+
+.trade-status-link,
+.trade-status span {
+    display: inline-flex;
+
+    padding: 4px 7px;
+
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+
+    border: 1px solid var(--border);
+    border-radius: 4px;
+
+    font-size: 11px;
+}
+
+.trade-status-link {
+    cursor: pointer;
+}
+
+.trade-status-link:hover {
+    color: var(--text-h);
+    background: var(--bg-hover);
+}
+@media (max-width: 600px) {
+
+    .content {
+        padding: 9px;
+    }
+
+    .media-poster {
+        /*
+         * Don't let the poster become enormous
+         * on small screens.
+         */
+        aspect-ratio: 2 / 3;
+    }
+
+    .card-meta h3 {
+        font-size: 14px;
+    }
+
+    .badges {
+        gap: 4px;
+        margin-top: 5px;
+    }
+
+    .collection-badge,
+    .sell-badge,
+    .rent-badge {
+        padding: 2px 5px;
+        font-size: 9px;
+    }
+
+    .year {
+        font-size: 11px;
+    }
+
+    .collection-summary,
+    .available-copies {
+        font-size: 11px;
+    }
+
+    .media-formats {
+        gap: 3px;
+        margin-top: 7px;
+    }
+
+    .format {
+        padding: 3px 4px;
+        font-size: 9px;
+    }
+
+    .format strong {
+        font-size: 10px;
+    }
 }
 </style>

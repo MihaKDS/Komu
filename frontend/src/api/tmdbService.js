@@ -7,3 +7,7 @@ export function searchTmdbMovies(query) {
 export function getTmdbMovieDetails(id) {
   return apiFetch(`/tmdb/movie/${id}`);
 }
+
+export function getTmdbCollection(id) {
+  return apiFetch(`/tmdb/collection/${id}`);
+}

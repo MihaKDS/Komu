@@ -10,34 +10,20 @@
     <SearchBar @search="search = $event" />
 
     <CategorySelector
-      :categories="categories"
-      :selected="selectedCategory"
-      @change="selectedCategory = $event"
+        :categories="categories"
+        :selected="selectedCategory"
+        :counts="categoryCounts"
+        @change="selectedCategory = $event"
     />
 
     <FilterBar
+      :category="selectedCategory"
       :format="selectedFormat"
       :viewMode="'list'"
       :showCollectionFilter="false"
       :showViewToggle="false"
       @update:format="selectedFormat = $event"
     />
-        <div class="trade-tabs">
-      <button
-        type="button"
-        :class="{ active: activeMode === 'SELL' }"
-        @click="switchMode('SELL')"
-      >
-        For Sale ({{ saleCount }})
-      </button>
-      <button
-        type="button"
-        :class="{ active: activeMode === 'RENT' }"
-        @click="switchMode('RENT')"
-      >
-        For Rent ({{ rentCount }})
-      </button>
-    </div>
 
     <div v-if="loading" class="loading">
       Loading...
@@ -87,6 +73,7 @@
           </label>
 
           <img
+            v-if="listing.poster"
             class="poster"
             :src="posterSource(listing.poster)"
             :alt="listing.title"
@@ -156,7 +143,7 @@ const requestMessage = ref("");
 const requestingTrade = ref(false);
 const requestError = ref("");
 
-const categories = ["MOVIE", "BOOK", "GAME", "MUSIC"];
+const categories = ["MOVIE", "TV_SHOW", "BOOK", "COMIC"];
 
 const pageTitle = computed(() => {
   return sellerData.value?.seller?.username
@@ -175,6 +162,18 @@ const activeListings = computed(() => {
   return activeMode.value === "SELL"
     ? sellerData.value.saleItems ?? []
     : sellerData.value.rentItems ?? [];
+});
+
+const categoryCounts = computed(() => {
+    const counts = {};
+
+    for (const category of categories) {
+        counts[category] = (sellerData.value?.saleItems ?? [])
+            .filter(item => item.category === category)
+            .length;
+    }
+
+    return counts;
 });
 
 function matchesFormat(item) {
@@ -297,158 +296,464 @@ watch(
 </script>
 
 <style scoped>
-.seller-city {
-  color: #aaa;
-  margin-bottom: 1rem;
+/* =========================================================
+   SELLER LISTINGS
+   ========================================================= */
+
+.seller-listings {
+    width: min(100%, 900px);
+    margin: 0 auto;
 }
 
+
+/* =========================================================
+   SELLER HEADER
+   ========================================================= */
+
+.seller-city {
+    margin: -4px 0 14px;
+
+    color: var(--text-muted);
+
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   SEARCH / FILTERS
+   ========================================================= */
+
+.seller-listings > .search-bar,
+.seller-listings > .category-selector {
+    margin-bottom: 10px;
+}
+
+
+/* Keep the filter controls compact */
+
+.seller-listings .filter-bar {
+    margin-top: 8px;
+}
+
+
+/* =========================================================
+   TRADE TABS
+   ========================================================= */
+
 .trade-tabs {
-  display: flex;
-  gap: 0.75rem;
-  margin: 1rem 0;
-  flex-wrap: wrap;
+    display: flex;
+
+    gap: 4px;
+
+    margin: 18px 0;
+
+    padding: 4px;
+
+    background: var(--bg-secondary);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
 }
 
 .trade-tabs button {
-  border: 1px solid #444;
-  background: #222;
-  color: #ddd;
-  padding: 0.7rem 1rem;
-  border-radius: 10px;
-  cursor: pointer;
+    flex: 1;
+
+    min-height: 38px;
+
+    padding: 7px 14px;
+
+    color: var(--text-secondary);
+    background: transparent;
+
+    border: 0;
+    border-radius: var(--radius-small);
+
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s ease,
+        color 0.15s ease;
+}
+
+.trade-tabs button:hover {
+    color: var(--text-h);
+    background: var(--bg-hover);
 }
 
 .trade-tabs button.active {
-  background: #3f8cff;
-  color: #fff;
-  border-color: rgba(63, 140, 255, 0.7);
+    color: var(--text-h);
+    background: var(--bg-card);
+
+    box-shadow: var(--shadow);
 }
 
-.loading,
-.empty {
-  margin-top: 1.5rem;
-  color: #aaa;
-}
+
+/* =========================================================
+   REQUEST PANEL
+   ========================================================= */
 
 .request-panel {
-  margin-top: 1.5rem;
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  border-radius: 12px;
-  background: #222;
+    margin-bottom: 18px;
+    padding: 16px;
+
+    background: var(--bg-secondary);
+
+    border: 1px solid var(--accent-border);
+    border-radius: var(--radius);
+}
+
+.request-panel h2 {
+    margin: 0 0 10px;
+
+    color: var(--text-h);
+
+    font-size: 17px;
 }
 
 .request-panel textarea {
-  width: 100%;
-  box-sizing: border-box;
-  background: #1f1f1f;
-  color: #fff;
-  border: 1px solid #444;
-  border-radius: 10px;
-  padding: 0.75rem;
+    width: 100%;
+
+    min-height: 75px;
+
+    padding: 9px 11px;
+
+    color: var(--text-h);
+    background: var(--bg-card);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+
+    resize: vertical;
+
+    font: inherit;
+}
+
+.request-panel textarea:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
 }
 
 .request-panel button {
-  margin-top: 0.75rem;
+    margin-top: 10px;
+
+    min-height: 38px;
+
+    padding: 8px 13px;
+
+    color: #fff;
+    background: var(--accent);
+
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-small);
+
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
 }
 
+.request-panel button:hover {
+    background: var(--accent-hover);
+}
+
+.request-panel button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   LISTINGS
+   ========================================================= */
+
 .listing-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+
+    gap: 10px;
 }
 
 .seller-listing-card {
-  display: grid;
-  grid-template-columns: 28px 90px 1fr;
-  gap: 1rem;
-  padding: 1rem;
-  border-radius: 12px;
-  background: #222;
-  align-items: start;
+    display: flex;
+    align-items: center;
+
+    position: relative;
+
+    min-width: 0;
+
+    gap: 12px;
+
+    padding: 12px;
+
+    background: var(--bg-card);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+
+    transition:
+        border-color 0.15s ease,
+        background 0.15s ease,
+        transform 0.15s ease;
+}
+
+.seller-listing-card:hover {
+    border-color: var(--accent-border);
+    background: var(--bg-hover);
 }
 
 .seller-listing-card.selected {
-  border: 2px solid rgba(76, 175, 80, 0.65);
+    border-color: var(--accent);
+    background: var(--accent-bg);
 }
 
+
+/* =========================================================
+   SELECTION
+   ========================================================= */
+
 .selection-box {
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 0.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    cursor: pointer;
 }
 
 .selection-box input {
-  width: 1rem;
-  height: 1rem;
+    width: 18px;
+    height: 18px;
+
+    margin: 0;
+
+    accent-color: var(--accent);
+
+    cursor: pointer;
 }
 
-.poster {
-  width: 90px;
-  height: 135px;
-  border-radius: 10px;
-  object-fit: cover;
+
+/* =========================================================
+   POSTER
+   ========================================================= */
+
+.seller-listing-card .poster {
+    width: 64px;
+    height: 92px;
+
+    flex-shrink: 0;
+
+    object-fit: cover;
+
+    background: var(--bg-secondary);
+
+    border-radius: 5px;
 }
+
+
+/* =========================================================
+   LISTING CONTENT
+   ========================================================= */
 
 .listing-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  min-width: 0;
+    flex: 1;
+
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
 }
 
 .listing-header {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-  flex-wrap: wrap;
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    margin-bottom: 3px;
 }
 
 .listing-header h3 {
-  margin: 0;
+    min-width: 0;
+
+    margin: 0;
+
+    overflow: hidden;
+
+    color: var(--text-h);
+
+    font-size: 15px;
+    line-height: 1.3;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .kind-badge {
-  background: #3f8cff;
-  color: #fff;
-  padding: 0.25rem 0.55rem;
-  border-radius: 999px;
-  font-size: 0.8rem;
+    flex-shrink: 0;
+
+    padding: 3px 7px;
+
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+
+    border: 1px solid var(--border);
+    border-radius: 4px;
+
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
-.listing-meta,
-.listing-note,
-.listing-subtitle {
-  color: #bbb;
+.listing-meta {
+    margin: 0;
+
+    color: var(--text-muted);
+
+    font-size: 12px;
+}
+
+.listing-note {
+    margin: 6px 0 0;
+
+    color: var(--text-secondary);
+
+    font-size: 12px;
+
+    line-height: 1.4;
 }
 
 .listing-price {
-  color: #fff;
-  font-weight: 700;
+    margin: 7px 0 0;
+
+    color: var(--text-h);
+
+    font-size: 15px;
+    font-weight: 700;
 }
 
+.listing-subtitle {
+    margin: 5px 0 0;
+
+    overflow: hidden;
+
+    color: var(--text-muted);
+
+    font-size: 11px;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   DETAILS LINK
+   ========================================================= */
+
 .listing-link {
-  color: #7acbff;
-  text-decoration: underline;
-  width: fit-content;
+    align-self: flex-start;
+
+    margin-top: 7px;
+
+    color: var(--accent);
+
+    font-size: 12px;
+    font-weight: 600;
+
+    text-decoration: none;
+}
+
+.listing-link:hover {
+    text-decoration: underline;
+}
+
+
+/* =========================================================
+   EMPTY / LOADING
+   ========================================================= */
+
+.loading,
+.empty {
+    padding: 30px 15px;
+
+    color: var(--text-muted);
+
+    text-align: center;
+
+    font-size: 13px;
 }
 
 .error {
-  color: #ff9d9d;
+    margin-top: 10px;
 }
 
-@media (max-width: 768px) {
-  .seller-listing-card {
-    grid-template-columns: 24px 72px 1fr;
-    gap: 0.75rem;
-    padding: 0.75rem;
-  }
 
-  .poster {
-    width: 72px;
-    height: 108px;
-  }
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+    .trade-tabs {
+        margin: 12px 0;
+    }
+
+    .trade-tabs button {
+        min-height: 36px;
+
+        padding: 6px 8px;
+
+        font-size: 12px;
+    }
+
+    .request-panel {
+        padding: 13px;
+    }
+
+    .seller-listing-card {
+        align-items: flex-start;
+
+        gap: 9px;
+
+        padding: 9px;
+    }
+
+    .seller-listing-card .poster {
+        width: 50px;
+        height: 72px;
+    }
+
+    .listing-header {
+        align-items: flex-start;
+        flex-wrap: wrap;
+
+        gap: 5px;
+    }
+
+    .listing-header h3 {
+        width: 100%;
+
+        font-size: 14px;
+
+        white-space: normal;
+    }
+
+    .kind-badge {
+        font-size: 9px;
+    }
+
+    .listing-price {
+        font-size: 14px;
+    }
+
+    .listing-link {
+        margin-top: 6px;
+    }
+
 }
 </style>

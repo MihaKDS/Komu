@@ -8,8 +8,43 @@
 
     <section class="summary-card">
       <p><strong>Type:</strong> {{ trade.type }}</p>
-      <p><strong>Buyer:</strong> {{ trade.buyer.username }}</p>
-      <p><strong>Seller:</strong> {{ trade.seller.username }}</p>
+      <p>
+          <strong>Buyer:</strong>
+
+          <RouterLink
+              v-if="!isCurrentUser(trade.buyer.username)"
+              :to="{
+                  name: 'seller-listings',
+                  params: { username: trade.buyer.username },
+                  query: { from: 'trade-detail' }
+              }"
+          >
+              {{ trade.buyer.username }}
+          </RouterLink>
+
+          <span v-else>
+              {{ trade.buyer.username }}
+          </span>
+      </p>
+
+      <p>
+          <strong>Seller:</strong>
+
+          <RouterLink
+              v-if="!isCurrentUser(trade.seller.username)"
+              :to="{
+                  name: 'seller-listings',
+                  params: { username: trade.seller.username },
+                  query: { from: 'trade-detail' }
+              }"
+          >
+              {{ trade.seller.username }}
+          </RouterLink>
+
+          <span v-else>
+              {{ trade.seller.username }}
+          </span>
+      </p>
       <p><strong>Seller confirmed transfer:</strong> {{ trade.sellerConfirmedTransfer ? "Yes" : "No" }}</p>
       <p><strong>Buyer confirmed transfer:</strong> {{ trade.buyerConfirmedTransfer ? "Yes" : "No" }}</p>
       <p v-if="trade.type === 'RENT'"><strong>Return requested:</strong> {{ trade.returnRequested ? "Yes" : "No" }}</p>
@@ -46,6 +81,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
+import { useAuth } from "../composables/useAuth.js";
 import Breadcrumbs from "../components/layout/Breadcrumbs.vue";
 import TradeItems from "../components/trade/TradeItems.vue";
 import TradeMessages from "../components/trade/TradeMessages.vue";
@@ -60,6 +96,10 @@ import {
   rejectTrade,
   requestTradeReturn,
 } from "../api/tradeAPI.js";
+
+function isCurrentUser(username) {
+    return username === useAuth().user.value?.username;
+}
 
 const route = useRoute();
 

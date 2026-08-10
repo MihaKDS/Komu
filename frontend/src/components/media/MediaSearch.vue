@@ -34,6 +34,11 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+
+    category: {
+        type: String,
+        default: null,
+    },
 });
 
 const emit = defineEmits(["selected"]);
@@ -42,19 +47,27 @@ const query = ref("");
 const results = ref([]);
 
 async function search() {
-
     if (query.value.trim().length < 2) {
         results.value = [];
         return;
     }
 
     try {
-
         const media = await searchMedia(query.value);
 
-        results.value = media.filter(
-            m => !props.excludeIds.includes(m.id)
-        );
+        results.value = media.filter((m) => {
+            // Only show media from the requested category
+            if (props.category && m.category !== props.category) {
+                return false;
+            }
+
+            // Don't show items already selected
+            if (props.excludeIds.includes(m.id)) {
+                return false;
+            }
+
+            return true;
+        });
 
     } catch (error) {
         console.error(error);
@@ -62,7 +75,6 @@ async function search() {
 }
 
 function select(media) {
-
     emit("selected", media);
 
     query.value = "";

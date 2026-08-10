@@ -1,22 +1,22 @@
 <template>
+    <div :class="{ 'menu-open': isMenuOpen }">
+        <Header @toggle-menu="toggleMenu" />
 
-    <Header
-        @toggle-menu="toggleMenu"
-    />
+        <SideMenu
+            :isOpen="isMenuOpen"
+            @close-menu="closeMenu"
+        />
 
-    <SideMenu
-        :isOpen="isMenuOpen"
-        @close-menu="closeMenu"
-    />
-    <div
-        v-if="isMenuOpen"
-        class="overlay"
-        @click="closeMenu"
-    />
-    <main>
-        <router-view />
-    </main>
+        <div
+            v-if="isMenuOpen"
+            class="overlay"
+            @click="closeMenu"
+        />
 
+        <main>
+            <router-view />
+        </main>
+    </div>
 </template>
 
 <script setup>
@@ -46,20 +46,38 @@ function closeMenu() {
 
 <style scoped>
 main {
+    width: 100%;
     padding: 1rem;
 }
+.menu-open {
+    overflow: hidden;
+}
 .header {
+    position: relative;
     z-index: 1000;
 }
 
 .side-menu {
+    position: fixed;
     z-index: 900;
 }
+
 .overlay {
     position: fixed;
     inset: 0;
+
     z-index: 800;
-    background: rgba(0, 0, 0, 0.4);
+
+    background: rgba(0, 0, 0, 0.6);
+
+    /* Prevent clicking/scrolling through the overlay */
+    touch-action: none;
+}
+
+@media (max-width: 768px) {
+    main {
+        padding: 0.75rem;
+    }
 }
 
 </style>

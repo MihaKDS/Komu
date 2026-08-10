@@ -3,6 +3,7 @@
     <section v-if="items.length === 1" class="trade-items">
       <article v-for="item in items" :key="item.id || item.copyId" class="trade-item">
         <img
+          v-if="item.media.poster"
           class="poster"
           :src="posterSource(item.media.poster)"
           :alt="item.media.title"
@@ -37,6 +38,7 @@
       <section class="trade-items">
         <article v-for="item in items" :key="item.id || item.copyId" class="trade-item">
           <img
+            v-if="item.media.poster"
             class="poster"
             :src="posterSource(item.media.poster)"
             :alt="item.media.title"

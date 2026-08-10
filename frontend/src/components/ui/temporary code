@@ -1,0 +1,165 @@
+<!-- =========================
+     COMIC VOLUME ADDITION
+========================= -->
+
+<div v-if="props.media.category === 'COMIC'" class="comic-volume-section">
+
+    <h3>Add comic volumes</h3>
+
+    <div>
+        <label>Edition</label>
+
+        <select v-model="form.edition">
+            <option value="SOFT_COVER">Soft cover</option>
+            <option value="HARD_COVER">Hard cover</option>
+        </select>
+    </div>
+
+    <div class="volume-range">
+
+        <label>
+            From volume
+            <input
+                type="number"
+                min="1"
+                v-model.number="form.volumeFrom"
+            >
+        </label>
+
+        <label>
+            To volume
+            <input
+                type="number"
+                min="1"
+                v-model.number="form.volumeTo"
+            >
+        </label>
+
+    </div>
+
+    <div
+        v-if="form.volumeFrom && form.volumeTo && form.volumeTo >= form.volumeFrom"
+        class="missing-volumes"
+    >
+        <label>
+            Missing volumes
+        </label>
+
+        <div class="volume-checkboxes">
+
+            <label
+                v-for="volume in volumeRange"
+                :key="volume"
+                class="volume-checkbox"
+            >
+                <input
+                    type="checkbox"
+                    :value="volume"
+                    v-model="form.missingVolumes"
+                >
+
+                {{ volume }}
+            </label>
+
+        </div>
+
+        <small>
+            Check volumes you do not own.
+        </small>
+
+    </div>
+
+    <div class="volume-preview">
+
+        <strong>
+            Copies to add: {{ comicVolumesToAdd.length }}
+        </strong>
+
+        <div
+            v-for="volume in comicVolumesToAdd"
+            :key="volume"
+            class="volume-preview-item"
+        >
+            {{ props.media.title }} Vol. {{ volume }}
+        </div>
+
+    </div>
+
+    <button
+        type="button"
+        @click="saveComicVolumes"
+        :disabled="!comicVolumesToAdd.length || saving"
+    >
+        {{ saving ? "Adding..." : "Add volumes" }}
+    </button>
+
+</div>
+
+
+const volumeRange = computed(() => {
+    const from = Number(form.volumeFrom);
+    const to = Number(form.volumeTo);
+
+    if (!from || !to || to < from) {
+        return [];
+    }
+
+    return Array.from(
+        { length: to - from + 1 },
+        (_, index) => from + index
+    );
+});
+
+
+
+
+
+const form = reactive({
+    // existing fields...
+
+    edition: "SOFT_COVER",
+
+    volumeFrom: 1,
+    volumeTo: 1,
+    missingVolumes: [],
+});
+
+
+const comicVolumesToAdd = computed(() => {
+    return volumeRange.value.filter(
+        volume => !form.missingVolumes.includes(volume)
+    );
+});
+
+
+
+async function saveComicVolumes() {
+    if (!comicVolumesToAdd.value.length) {
+        return;
+    }
+
+    saving.value = true;
+
+    try {
+        for (const volume of comicVolumesToAdd.value) {
+
+            await createCopy({
+                mediaId: props.media.id,
+
+                edition: form.edition,
+
+                title: `${props.media.title} Vol. ${volume}`,
+
+                // Keep any other fields your existing
+                // createCopy() expects here.
+            });
+        }
+
+        emit("close");
+
+    } catch (error) {
+        console.error("Failed to add comic volumes:", error);
+    } finally {
+        saving.value = false;
+    }
+}

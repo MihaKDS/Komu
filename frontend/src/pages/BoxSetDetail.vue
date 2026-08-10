@@ -1,5 +1,5 @@
 <template>
-  <div class="page">
+  <div class="boxset-details">
     <Breadcrumbs :title="displayTitle" />
 
     <div v-if="!boxSet" class="loading">
@@ -23,14 +23,13 @@
       <div class="boxset-summary">
         <p>Contains {{ boxSet.medias.length }} movies</p>
         <p v-if="boxSet.canSell">Selling whole box for €{{ boxSet.sellPrice }}</p>
-        <p v-if="boxSet.canRent">Renting whole box for €{{ boxSet.rentPrice }} + deposit €{{ boxSet.deposit }}</p>
       </div>
 
       <div class="boxset-media">
         <h2>Movies</h2>
         <div v-for="media in boxSet.medias" :key="media.id" class="media-row">
           <RouterLink :to="{ name: 'media', params: { id: media.id }, query: { from: 'collection' } }">
-            {{ media.collectionPosition ? `${media.collectionPosition}. ` : '' }}{{ media.title }}
+            {{ media.collectionPosition ? `${media.collectionPosition}. ` : '' }}{{ media.title }}|{{ media.releaseYear }}
           </RouterLink>
           <button
             v-if="canEdit && isEditing"
@@ -43,7 +42,23 @@
           </button>
         </div>
       </div>
-
+        <div class="form-row">
+          <div class="nested-fields">
+          <label>
+            <input type="checkbox" v-model="boxSetForm.canSell" />
+            Sell entire box
+          </label>
+            <label>Price</label>
+            <input v-model.number="boxSetForm.sellPrice" type="number">
+            <button
+          type="button"
+          :disabled="savingBoxSet"
+          @click="saveBoxSet"
+        >
+          {{ savingBoxSet ? 'Saving...' : 'Save box set details' }}
+        </button>
+          </div>
+        </div>
       <section v-if="canEdit && isEditing" class="edit-section">
         <h2>Edit box set</h2>
 
@@ -65,30 +80,6 @@
           />
         </div>
 
-        <div class="form-row">
-          <label>
-            <input type="checkbox" v-model="boxSetForm.canSell" />
-            Sell entire box
-          </label>
-          <div v-if="boxSetForm.canSell" class="nested-fields">
-            <label>Price</label>
-            <input v-model.number="boxSetForm.sellPrice" type="number">
-          </div>
-        </div>
-
-        <div class="form-row">
-          <label>
-            <input type="checkbox" v-model="boxSetForm.canRent" />
-            Rent entire box
-          </label>
-          <div v-if="boxSetForm.canRent" class="nested-fields">
-            <label>Price / month</label>
-            <input v-model.number="boxSetForm.rentPrice" type="number">
-            <label>Deposit</label>
-            <input v-model.number="boxSetForm.deposit" type="number">
-          </div>
-        </div>
-
         <button
           type="button"
           :disabled="savingBoxSet"
@@ -96,15 +87,6 @@
         >
           {{ savingBoxSet ? 'Saving...' : 'Save box set details' }}
         </button>
-
-        <div class="form-row">
-          <label>Edition</label>
-          <select v-model="addForm.edition">
-            <option value="DVD">DVD</option>
-            <option value="BLURAY">Blu-ray</option>
-            <option value="UHD_4K">4K UHD</option>
-          </select>
-        </div>
 
         <div class="form-row" v-if="is4K">
           <label>
@@ -116,8 +98,9 @@
         <div class="form-row">
           <h3>Add movies</h3>
           <MediaSearch
-            :exclude-ids="excludeMediaIds"
-            @selected="addItem"
+              :category="boxSetCategory"
+              :exclude-ids="excludeMediaIds"
+              @selected="addItem"
           />
         </div>
 
@@ -127,7 +110,14 @@
             <button type="button" class="danger-btn" @click="removeItem(item.id)">Remove</button>
           </div>
         </div>
-
+        <div class="form-row">
+          <label>Edition</label>
+          <select v-model="addForm.edition">
+            <option value="DVD">DVD</option>
+            <option value="BLURAY">Blu-ray</option>
+            <option value="UHD_4K">4K UHD</option>
+          </select>
+        </div>
         <button
           type="button"
           :disabled="addForm.items.length === 0 || addingMedia"
@@ -207,6 +197,10 @@ const excludeMediaIds = computed(() => {
   const existing = boxSet.value ? boxSet.value.medias.map((media) => media.id) : [];
   const selected = addForm.items.map((item) => item.id);
   return [...existing, ...selected];
+});
+
+const boxSetCategory = computed(() => {
+    return boxSet.value?.medias?.[0]?.category || null;
 });
 
 async function loadBoxSet() {
@@ -336,96 +330,550 @@ onMounted(loadBoxSet);
 </script>
 
 <style scoped>
+/* =========================================================
+   BOX SET DETAILS
+   ========================================================= */
+
+.boxset-details {
+    width: min(100%, 850px);
+    margin: 0 auto;
+}
+
+
+/* =========================================================
+   TITLE
+   ========================================================= */
+
 .title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    margin-bottom: 8px;
+}
+
+.title-row h1 {
+    margin: 0;
+
+    color: var(--text-h);
+
+    font-size: clamp(26px, 5vw, 38px);
+}
+
+.title-row > button {
+    flex-shrink: 0;
+}
+
+
+/* =========================================================
+   GENERAL BUTTONS
+   ========================================================= */
+
+.boxset-details button {
+    min-height: 36px;
+
+    padding: 7px 12px;
+
+    color: var(--text);
+    background: var(--accent-bg);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease;
+}
+
+.boxset-details button:hover {
+    color: var(--text-h);
+    background: var(--accent-bg);
+    border-color: var(--accent-border);
+}
+
+.boxset-details button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   LISTING NOTE
+   ========================================================= */
+
+.boxset-details > div > p:first-of-type {
+    color: var(--text-secondary);
+
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+
+/* =========================================================
+   SUMMARY
+   ========================================================= */
+
+.boxset-summary {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 8px;
+
+    margin: 18px 0;
+}
+
+.boxset-summary p {
+    margin: 0;
+
+    padding: 7px 10px;
+
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+
+    font-size: 12px;
+}
+
+.boxset-summary p:first-child {
+    color: var(--text-h);
+    font-weight: 600;
+}
+
+.boxset-summary p:has(+ p) {
+    /* keeps summary pills visually consistent */
+}
+
+
+/* =========================================================
+   MEDIA LIST
+   ========================================================= */
+
+.boxset-media {
+    margin-top: 22px;
+}
+
+.boxset-media h2 {
+    margin: 0 0 10px;
+
+    color: var(--text-h);
+
+    font-size: 20px;
 }
 
 .media-row {
-  margin-bottom: 0.75rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    min-width: 0;
+
+    padding: 9px 11px;
+
+    background: var(--bg-card);
+
+    border: 1px solid var(--border);
+    border-bottom: 0;
 }
-.copy-card {
-  border: 1px solid #333;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1rem;
+
+.media-row:first-of-type {
+    border-radius: var(--radius-small) var(--radius-small) 0 0;
 }
-.boxset-summary {
-  margin-bottom: 1.5rem;
+
+.media-row:last-child {
+    border-bottom: 1px solid var(--border);
+    border-radius: 0 0 var(--radius-small) var(--radius-small);
 }
+
+.media-row:only-of-type {
+    border-radius: var(--radius-small);
+}
+
+.media-row:hover {
+    background: var(--bg-hover);
+}
+
+.media-row a {
+    flex: 1;
+
+    min-width: 0;
+
+    overflow: hidden;
+
+    color: var(--text);
+
+    font-size: 13px;
+    text-decoration: none;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.media-row a:hover {
+    color: var(--accent);
+}
+
+.media-row .danger-btn {
+    flex-shrink: 0;
+}
+
+
+/* =========================================================
+   EDIT SECTION
+   ========================================================= */
 
 .edit-section {
-  margin-top: 2rem;
-  padding: 1rem;
-  border: 1px solid #333;
-  border-radius: 10px;
-  background: #1d1d1d;
+    display: flex;
+    flex-direction: column;
+
+    gap: 14px;
+
+    margin-top: 24px;
+    padding: 18px;
+
+    background: var(--bg-secondary);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
 }
 
+.edit-section h2 {
+    margin: 0;
+
+    color: var(--text-h);
+
+    font-size: 20px;
+}
+
+.edit-section h3 {
+    margin: 0 0 8px;
+
+    color: var(--text-h);
+
+    font-size: 15px;
+}
+
+
+/* =========================================================
+   FORM ROW
+   ========================================================= */
+
 .form-row {
-  margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+
+    gap: 6px;
+}
+
+.form-row > label {
+    color: var(--text-secondary);
+
+    font-size: 13px;
+    font-weight: 500;
 }
 
 .form-row input[type="text"],
 .form-row input[type="number"],
-.form-row select,
-.form-row textarea {
-  width: 100%;
-  box-sizing: border-box;
-  margin-top: 0.35rem;
+.form-row textarea,
+.form-row select {
+    width: 100%;
+
+    min-height: 40px;
+
+    padding: 8px 10px;
+
+    color: var(--text-h);
+    background: var(--bg);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+
+    font: inherit;
 }
+
+.form-row textarea {
+    min-height: 65px;
+
+    resize: vertical;
+}
+
+.form-row input:focus,
+.form-row textarea:focus,
+.form-row select:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+
+/* =========================================================
+   CHECKBOX
+   ========================================================= */
+
+.form-row label:has(input[type="checkbox"]) {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    cursor: pointer;
+}
+
+.form-row input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+
+    margin: 0;
+
+    accent-color: var(--accent);
+}
+
+
+/* =========================================================
+   NESTED FIELDS
+   ========================================================= */
 
 .nested-fields {
-  margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    padding: 10px;
+
+    background: var(--bg-card);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
 }
 
+.nested-fields label {
+    color: var(--text-muted);
+
+    font-size: 12px;
+}
+
+.nested-fields input {
+    width: 120px;
+
+    min-height: 36px;
+
+    padding: 7px 9px;
+
+    color: var(--text-h);
+    background: var(--bg-secondary);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+}
+
+
+/* =========================================================
+   DIVIDERS
+   ========================================================= */
+
+.edit-section hr {
+    width: 100%;
+
+    margin: 0;
+
+    border: 0;
+    border-top: 1px solid var(--border);
+}
+
+
+/* =========================================================
+   MEDIA SEARCH
+   ========================================================= */
+
+.form-row:has(.media-search) {
+    padding-top: 4px;
+}
+
+
+/* =========================================================
+   SELECTED ITEMS
+   ========================================================= */
+
 .selected-items {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+
+    gap: 6px;
+
+    padding: 10px;
+
+    background: var(--bg-card);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
 }
 
 .selected-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  border: 1px solid #333;
-  border-radius: 8px;
-  padding: 0.5rem 0.75rem;
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    min-width: 0;
+
+    padding: 7px 8px;
+
+    background: var(--bg-secondary);
+
+    border: 1px solid var(--border);
+    border-radius: 4px;
 }
 
-.danger-btn {
-  background: #8f2828;
-  border: none;
-  color: #fff;
-  border-radius: 6px;
-  padding: 0.35rem 0.65rem;
-  cursor: pointer;
+.selected-item span {
+    flex: 1;
+
+    min-width: 0;
+
+    overflow: hidden;
+
+    color: var(--text);
+
+    font-size: 12px;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.danger-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.selected-item .danger-btn {
+    flex-shrink: 0;
+}
+
+
+/* =========================================================
+   DANGER BUTTONS
+   ========================================================= */
+
+.boxset-details .danger-btn {
+    color: var(--danger);
+
+    background: var(--social-bg);
+
+    border-color: var(--social-bg);
+}
+
+.boxset-details .danger-btn:hover {
+    color: var(--danger);
+
+    background: var(--danger-bg);
+
+    border-color: var(--danger);
 }
 
 .delete-boxset-btn {
-  margin-left: 0.75rem;
+    margin-top: 8px;
 }
+
+
+/* =========================================================
+   ERROR
+   ========================================================= */
 
 .error-message {
-  margin-top: 0.75rem;
-  color: #ff8c8c;
+    margin: 0;
+
+    padding: 10px 12px;
+
+    color: var(--danger);
+    background: var(--danger-bg);
+
+    border: 1px solid var(--danger);
+    border-radius: var(--radius-small);
+
+    font-size: 13px;
 }
 
+
+/* =========================================================
+   LOADING
+   ========================================================= */
+
+.loading {
+    padding: 40px 20px;
+
+    color: var(--text-muted);
+
+    text-align: center;
+
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   READ ONLY
+   ========================================================= */
+
 .read-only-note {
-  margin-top: 1.5rem;
-  color: #bbb;
+    margin-top: 20px;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+    .title-row {
+        align-items: flex-start;
+    }
+
+    .title-row h1 {
+        font-size: 26px;
+    }
+
+    .boxset-summary {
+        gap: 6px;
+    }
+
+    .boxset-summary p {
+        font-size: 11px;
+    }
+
+    .media-row {
+        padding: 8px;
+    }
+
+    .media-row a {
+        white-space: normal;
+        line-height: 1.4;
+    }
+
+    .edit-section {
+        padding: 14px;
+    }
+
+    .nested-fields {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .nested-fields input {
+        width: 100%;
+    }
+
+    .selected-item {
+        align-items: flex-start;
+    }
+
+    .selected-item .danger-btn {
+        padding: 5px 8px;
+    }
+
 }
 </style>

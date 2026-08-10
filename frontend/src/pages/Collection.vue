@@ -15,26 +15,13 @@
         />
 
         <FilterBar
-        v-if="selectedCategory === 'MOVIE'"
+            :category="selectedCategory"
             :format="selectedFormat"
             :viewMode="viewMode"
             :showCollectionFilter="false"
             @update:format="selectedFormat = $event"
             @update:viewMode="viewMode = $event"
         />
-
-            <div class="group-by-collection">
-              <label>
-                <input type="checkbox" v-model="groupByCollection" /> Group by collection
-              </label>
-            </div>
-
-            <button
-                class="add-media-button"
-                @click="showAddMedia = true"
-            >
-                Add New {{ selectedCategory.toLowerCase() }}
-            </button>
         
             <hr class="section-divider">
 
@@ -137,9 +124,9 @@ onMounted(async () => {
 
 const categories = [
   "MOVIE",
+  "TV_SHOW",
   "BOOK",
-  "GAME",
-  "MUSIC"
+  "COMIC"
 ];
 
 function changeCategory(category) {

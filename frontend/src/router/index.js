@@ -15,6 +15,7 @@ import SellerListings from "../pages/SellerListings.vue";
 import TradeDetail from "../pages/TradeDetail.vue";
 import Login from '../pages/Login.vue'
 import Register from "../pages/Register.vue";
+import AddMedia from "../components/ui/AddMedia.vue";
 
 const routes = [
 
@@ -98,6 +99,17 @@ const routes = [
         meta: {
             title: "Profile",
             breadcrumb: "My Profile",
+            requiresAuth: true
+        }
+    },
+    // add media route
+    {
+        path: "/add-media",
+        name: "AddMedia",
+        component: AddMedia,
+        meta: {
+            title: "Add Media",
+            breadcrumb: "Add Media",
             requiresAuth: true
         }
     },

@@ -4,21 +4,79 @@
         :class="{ open: isOpen }"
     >
         <nav class="nav">
-            <RouterLink to="/" @click="$emit('close-menu')">Home</RouterLink>
-            <hr>
-            <RouterLink class="nav" :to="{ path: '/search', query: { category: 'MOVIE' } }" @click="$emit('close-menu')">Film</RouterLink>
-                        <RouterLink class="nav" :to="{ path: '/search', query: { category: 'BOOK' } }" @click="$emit('close-menu')">Books</RouterLink>
-                        <RouterLink class="nav" :to="{ path: '/search', query: { category: 'MANGA' } }" @click="$emit('close-menu')">Manga</RouterLink>
-            <hr>
+            <RouterLink
+                :to="{ path: '/' }"
+                @click="$emit('close-menu')"
+                class="nav"
+            >
+                Home
+            </RouterLink>  
+            <p>Search:</p>
+            <RouterLink
+                :to="{ path: '/search', query: { category: 'MOVIE' } }"
+                @click="$emit('close-menu')"
+                class="nav"
+                :class="{ active: isSearchCategory('MOVIE') }"
+            >
+                🎬Movies
+            </RouterLink>            
+            <RouterLink
+                :to="{ path: '/search', query: { category: 'TV_SHOW' } }"
+                @click="$emit('close-menu')"
+                class="nav"
+                :class="{ active: isSearchCategory('TV_SHOW') }"
+            >
+                📺TV Shows
+            </RouterLink>            
+            <RouterLink
+                :to="{ path: '/search', query: { category: 'BOOK' } }"
+                @click="$emit('close-menu')"
+                class="nav"
+                :class="{ active: isSearchCategory('BOOK') }"
+            >
+                📚Books
+            </RouterLink>            
+            <RouterLink
+                :to="{ path: '/search', query: { category: 'COMIC' } }"
+                @click="$emit('close-menu')"
+                class="nav"
+                :class="{ active: isSearchCategory('COMIC') }"
+            >
+                📖Comics
+            </RouterLink>            
             <div v-if="user">
-                <RouterLink class="nav" to="/collection" @click="$emit('close-menu')">Collection</RouterLink>
-                <RouterLink class="nav" to="/lists" @click="$emit('close-menu')">Lists</RouterLink>
                 <hr>
-                <RouterLink class="nav" to="/trades" @click="$emit('close-menu')">Trades</RouterLink>
-                <RouterLink class="nav" to="/profile" @click="$emit('close-menu')">Profile</RouterLink>
+                <RouterLink
+                    :to="{ path: '/collection' }"
+                    @click="$emit('close-menu')"
+                    class="nav"
+                >
+                    📦Collection
+                </RouterLink>             
+                <RouterLink
+                    :to="{ path: '/trades' }"
+                    @click="$emit('close-menu')"
+                    class="nav"
+                >
+                    🤝Trades
+                </RouterLink>
+                <RouterLink
+                    :to="{ path: '/add-media' }"
+                    @click="$emit('close-menu')"
+                    class="nav"
+                >
+                    ➕Add Media
+                </RouterLink>
             </div>
             <div v-else>
-                <RouterLink class="nav" to="/login" @click="$emit('close-menu')">Login</RouterLink>
+                <hr>
+                <RouterLink
+                    :to="{ path: '/login' }"
+                    @click="$emit('close-menu')"
+                    class="nav"
+                >
+                    Login
+                </RouterLink>
             </div>
         </nav>
     </aside>
@@ -26,6 +84,16 @@
 
 <script setup>
 import { useAuth } from '../../composables/useAuth'
+
+import { useRoute } from "vue-router";
+
+const route = useRoute();
+function isSearchCategory(category) {
+    return (
+        route.path === "/search" &&
+        route.query.category === category
+    );
+}
 
 const {
   user,
@@ -40,45 +108,70 @@ defineProps({
 </script>
 
 <style scoped>
-
 .side-menu {
     position: fixed;
     top: 0;
-    left: -250px;
+    left: max(0px, calc((100vw - 1126px) / 2 - 1px));
 
     width: 250px;
     height: 100vh;
 
-    background: #333;
+    background-color: #1a1a1a;
+    border-right: 1px solid var(--border);
 
-    transition: left .3s ease;
+    z-index: 900;
+
+    transform: translateX(-100%);
+    opacity: 0;
+    pointer-events: none;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    transition:
+        transform 0.3s ease,
+        opacity 0.2s ease;
+
+    /* Better scrolling on touch devices */
+    -webkit-overflow-scrolling: touch;
 }
 
 .side-menu.open {
-    left: 0;
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
 }
-nav{
+
+nav {
     margin-top: 79px;
 }
+
 .nav {
     display: flex;
     flex-direction: column;
-
 }
 
-a {
+.nav a {
     padding: 1rem;
 
-    color: white;
+    color: var(--text-h);
     text-decoration: none;
+
+    transition: background-color 0.15s ease;
 }
 
-a:hover {
-    background: #444;
+.nav a:hover {
+    background-color: #585858;
+    border-radius: 8px;
+    width: 96%;
+    margin-left: 2%;
 }
 
-.router-link-active {
-    background: #555;
+.nav .active {
+    background: #3a3a3a;
+    border-radius: 8px;
+    width: 96%;
+    margin-left: 2%;
 }
 
 </style>

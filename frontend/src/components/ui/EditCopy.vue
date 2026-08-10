@@ -1,100 +1,259 @@
 <template>
 <div class="dialog-overlay">
-    <div class="dialog">
+<div class="edit-copy">
 
+    <div class="dialog-header">
         <h2>Edit Copy</h2>
 
-        <p>{{ media.title }} ({{ media.releaseYear }})</p>
+        <button
+            type="button"
+            class="close-button"
+            @click="emit('close')"
+            aria-label="Close"
+        >
+            ×
+        </button>
+    </div>
 
-        <div>
-            <strong>Contains:</strong><br>
 
-            • {{ copy.edition }}
+    <!-- =====================================================
+         MEDIA
+         ===================================================== -->
 
-            <div v-if="copy.includesBluRay">
-                • Blu-ray
-                <button @click="splitCopy">Split</button>
+    <div class="media-reference">
+
+        <strong>
+            {{ media.title }}
+        </strong>
+
+        <span>
+            {{ media.releaseYear }}
+        </span>
+                <button
+            type="button"
+            class="delete-button"
+            @click="deleteCopy"
+        >
+            🗑️
+        </button>
+    </div>
+
+
+    <!-- =====================================================
+         CONTENT
+         ===================================================== -->
+
+    <section class="edit-section">
+
+        <div class="section-title">
+            <h3>Copy details</h3>
+        </div>
+
+
+        <div class="contains">
+
+            <span class="detail-label">
+                Edition
+            </span>
+
+            <div class="detail-value">
+                {{ copy.edition }}
             </div>
-            <p v-if="hasBoxSet">
-                • Part of
-                <RouterLink :to="{ name: 'boxset', params: { id: copy.boxSet.id }, query: { from: 'collection' } }">
+
+
+            <div
+                v-if="copy.includesBluRay"
+                class="included-item"
+            >
+
+                <span>
+                    Includes Blu-ray
+                </span>
+
+                <button
+                    type="button"
+                    class="small-button"
+                    @click="splitCopy"
+                >
+                    Split
+                </button>
+
+            </div>
+
+
+            <div
+                v-if="hasBoxSet"
+                class="included-item"
+            >
+
+                <span>
+                    Part of
+                </span>
+
+                <RouterLink
+                    :to="{
+                        name: 'boxset',
+                        params: {
+                            id: copy.boxSet.id
+                        },
+                        query: {
+                            from: 'collection'
+                        }
+                    }"
+                >
                     Box Set #{{ copy.boxSet.id }}
                 </RouterLink>
-            </p>
-            <hr>
-            <label>Condition</label><br>
-            <select v-model="form.condition">
-                <option value="MINT">Mint</option>
-                <option value="VERY_GOOD">Very Good</option>
-                <option value="GOOD">Good</option>
-                <option value="FAIR">Fair</option>
-                <option value="POOR">Poor</option>
+
+            </div>
+
+        </div>
+
+
+        <!-- Condition -->
+
+        <div class="field">
+
+            <label for="condition">
+                Condition
+            </label>
+
+            <select
+                id="condition"
+                v-model="form.condition"
+            >
+                <option value="MINT">
+                    Mint
+                </option>
+
+                <option value="VERY_GOOD">
+                    Very Good
+                </option>
+
+                <option value="GOOD">
+                    Good
+                </option>
+
+                <option value="FAIR">
+                    Fair
+                </option>
+
+                <option value="POOR">
+                    Poor
+                </option>
             </select>
-            <br><br>
-            <label>Note about item:</label><br>
+
+        </div>
+
+
+        <!-- Note -->
+
+        <div class="field">
+
+            <div class="field-header">
+                <label for="listing-note">
+                    Note about item
+                </label>
+
+                <span class="char-counter">
+                    {{ form.listingNote?.length || 0 }}/50
+                </span>
+            </div>
+
             <textarea
+                id="listing-note"
                 v-model="form.listingNote"
                 maxlength="50"
-                rows="1"
+                rows="2"
                 placeholder="Extended Edition with slipcover..."
             ></textarea>
 
-            <div class="char-counter">
-                {{ form.listingNote?.length || 0 }}/50
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         SALE
+         ===================================================== -->
+
+    <section class="edit-section">
+
+        <div class="section-title">
+            <h3>Sale</h3>
+        </div>
+
+
+        <div class="option-card">
+
+            <label class="checkbox-label">
+
+                <input
+                    type="checkbox"
+                    v-model="form.canSell"
+                >
+
+                <span>
+                    Offer for sale
+                </span>
+
+            </label>
+
+
+            <div
+                v-if="form.canSell"
+                class="price-field"
+            >
+
+                <label for="sell-price">
+                    Price
+                </label>
+
+                <div class="price-input">
+
+                    <input
+                        id="sell-price"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        v-model.number="form.sellPrice"
+                    >
+
+                    <span>€</span>
+
+                </div>
+
             </div>
+
         </div>
 
-        <hr>
+    </section>
 
-        <h3>
-            <input type="checkbox" v-model="form.canSell">
-            Sell
-        </h3>
 
-        <div v-if="form.canSell">
-            Price
-            <input
-                type="number"
-                v-model.number="form.sellPrice"
-            >
-        </div>
+    <!-- =====================================================
+         ACTIONS
+         ===================================================== -->
 
-        <hr>
+    <div class="form-actions">
 
-        <h3>
-            <input type="checkbox" v-model="form.canRent">
-            Lend
-        </h3>
-
-        <div v-if="form.canRent">
-            Deposit
-            <input
-                type="number"
-                v-model.number="form.deposit"
-            >
-
-            Price / month
-            <input
-                type="number"
-                v-model.number="form.rentPrice"
-            >
-        </div>
-
-        <hr>
-
-        <button @click="saveCopy">
+        <button
+            type="button"
+            class="primary-button"
+            @click="saveCopy"
+        >
             Save
         </button>
 
-        <button @click="deleteCopy">
-            Delete Copy
-        </button>
-
-        <button @click="emit('close')">
+        <button
+            type="button"
+            class="secondary-button"
+            @click="emit('close')"
+        >
             Cancel
         </button>
 
     </div>
+
+</div>
 </div>
 </template>
 
@@ -169,79 +328,411 @@ async function splitCopy() {
 }
 </script>
 <style scoped>
-textarea {
+.edit-copy {
+    width: min(100%, 600px);
+
+    max-height: 90vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+
+    padding: 24px;
+
+    color: var(--text);
+
+    background: var(--bg-card);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+
+    box-shadow: var(--shadow);
+}
+
+
+/* Header */
+
+.dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-bottom: 20px;
+}
+
+.dialog-header h2 {
+    margin: 0;
+
+    color: var(--text-h);
+}
+
+.close-button {
+    width: 34px;
+    height: 34px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    color: var(--text-muted);
+    background: transparent;
+
+    border: 0;
+    border-radius: var(--radius-small);
+
+    font-size: 24px;
+    line-height: 1;
+
+    cursor: pointer;
+}
+
+.close-button:hover {
+    color: var(--text-h);
+    background: var(--bg-hover);
+}
+
+
+/* Media reference */
+
+.media-reference {
+    display: flex;
+    align-items: baseline;
+
+    gap: 8px;
+
+    margin-bottom: 20px;
+    padding: 11px 12px;
+
+    background: var(--bg);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+}
+
+.media-reference strong {
+    color: var(--text-h);
+
+    font-size: 15px;
+}
+
+.media-reference span {
+    color: var(--text-muted);
+
+    font-size: 13px;
+}
+
+
+/* Sections */
+
+.edit-section {
+    display: flex;
+    flex-direction: column;
+
+    gap: 14px;
+
+    padding-top: 18px;
+
+    border-top: 1px solid var(--border);
+}
+
+.edit-section + .edit-section {
+    margin-top: 20px;
+}
+
+.section-title h3 {
+    margin: 0;
+
+    color: var(--text-h);
+
+    font-size: 16px;
+}
+
+
+/* Copy details */
+
+.contains {
+    display: flex;
+    flex-direction: column;
+
+    gap: 7px;
+}
+
+.detail-label {
+    color: var(--text-muted);
+
+    font-size: 12px;
+}
+
+.detail-value {
+    color: var(--text-h);
+
+    font-weight: 600;
+}
+
+.included-item {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    padding: 7px 9px;
+
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+
+    font-size: 13px;
+}
+
+.included-item a {
+    color: var(--accent);
+}
+
+.small-button {
+    margin-left: auto;
+
+    padding: 4px 8px;
+
+    color: var(--text-secondary);
+    background: var(--bg-card);
+
+    border: 1px solid var(--border);
+    border-radius: 4px;
+
+    font-size: 11px;
+}
+
+.small-button:hover {
+    color: var(--text-h);
+    background: var(--bg-hover);
+}
+
+
+/* Fields */
+
+.field {
+    display: flex;
+    flex-direction: column;
+
+    gap: 6px;
+}
+
+.field-header {
+    display: flex;
+    justify-content: space-between;
+
+    gap: 10px;
+}
+
+.field label,
+.price-field label {
+    color: var(--text-secondary);
+
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.field select,
+.field textarea,
+.price-input input {
     width: 100%;
-    min-height: 2px;
-    padding: 8px;
+
+    padding: 8px 10px;
+
+    color: var(--text-h);
+    background: var(--bg);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+
     font: inherit;
+}
+
+.field select {
+    height: 40px;
+}
+
+.field textarea {
     resize: vertical;
-    box-sizing: border-box;
+    min-height: 60px;
+}
+
+.field select:focus,
+.field textarea:focus,
+.price-input input:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
 }
 
 .char-counter {
-    text-align: right;
-    font-size: 0.8rem;
-    color: #777;
-}
-input{
-    width: 3em;
-}
-.dialog-overlay {
-    position: fixed;
-    inset: 0;
+    color: var(--text-muted);
 
+    font-size: 11px;
+}
+
+
+/* Sale / lending */
+
+.option-card {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+
+    gap: 12px;
+
+    padding: 12px;
+
+    background: var(--bg-secondary);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+}
+
+.checkbox-label {
+    display: flex;
     align-items: center;
 
-    background: rgba(224, 223, 223, 0.8);
+    gap: 9px;
 
-    z-index: 1000;
+    color: var(--text);
+
+    cursor: pointer;
 }
 
-.dialog {
-    background: rgba(0, 0, 0, 0.45);
+.checkbox-label input {
+    width: 16px;
+    height: 16px;
 
-    color: whitesmoke;
-
-    border: solid 1px white;
-
-    border-radius: 14px;
-
-    padding: 2rem;
-
-    width: min(500px, 90vw);
-
-    box-shadow:
-        0 10px 30px rgba(0, 0, 0, .5);
-
-    animation: dialogAppear .18s ease;
-
-    position: relative;
+    accent-color: var(--accent);
 }
 
-@keyframes dialogAppear {
+.price-field {
+    display: flex;
+    flex-direction: column;
 
-    from {
-        opacity: 0;
-        transform: scale(.95);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-
+    gap: 6px;
 }
-.close-btn {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
 
-    border: none;
+.price-input {
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+}
+
+.price-input input {
+    max-width: 150px;
+}
+
+.price-input span {
+    color: var(--text-secondary);
+
+    font-size: 13px;
+}
+
+.rent-fields {
+    display: grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap: 12px;
+}
+
+
+/* Actions */
+
+.form-actions {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    margin-top: 24px;
+    padding-top: 16px;
+
+    border-top: 1px solid var(--border);
+}
+
+.primary-button,
+.secondary-button,
+.delete-button {
+    min-height: 40px;
+
+    padding: 8px 14px;
+
+    border-radius: var(--radius-small);
+
+    font: inherit;
+
+    cursor: pointer;
+}
+
+.primary-button {
+    color: #fff;
+    background: var(--accent);
+
+    border: 1px solid var(--accent);
+}
+
+.primary-button:hover {
+    background: var(--accent-hover);
+}
+
+.secondary-button {
+    color: var(--text);
+    background: var(--bg-secondary);
+
+    border: 1px solid var(--border);
+}
+
+.secondary-button:hover {
+    color: var(--text-h);
+    background: var(--bg-hover);
+}
+
+.delete-button {
+    margin-left: auto;
+
+    color: var(--danger);
     background: transparent;
 
-    font-size: 1.5rem;
-    cursor: pointer;
+    border: 1px solid var(--border);
+}
+
+.delete-button:hover {
+    background: var(--danger-bg);
+}
+
+
+/* Mobile */
+
+@media (max-width: 600px) {
+
+    .edit-copy {
+        width: 100%;
+
+        max-height: calc(100vh - 20px);
+
+        padding: 18px;
+    }
+
+    .rent-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .form-actions button {
+        width: 100%;
+    }
+
+    .delete-button {
+        margin-left: 0;
+    }
 }
 </style>

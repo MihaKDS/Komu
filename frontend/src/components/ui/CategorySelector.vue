@@ -1,18 +1,21 @@
 <template>
+<div class="categories">
+    <button
+        v-for="category in props.categories"
+        :key="category"
+        :class="{ active: category === props.selected }"
+        @click="select(category)"
+    >
+        {{ category }}
 
-    <div class="categories">
-
-        <button
-            v-for="category in props.categories"
-            :key="category"
-            :class="{ active: category === props.selected }"
-            @click="select(category)"
+        <span
+            v-if="props.counts?.[category] != null"
+            class="category-count"
         >
-            {{ category }}
-        </button>
-
-    </div>
-
+            {{ props.counts[category] }}
+        </span>
+    </button>
+</div>
 </template>
 
 <script setup>
@@ -27,7 +30,11 @@ const props = defineProps({
     selected: {
         type: String,
         required: true
-    }
+    },
+    counts: {
+        type: Object,
+        default: () => ({}),
+    },
 
 });
 
@@ -47,50 +54,85 @@ function select(category) {
 <style scoped>
 
 .categories {
-
     display: flex;
-    gap: .5rem;
+    flex-wrap: wrap;
+    gap: 4px;
 
-    margin-bottom: 1rem;
+    width: 100%;
 
+    padding: 1px;
+
+    background: var(--bg-secondary);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+
+    box-sizing: border-box;
 }
 
-button {
+.categories button {
+    flex: 1 1 0;
 
-    padding: .5rem 1rem;
+    min-width: 70px;
+    min-height: 36px;
 
-    border: 1px solid #666;
+    padding: 3px 6px;
 
-    background: #2b2b2b;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
 
-    color: #bdbdbd;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
 
-    border-radius: 8px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
 
     cursor: pointer;
 
-    transition: .2s;
+    transition:
+        color 0.15s ease,
+        background 0.15s ease,
+        box-shadow 0.15s ease;
 }
 
-button:hover {
-
-    background: #3a3a3a;
-
-    color: white;
+.categories button:hover {
+    color: var(--text-h);
+    background: var(--bg);
 }
 
-button.active {
+.categories button.active {
+    color: var(--text-h);
+    background: var(--accent-bg);
 
-    background: #ffffff;
+    box-shadow: var(--shadow);
 
-    color: #222;
+    font-weight: 600;
+}
+.category-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 
-    border-color: white;
+    min-width: 15px;
+    height: 15px;
+
+    margin-left: 3px;
+    padding: 0 2px;
+
+    color: var(--text-muted);
+    background: var(--accent-bg);
+
+    border: 1px solid var(--border);
+    border-radius: 10px;
+
+    font-size: 10px;
+    font-weight: 600;
 }
 
-button.active:hover {
-
-    background: #e9e9e9;
+.categories button.active .category-count {
+    color: var(--accent-bg);
+    background: var(--text-h);
+    border-color: var(--text-h);
 }
-
 </style>
