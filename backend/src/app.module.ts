@@ -8,9 +8,10 @@ import { AuthModule } from './auth/auth.module';
 import { TmdbModule } from './tmdb/tmdb.module';
 import { BoxSetModule } from './boxset/boxset.module';
 import { TradeModule } from './trade/trade.module';
+import { MediaCollectionModule } from './media-collection/media-collection.module';
 
 @Module({
-  imports: [MediaModule, PrismaModule, CopyModule, AuthModule, TmdbModule, BoxSetModule, TradeModule],
+  imports: [MediaModule, PrismaModule, CopyModule, AuthModule, TmdbModule, BoxSetModule, TradeModule, MediaCollectionModule],
   controllers: [AppController],
   providers: [AppService],
 })

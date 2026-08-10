@@ -6,6 +6,16 @@ export class CreateCopyDto {
   @IsEnum(Edition)
   edition: Edition;
 
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  title?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  listingNote?: string;
+
   @IsBoolean()
   includesBluRay: boolean;
 
@@ -16,6 +26,12 @@ export class CreateCopyDto {
   @IsInt({ each: true })
   @Type(() => Number)
   mediaIds: number[];
+
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
+  @Type(() => Number)
+  volumes: number[];
 
   @IsOptional()
   @IsString()

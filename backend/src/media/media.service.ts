@@ -30,9 +30,9 @@ export class MediaService {
 
   async create(dto: CreateMediaDto) {
     // If the DTO carries TMDb collection info, upsert the MovieCollection and link it
-    let movieCollectionId: number | undefined = undefined;
+    let movieCollectionId: number | undefined = dto.collectionId ?? undefined;
     let upsertedCollection: any = null;
-    if ((dto as any).movieCollection) {
+    if (!movieCollectionId && (dto as any).movieCollection) {
       const mc = (dto as any).movieCollection;
       if (mc.tmdbId) {
         upsertedCollection = await this.prisma.movieCollection.upsert({
@@ -62,12 +62,14 @@ export class MediaService {
     }
 
     const createData: any = {
-      title: dto.title,
+      title: dto.title.trim(),
       description: dto.description,
       releaseYear: dto.releaseYear,
       poster: dto.poster ?? null,
       category: dto.category,
       tmdbId: dto.tmdbId ?? undefined,
+      collectionPosition:
+        dto.collectionPosition ?? null,
     };
     if (movieCollectionId) createData.movieCollectionId = movieCollectionId;
 
@@ -213,12 +215,12 @@ export class MediaService {
     });
 
     // If this media belongs to a collection, load the other medias in that collection
-    let collectionMedias: Array<{ id: number; title: string; poster: string | null; collectionPosition: number | null }> = [];
+    let collectionMedias: Array<{ id: number; title: string; poster: string | null; collectionPosition: number | null; releaseYear: number | null }> = [];
     if (media.movieCollectionId) {
       collectionMedias = await this.prisma.media.findMany({
         where: { movieCollectionId: media.movieCollectionId },
-        orderBy: { collectionPosition: 'asc' },
-        select: { id: true, title: true, collectionPosition: true, poster: true },
+        orderBy: { releaseYear: 'asc' },
+        select: { id: true, title: true, collectionPosition: true, poster: true, releaseYear: true },
       });
     }
 

@@ -10,8 +10,9 @@ datasource db {
 model Media {
   id                  Int      @id @default(autoincrement())
   title               String
-  description         String
-  releaseYear         Int
+  author              String?
+  description         String?
+  releaseYear         Int?
   poster              String?
   category            Category
   tmdbId              Int?     @unique
@@ -82,6 +83,7 @@ model Copy {
   userId           Int
 
   edition          Edition
+  title            String?
   includesBluRay   Boolean   @default(false)
 
   listingNote      String?
@@ -152,6 +154,8 @@ enum Edition {
   DVD
   BLURAY
   UHD_4K
+  SOFT_COVER
+  HARD_COVER
 }
 
 enum Condition {
@@ -164,9 +168,9 @@ enum Condition {
 
 enum Category {
   MOVIE
+  TV_SHOW
   BOOK
-  GAME
-  MUSIC
+  COMIC
 }
 
 enum TradeType {

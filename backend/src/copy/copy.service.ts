@@ -35,6 +35,7 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
     select: {
       id: true,
 
+      title: true,
       edition: true,
       includesBluRay: true,
 
@@ -73,7 +74,7 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
 
   return copies.map(copy => ({
     id: copy.id,
-
+    title: copy.title,
     edition: copy.edition,
     includesBluRay: copy.includesBluRay,
 
@@ -147,7 +148,34 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
       return this.createBoxSet(dto, userId);
     }
 
+    if(dto.volumes !== undefined && dto.volumes.length > 0) {
+      return this.createMultipleCopies(dto, userId);
+    }
+
     return this.createSingleCopy(dto, userId);
+  }
+
+private async createMultipleCopies(
+    dto: CreateCopyDto,
+    userId: number,
+  ) {
+    return this.prisma.$transaction(async (prisma) => {
+      const copies = await Promise.all(
+        dto.volumes.map((volume) =>
+          prisma.copy.create({
+            data: {
+              mediaId: dto.mediaIds[0],
+              userId,
+              title: `Vol. ${volume}`,
+              edition: dto.edition,
+              includesBluRay: dto.includesBluRay,
+            },
+          }),
+        ),
+      );
+
+      return copies;
+    });
   }
 
   private async createSingleCopy(
@@ -158,6 +186,7 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
       data: {
         mediaId: dto.mediaIds[0],
         userId,
+        title: dto.title ?? null,
         edition: dto.edition,
         includesBluRay: dto.includesBluRay,
       },
@@ -189,6 +218,7 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
             data: {
               mediaId,
               userId,
+              title: dto.title ?? null,
               edition: dto.edition,
               includesBluRay: dto.includesBluRay,
               boxSetId: boxSet.id,
@@ -237,6 +267,7 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
             data: {
               mediaId,
               userId,
+              title: dto.title ?? null,
               edition: dto.edition,
               includesBluRay: dto.includesBluRay,
               boxSetId: boxSet.id,

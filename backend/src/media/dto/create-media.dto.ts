@@ -1,10 +1,16 @@
 import { Category } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, IsString, IsUrl, Max, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, IsUrl, Max, MaxLength, Min } from 'class-validator';
 
 export class CreateMediaDto {
   @IsString()
+  @MaxLength(200)
   title: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  author?: string;
 
   @IsString()
   description: string;
@@ -24,8 +30,18 @@ export class CreateMediaDto {
   @IsInt()
   tmdbId?: number;
 
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  collectionPosition?: number;
+
   @IsEnum(Category)
   category: Category;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  collectionId?: number;
 
   // Optional collection info when creating from TMDb
   @IsOptional()
@@ -38,4 +54,3 @@ export class CreateMediaDto {
   @IsOptional()
   importCollectionMembers?: boolean;
 }
-
