@@ -937,6 +937,7 @@ const filteredCollectionMedias = computed(() => {
     background: var(--social-bg);
 
     overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 /* =========================================================

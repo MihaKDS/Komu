@@ -330,15 +330,15 @@ async function splitCopy() {
 <style scoped>
 .edit-copy {
     width: min(100%, 600px);
+    height: 100dvh;
+    max-height: 100dvh;
 
-    max-height: 90vh;
     overflow-y: auto;
     overscroll-behavior: contain;
 
     padding: 24px;
 
     color: var(--text);
-
     background: var(--accent-bg);
 
     border: 2px solid var(--border);

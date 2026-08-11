@@ -21,12 +21,12 @@
       <p v-if="boxSet.listingNote">{{ boxSet.listingNote }}</p>
 
       <div class="boxset-summary">
-        <p>Contains {{ boxSet.medias.length }} movies</p>
+        <p>Contains {{ boxSet.medias.length }} items</p>
         <p v-if="boxSet.canSell">Selling whole box for €{{ boxSet.sellPrice }}</p>
       </div>
 
       <div class="boxset-media">
-        <h2>Movies</h2>
+        <h2>Items</h2>
         <div v-for="media in boxSet.medias" :key="media.id" class="media-row">
           <RouterLink :to="{ name: 'media', params: { id: media.id }, query: { from: 'collection' } }">
             {{ media.collectionPosition ? `${media.collectionPosition}. ` : '' }}{{ media.title }}|{{ media.releaseYear }}
@@ -42,14 +42,14 @@
           </button>
         </div>
       </div>
-        <div class="form-row">
+        <div class="form-row" v-if="canEdit">
           <div class="nested-fields">
           <label>
             <input type="checkbox" v-model="boxSetForm.canSell" />
             Sell entire box
           </label>
             <label>Price</label>
-            <input v-model.number="boxSetForm.sellPrice" type="number">
+            <input v-model.number="boxSetForm.sellPrice" type="number" min="0.01">
             <button
           type="button"
           :disabled="savingBoxSet"
@@ -284,8 +284,24 @@ async function saveBoxSet() {
     return;
   }
 
+  if (boxSetForm.canSell && (!boxSetForm.sellPrice || boxSetForm.sellPrice <= 0)) {
+    errorMessage.value = 'Sell price must be greater than 0.';
+    return;
+  }
+
+  if (boxSetForm.canRent && (!boxSetForm.rentPrice || boxSetForm.rentPrice <= 0)) {
+    errorMessage.value = 'Rent price must be greater than 0.';
+    return;
+  }
+
+  if (boxSetForm.canRent && (!boxSetForm.deposit || boxSetForm.deposit <= 0)) {
+    errorMessage.value = 'Deposit must be greater than 0.';
+    return;
+  }
+
   savingBoxSet.value = true;
   errorMessage.value = '';
+
   try {
     boxSet.value = await updateBoxSet(route.params.id, {
       name: boxSetForm.name.trim() || null,
@@ -296,7 +312,9 @@ async function saveBoxSet() {
       rentPrice: boxSetForm.canRent ? boxSetForm.rentPrice : null,
       deposit: boxSetForm.canRent ? boxSetForm.deposit : null,
     });
+
     syncBoxSetForm();
+    alert('Box set saved successfully.');
   } catch (error) {
     errorMessage.value = error.message || 'Failed to update box set';
   } finally {
