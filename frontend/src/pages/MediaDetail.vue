@@ -142,159 +142,165 @@ const filteredCollectionMedias = computed(() => {
          YOUR COPIES
          ===================================================== -->
 
-    <section
-        v-if="user"
-        class="detail-section"
-    >
+<section
+    v-if="user"
+    class="detail-section copies-section"
+>
+    <details open>
 
-        <div class="section-header">
-            <h2>Your copies</h2>
+        <summary>
+            Your copies
 
             <span class="section-count">
                 {{ mediaDetails.myCopies.length }}
             </span>
-        </div>
+        </summary>
 
 
-        <div
-            v-if="mediaDetails.myCopies.length === 0"
-            class="empty"
-        >
-            You don't own this media yet.
-        </div>
+        <div class="copy-list">
 
-
-        <div
-            v-for="copy in mediaDetails.myCopies"
-            :key="copy.id"
-            class="copy-card own-copy"
-        >
-
-            <div class="copy-header">
-
-                <div>
-                    <h3 v-if="mediaDetails.media.category === 'COMIC'">
-                        {{ mediaDetails.media.title }}: {{ copy.title }}
-                    </h3>
-
-                    <span class="copy-edition">
-                        {{ copy.edition }}
-
-                        <span v-if="copy.includesBluRay">
-                            · Includes Blu-ray
-                        </span>
-                    </span>
-                </div>
-
-                <span class="condition">
-                    {{ copy.condition }}
-                </span>
-
+            <div
+                v-if="mediaDetails.myCopies.length === 0"
+                class="empty"
+            >
+                You don't own this media yet.
             </div>
 
 
-            <div class="copy-info">
+            <div
+                v-for="copy in mediaDetails.myCopies"
+                :key="copy.id"
+                class="copy-card own-copy"
+            >
 
-                <p v-if="copy.activeTrade">
-                    <strong>Status:</strong>
+                <div class="copy-header">
 
-                    <RouterLink
-                        :to="{
-                            name: 'trade-detail',
-                            params: {
-                                id: copy.activeTrade.id
-                            },
-                            query: {
-                                from: 'collection'
-                            }
-                        }"
-                    >
-                        {{
-                            copy.activeTrade.status === 'RENTING'
-                                ? 'Renting'
-                                : 'Reserved'
-                        }}
-                    </RouterLink>
-                </p>
+                    <div>
+                        <h3 v-if="mediaDetails.media.category === 'COMIC'">
+                            {{ mediaDetails.media.title }}: {{ copy.title }}
+                        </h3>
 
-                <p v-else>
-                    <strong>Status:</strong>
-                    <span class="status-available">
-                        Available
-                    </span>
-                </p>
+                        <span class="copy-edition">
+                            {{ copy.edition }}
 
-
-                <p v-if="copy.boxSet">
-                    <strong>Box set:</strong>
-
-                    <RouterLink
-                        :to="{
-                            name: 'boxset',
-                            params: {
-                                id: copy.boxSet.id
-                            },
-                            query: {
-                                from: 'collection'
-                            }
-                        }"
-                    >
-                        Box Set #{{ copy.boxSet.id }}
-                    </RouterLink>
-                </p>
-
-
-                <p v-if="copy.listingNote">
-                    {{ copy.listingNote }}
-                </p>
-
-            </div>
-
-
-            <div class="copy-footer">
-
-                <div class="listing-status">
-
-                    <span v-if="copy.canSell">
-                        💰 For sale
-                    </span>
-
-                    <span v-if="copy.canRent">
-                        🎬 For rent
-                    </span>
-
-                    <template v-if="copy.boxSet">
-
-                        <span v-if="copy.boxSet.canSell">
-                            💰 Box set for sale
+                            <span v-if="copy.includesBluRay">
+                                · Includes Blu-ray
+                            </span>
                         </span>
+                    </div>
 
-                        <span v-if="copy.boxSet.canRent">
-                            🎬 Box set for rent
-                        </span>
-
-                    </template>
+                    <span class="condition">
+                        {{ copy.condition }}
+                    </span>
 
                 </div>
 
 
-                <button
-                    type="button"
-                    class="secondary-button"
-                    @click="
-                        showEditCopy = true;
-                        idEditCopy = copy.id
-                    "
-                >
-                    Edit
-                </button>
+                <div class="copy-info">
+
+                    <p v-if="copy.activeTrade">
+                        <strong>Status:</strong>
+
+                        <RouterLink
+                            :to="{
+                                name: 'trade-detail',
+                                params: {
+                                    id: copy.activeTrade.id
+                                },
+                                query: {
+                                    from: 'collection'
+                                }
+                            }"
+                        >
+                            {{
+                                copy.activeTrade.status === 'RENTING'
+                                    ? 'Renting'
+                                    : 'Reserved'
+                            }}
+                        </RouterLink>
+                    </p>
+
+                    <p v-else>
+                        <strong>Status:</strong>
+
+                        <span class="status-available">
+                            Available
+                        </span>
+                    </p>
+
+
+                    <p v-if="copy.boxSet">
+                        <strong>Box set:</strong>
+
+                        <RouterLink
+                            :to="{
+                                name: 'boxset',
+                                params: {
+                                    id: copy.boxSet.id
+                                },
+                                query: {
+                                    from: 'collection'
+                                }
+                            }"
+                        >
+                            Box Set #{{ copy.boxSet.id }}
+                        </RouterLink>
+                    </p>
+
+
+                    <p v-if="copy.listingNote">
+                        {{ copy.listingNote }}
+                    </p>
+
+                </div>
+
+
+                <div class="copy-footer">
+
+                    <div class="listing-status">
+
+                        <span v-if="copy.canSell">
+                            💰 For sale
+                        </span>
+
+                        <span v-if="copy.canRent">
+                            🎬 For rent
+                        </span>
+
+                        <template v-if="copy.boxSet">
+
+                            <span v-if="copy.boxSet.canSell">
+                                💰 Box set for sale
+                            </span>
+
+                            <span v-if="copy.boxSet.canRent">
+                                🎬 Box set for rent
+                            </span>
+
+                        </template>
+
+                    </div>
+
+
+                    <button
+                        type="button"
+                        class="secondary-button"
+                        @click="
+                            showEditCopy = true;
+                            idEditCopy = copy.id
+                        "
+                    >
+                        Edit
+                    </button>
+
+                </div>
 
             </div>
 
         </div>
 
-    </section>
-
+    </details>
+</section>
     <!-- =====================================================
          TRADE OFFERS
          ===================================================== -->
@@ -459,12 +465,9 @@ const filteredCollectionMedias = computed(() => {
                     )
                 "
                 mode="collection"
-                :compact="
-                    collectionViewMode === 'list'
-                "
-                :currentId="
-                    mediaDetails.media.id
-                "
+                :compact="collectionViewMode === 'list'"
+                :currentId="mediaDetails.media.id"
+                :fromContext="currentContext"
             />
 
         </div>
@@ -889,7 +892,52 @@ const filteredCollectionMedias = computed(() => {
 
     margin-right: 6px;
 }
+.copies-section details {
+    background: var(--code-bg);
 
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.copies-section summary {
+    display: flex;
+    align-items: center;
+
+    gap: 9px;
+
+    padding: 14px 16px;
+
+    color: var(--text-h);
+
+    cursor: pointer;
+
+    font-size: 18px;
+    font-weight: 600;
+
+    list-style: none;
+}
+
+.copies-section summary::-webkit-details-marker {
+    display: none;
+}
+
+.copies-section summary::after {
+    content: "▼";
+
+    margin-left: auto;
+
+    color: var(--text-muted);
+
+    font-size: 10px;
+}
+
+.copies-section details[open] summary::after {
+    content: "▲";
+}
+
+.copy-list {
+    padding: 0 12px 12px;
+}
 
 /* =========================================================
    EMPTY STATE

@@ -13,14 +13,16 @@
             @search="search = $event"
             placeholder="Search your collection..."
         />
-
+        
         <FilterBar
             :category="selectedCategory"
             :format="selectedFormat"
             :viewMode="viewMode"
+            :displayMode="groupByCollection ? 'collections' : 'singles'"
             :showCollectionFilter="false"
             @update:format="selectedFormat = $event"
             @update:viewMode="viewMode = $event"
+            @update:displayMode="groupByCollection = $event === 'collections'"
         />
         
             <hr class="section-divider">

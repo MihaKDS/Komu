@@ -149,6 +149,10 @@ const props = defineProps({
     required: true,
   },
   mode: String,
+  fromContext: {
+    type: String,
+    default: 'search',
+  },
   compact: {
     type: Boolean,
     default: false,
@@ -178,7 +182,7 @@ function mediaLink(media) {
       id: media.id,
     },
     query: {
-      from: (props && props.mode) || 'search',
+      from: props.fromContext,
     },
   };
 }
