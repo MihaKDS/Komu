@@ -658,14 +658,10 @@ function addItem(media) {
 .add-copy {
     width: min(100%, 620px);
 
-    max-height: 90vh;
-    overflow-y: auto;
-
     padding: 24px;
 
     color: var(--text);
-
-    background: var(--bg-card);
+    background: var(--accent-bg);
 
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -798,7 +794,7 @@ input:focus {
 
     background: var(--bg-secondary);
 
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
     border-radius: var(--radius-small);
 }
 
@@ -845,7 +841,7 @@ input:focus {
 
     margin-top: 5px;
 
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
     border-radius: var(--radius-small);
 }
 
@@ -858,7 +854,7 @@ input:focus {
     color: var(--text-secondary);
     background: var(--bg-secondary);
 
-    border-bottom: 1px solid var(--border);
+    border-bottom: 2px solid var(--border);
 
     font-size: 12px;
     font-weight: 600;
@@ -873,7 +869,7 @@ input:focus {
 
     padding: 9px 10px;
 
-    border-bottom: 1px solid var(--border);
+    border-bottom: 2px solid var(--border);
 
     font-size: 13px;
 }
@@ -892,7 +888,7 @@ input:focus {
     color: var(--text-muted);
     background: transparent;
 
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
     border-radius: 4px;
 
     font-size: 11px;
@@ -909,7 +905,7 @@ input:focus {
     color: var(--text-muted);
     background: var(--bg-secondary);
 
-    border: 1px dashed var(--border);
+    border: 2px dashed var(--border);
     border-radius: var(--radius-small);
 
     font-size: 13px;
@@ -931,7 +927,7 @@ input:focus {
 
     background: var(--bg-secondary);
 
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
     border-radius: var(--radius);
 }
 
@@ -947,7 +943,7 @@ input:focus {
 
     background: var(--bg-card);
 
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
     border-radius: var(--radius-small);
 }
 
@@ -985,7 +981,7 @@ input:focus {
 
     overflow: hidden;
 
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
     border-radius: var(--radius-small);
 }
 
@@ -999,7 +995,7 @@ input:focus {
 
     background: var(--bg-card);
 
-    border-bottom: 1px solid var(--border);
+    border-bottom: 2px solid var(--border);
 
     font-size: 13px;
 }
@@ -1025,7 +1021,7 @@ input:focus {
 
     background: var(--bg-card);
 
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
     border-radius: var(--radius-small);
 }
 
@@ -1072,7 +1068,7 @@ input:focus {
     margin-top: 22px;
     padding-top: 16px;
 
-    border-top: 1px solid var(--border);
+    border-top: 2px solid var(--border);
 }
 
 .primary-button,
@@ -1092,7 +1088,7 @@ input:focus {
     color: #fff;
     background: var(--accent);
 
-    border: 1px solid var(--accent);
+    border: 2px solid var(--accent);
 }
 
 .primary-button:hover {
@@ -1108,7 +1104,7 @@ input:focus {
     color: var(--text);
     background: var(--bg-secondary);
 
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
 }
 
 .secondary-button:hover {
@@ -1128,11 +1124,8 @@ input:focus {
 /* Mobile */
 
 @media (max-width: 600px) {
-
     .add-copy {
         width: 100%;
-        max-height: 95vh;
-
         padding: 18px;
 
         border-radius: var(--radius);
@@ -1144,7 +1137,6 @@ input:focus {
 
     .volume-input {
         display: grid;
-
         grid-template-columns: 1fr auto;
     }
 
@@ -1171,6 +1163,5 @@ input:focus {
     .form-actions button {
         width: 100%;
     }
-
 }
 </style>

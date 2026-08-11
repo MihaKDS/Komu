@@ -140,7 +140,7 @@ function priceLabel(item) {
   gap: 1rem;
   padding: 1rem;
   border-radius: 12px;
-  background: #222;
+  background: var(--code-bg);
 }
 
 .poster {
@@ -152,11 +152,11 @@ function priceLabel(item) {
 
 .content p {
   margin: 0.25rem 0;
-  color: #bbb;
+  color: var(--text-muted);
 }
 
 .title-link {
-  color: #fff;
+  color: var(--text-h);
   font-weight: 700;
   text-decoration: none;
 }
@@ -171,7 +171,7 @@ function priceLabel(item) {
 }
 
 .price {
-  color: #fff !important;
+  color: var(--text-h) !important;
   font-weight: 700;
 }
 
@@ -181,6 +181,6 @@ function priceLabel(item) {
   gap: 1rem;
   padding: 1rem;
   border-radius: 12px;
-  background: #1b1b1b;
+  background: var(--code-bg);
 }
 </style>

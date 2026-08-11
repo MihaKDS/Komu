@@ -34,7 +34,7 @@
             class="delete-button"
             @click="deleteCopy"
         >
-            🗑️
+            Delete
         </button>
     </div>
 
@@ -339,9 +339,9 @@ async function splitCopy() {
 
     color: var(--text);
 
-    background: var(--bg-card);
+    background: var(--accent-bg);
 
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
     border-radius: var(--radius);
 
     box-shadow: var(--shadow);
@@ -397,7 +397,7 @@ async function splitCopy() {
 .media-reference {
     display: flex;
     align-items: baseline;
-
+    justify-content: space-between;
     gap: 8px;
 
     margin-bottom: 20px;
@@ -405,7 +405,7 @@ async function splitCopy() {
 
     background: var(--bg);
 
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
     border-radius: var(--radius-small);
 }
 
@@ -480,7 +480,7 @@ async function splitCopy() {
     color: var(--text-secondary);
     background: var(--bg-secondary);
 
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
     border-radius: var(--radius-small);
 
     font-size: 13px;
@@ -495,10 +495,10 @@ async function splitCopy() {
 
     padding: 4px 8px;
 
-    color: var(--text-secondary);
-    background: var(--bg-card);
+    color: var(--text-h);
+    background: var(--accent);
 
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
     border-radius: 4px;
 
     font-size: 11px;
@@ -544,7 +544,7 @@ async function splitCopy() {
     color: var(--text-h);
     background: var(--bg);
 
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
     border-radius: var(--radius-small);
 
     font: inherit;
@@ -585,7 +585,7 @@ async function splitCopy() {
 
     background: var(--bg-secondary);
 
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
     border-radius: var(--radius-small);
 }
 
@@ -652,7 +652,7 @@ async function splitCopy() {
     margin-top: 24px;
     padding-top: 16px;
 
-    border-top: 1px solid var(--border);
+    border-top: 2px solid var(--border);
 }
 
 .primary-button,
@@ -667,6 +667,7 @@ async function splitCopy() {
     font: inherit;
 
     cursor: pointer;
+
 }
 
 .primary-button {
@@ -684,7 +685,7 @@ async function splitCopy() {
     color: var(--text);
     background: var(--bg-secondary);
 
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
 }
 
 .secondary-button:hover {
@@ -694,11 +695,10 @@ async function splitCopy() {
 
 .delete-button {
     margin-left: auto;
-
     color: var(--danger);
-    background: transparent;
+    background: var(--danger-bg);
 
-    border: 1px solid var(--border);
+    border: 1px solid var(--danger-bg);
 }
 
 .delete-button:hover {

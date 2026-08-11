@@ -217,14 +217,15 @@ function openTrade(tradeId) {
   grid-template-columns: 120px 1fr;
   gap: 1rem;
   padding: 1rem;
-  background: #222;
+  background: var(--border);
   border-radius: 12px;
   text-decoration: none;
   color: inherit;
+  border: 2px solid rgba(104, 104, 104, 0.25);
 }
 
 .media-row:hover {
-  background: #2f2f2f;
+  background: var(--code-bg);
 }
 
 /* compact variant */

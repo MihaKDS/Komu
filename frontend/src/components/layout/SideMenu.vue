@@ -116,7 +116,7 @@ defineProps({
     width: 250px;
     height: 100vh;
 
-    background-color: #1a1a1a;
+    background-color: var(--border);
     border-right: 1px solid var(--border);
 
     z-index: 900;

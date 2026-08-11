@@ -654,7 +654,7 @@ const filteredCollectionMedias = computed(() => {
 
     padding: 16px;
 
-    background: var(--bg-card);
+    background: var(--social-bg);
 
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -769,7 +769,7 @@ const filteredCollectionMedias = computed(() => {
    ========================================================= */
 
 .trade-section details {
-    background: var(--bg-secondary);
+    background: var(--code-bg);
 
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -934,7 +934,7 @@ const filteredCollectionMedias = computed(() => {
 
     padding: 20px;
 
-    background: rgba(0, 0, 0, 0.65);
+    background: var(--social-bg);
 
     overflow-y: auto;
 }
@@ -1018,6 +1018,10 @@ const filteredCollectionMedias = computed(() => {
         align-items: flex-start;
 
         padding: 10px;
+    }
+    .edit-copy {
+        width: 100%;
+        padding: 18px;
     }
 
 }

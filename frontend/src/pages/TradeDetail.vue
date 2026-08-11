@@ -201,7 +201,7 @@ watch(
 }
 
 .summary-card {
-  background: #222;
+  background: var(--code-bg);
   border-radius: 12px;
   padding: 1rem;
 }

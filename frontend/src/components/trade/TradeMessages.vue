@@ -68,7 +68,7 @@ function formatDate(value) {
 }
 
 .message-card {
-  background: #222;
+  background: var(--code-bg);
   border-radius: 12px;
   padding: 1rem;
 }
@@ -95,7 +95,7 @@ function formatDate(value) {
 textarea {
   width: 100%;
   box-sizing: border-box;
-  background: #1f1f1f;
+  background: var(--code-bg);
   color: #fff;
   border: 1px solid #444;
   border-radius: 10px;

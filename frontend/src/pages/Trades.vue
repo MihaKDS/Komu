@@ -72,14 +72,14 @@ onMounted(loadTrades);
 .trade-card {
   display: block;
   padding: 1rem;
-  background: #222;
+  background: var(--code-bg);
   border-radius: 12px;
   color: inherit;
   text-decoration: none;
 }
 
 .trade-card:hover {
-  background: #2d2d2d;
+  background: var(--accent-bg);
 }
 
 .card-header {

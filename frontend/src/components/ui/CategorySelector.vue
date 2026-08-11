@@ -103,7 +103,7 @@ function select(category) {
 
 .categories button.active {
     color: var(--text-h);
-    background: var(--accent-bg);
+    background: var(--accent);
 
     box-shadow: var(--shadow);
 
