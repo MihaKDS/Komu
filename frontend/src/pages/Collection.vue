@@ -13,7 +13,7 @@
             @search="search = $event"
             placeholder="Search your collection..."
         />
-        
+
         <FilterBar
             :category="selectedCategory"
             :format="selectedFormat"
@@ -55,6 +55,7 @@
                 :is="viewMode === 'list' ? MediaList : MediaGrid"
                 :mediaList="filteredMedia"
                 mode="collection"
+                fromContext="collection"
             />
         </div>
 
