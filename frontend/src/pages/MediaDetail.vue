@@ -27,7 +27,6 @@ const currentContext = computed(() => route.query.from || 'search');
 
 async function loadMedia() {
     mediaDetails.value = await getMedia(route.params.id);
-    console.log(mediaDetails.value)
 }
 
 function editCopy(id) {
@@ -208,7 +207,7 @@ const filteredCollectionMedias = computed(() => {
                                     id: copy.activeTrade.id
                                 },
                                 query: {
-                                    from: 'collection'
+                                    from: currentContext
                                 }
                             }"
                         >
@@ -239,7 +238,7 @@ const filteredCollectionMedias = computed(() => {
                                     id: copy.boxSet.id
                                 },
                                 query: {
-                                    from: 'collection'
+                                    from: currentContext
                                 }
                             }"
                         >
@@ -465,8 +464,12 @@ const filteredCollectionMedias = computed(() => {
                     )
                 "
                 mode="collection"
-                :compact="collectionViewMode === 'list'"
-                :currentId="mediaDetails.media.id"
+                :compact="
+                    collectionViewMode === 'list'
+                "
+                :currentId="
+                    mediaDetails.media.id
+                "
                 :fromContext="currentContext"
             />
 

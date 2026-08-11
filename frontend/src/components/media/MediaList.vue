@@ -5,6 +5,7 @@
       :key="media.id"
       :to="mediaLink(media)"
       :class="['media-row', { compact: props.compact, current: media.id === props.currentId, selected: isSelected(media.id) }]"
+      :fromContext="props.fromContext"
     >
       <img 
         v-if="media.poster"
@@ -149,10 +150,6 @@ const props = defineProps({
     required: true,
   },
   mode: String,
-  fromContext: {
-    type: String,
-    default: 'search',
-  },
   compact: {
     type: Boolean,
     default: false,
@@ -169,6 +166,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  fromContext: {
+    type: String,
+    default: 'search',
+  },
 });
 
 function posterSource(poster) {
@@ -182,7 +183,7 @@ function mediaLink(media) {
       id: media.id,
     },
     query: {
-      from: props.fromContext,
+      from: props.fromContext || 'search',
     },
   };
 }

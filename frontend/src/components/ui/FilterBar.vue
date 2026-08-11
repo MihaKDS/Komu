@@ -197,7 +197,6 @@ const emit = defineEmits([
     "update:viewMode",
     "update:displayMode",
 ]);
-console.log(props.category);
 const isOpen = ref(false);
 
 const selectedFormat = ref(props.format);
