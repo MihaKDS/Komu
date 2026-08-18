@@ -362,7 +362,7 @@
                     <input
                         id="box-name"
                         v-model="form.boxSetName"
-                        placeholder="Harry Potter 4K Collector's Box"
+                        placeholder="Collection name"
                     />
 
                 </div>
@@ -377,7 +377,7 @@
                     <input
                         id="box-note"
                         v-model="form.boxSetListingNote"
-                        placeholder="Complete 8-movie set"
+                        placeholder="note"
                     />
 
                 </div>
@@ -423,62 +423,6 @@
 
                 </div>
 
-
-                <div class="option-card">
-
-                    <label class="checkbox-label">
-
-                        <input
-                            type="checkbox"
-                            v-model="form.boxSetCanRent"
-                        >
-
-                        <span>
-                            Rent entire box
-                        </span>
-
-                    </label>
-
-
-                    <div
-                        v-if="form.boxSetCanRent"
-                        class="rent-inputs"
-                    >
-
-                        <div>
-                            <label>
-                                Price / month
-                            </label>
-
-                            <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                v-model.number="
-                                    form.boxSetRentPrice
-                                "
-                            />
-                        </div>
-
-
-                        <div>
-                            <label>
-                                Deposit
-                            </label>
-
-                            <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                v-model.number="
-                                    form.boxSetDeposit
-                                "
-                            />
-                        </div>
-
-                    </div>
-
-                </div>
 
             </template>
 
@@ -550,8 +494,6 @@ const form = reactive({
     boxSetCanSell: false,
     boxSetSellPrice: null,
     boxSetCanRent: false,
-    boxSetRentPrice: null,
-    boxSetDeposit: null,
     volume: null,
     volumes: [],
 });
@@ -586,8 +528,6 @@ async function saveCopy() {
             boxSetCanSell: form.boxSetMode === 'new' ? form.boxSetCanSell : undefined,
             boxSetSellPrice: form.boxSetMode === 'new' ? form.boxSetSellPrice : undefined,
             boxSetCanRent: form.boxSetMode === 'new' ? form.boxSetCanRent : undefined,
-            boxSetRentPrice: form.boxSetMode === 'new' ? form.boxSetRentPrice : undefined,
-            boxSetDeposit: form.boxSetMode === 'new' ? form.boxSetDeposit : undefined,
         });
 
         emit("saved");
@@ -615,8 +555,6 @@ async function saveComic() {
             boxSetCanSell: form.boxSetMode === 'new' ? form.boxSetCanSell : undefined,
             boxSetSellPrice: form.boxSetMode === 'new' ? form.boxSetSellPrice : undefined,
             boxSetCanRent: form.boxSetMode === 'new' ? form.boxSetCanRent : undefined,
-            boxSetRentPrice: form.boxSetMode === 'new' ? form.boxSetRentPrice : undefined,
-            boxSetDeposit: form.boxSetMode === 'new' ? form.boxSetDeposit : undefined,
         });
 
         emit("saved");

@@ -1,340 +1,715 @@
 <template>
-<div class="dialog-overlay">
-<div class="edit-copy">
+    <div class="page">
 
-    <div class="dialog-header">
-        <h2>Edit Copy</h2>
+        <Breadcrumbs
+            :title="pageTitle"
+        />
 
-        <button
-            type="button"
-            class="close-button"
-            @click="emit('close')"
-            aria-label="Close"
-        >
-            ×
-        </button>
-    </div>
+        <div class="edit-copy-page">
 
+            <!-- =================================================
+                 LOADING
+                 ================================================= -->
 
-    <!-- =====================================================
-         MEDIA
-         ===================================================== -->
-
-    <div class="media-reference">
-
-        <strong>
-            {{ media.title }}
-        </strong>
-
-        <span>
-            {{ media.releaseYear }}
-        </span>
-                <button
-            type="button"
-            class="delete-button"
-            @click="deleteCopy"
-        >
-            Delete
-        </button>
-    </div>
-
-
-    <!-- =====================================================
-         CONTENT
-         ===================================================== -->
-
-    <section class="edit-section">
-
-        <div class="section-title">
-            <h3>Copy details</h3>
-        </div>
-
-
-        <div class="contains">
-
-            <span class="detail-label">
-                Edition
-            </span>
-
-            <div class="detail-value">
-                {{ copy.edition }}
+            <div
+                v-if="loading"
+                class="loading"
+            >
+                Loading copy...
             </div>
 
 
-            <div
-                v-if="copy.includesBluRay"
-                class="included-item"
-            >
+            <!-- =================================================
+                 ERROR
+                 ================================================= -->
 
-                <span>
-                    Includes Blu-ray
-                </span>
+            <div
+                v-else-if="error"
+                class="error-panel"
+            >
+                <h2>Unable to load copy</h2>
+
+                <p>
+                    {{ error }}
+                </p>
 
                 <button
                     type="button"
-                    class="small-button"
-                    @click="splitCopy"
+                    class="secondary-button"
+                    @click="goBack"
                 >
-                    Split
+                    Back
                 </button>
-
             </div>
 
+
+            <!-- =================================================
+                 FORM
+                 ================================================= -->
 
             <div
-                v-if="hasBoxSet"
-                class="included-item"
+                v-else-if="copy"
+                class="edit-copy"
             >
 
-                <span>
-                    Part of
-                </span>
+                <!-- Header -->
 
-                <RouterLink
-                    :to="{
-                        name: 'boxset',
-                        params: {
-                            id: copy.boxSet.id
-                        },
-                        query: {
-                            from: 'collection'
-                        }
-                    }"
-                >
-                    Box Set #{{ copy.boxSet.id }}
-                </RouterLink>
+                <div class="page-header">
 
-            </div>
+                    <div>
+                        <h1>
+                            Edit Copy
+                        </h1>
 
-        </div>
+                        <p class="page-subtitle">
+                            Copy #{{ copy.id }}
+                        </p>
+                    </div>
 
-
-        <!-- Condition -->
-
-        <div class="field">
-
-            <label for="condition">
-                Condition
-            </label>
-
-            <select
-                id="condition"
-                v-model="form.condition"
-            >
-                <option value="MINT">
-                    Mint
-                </option>
-
-                <option value="VERY_GOOD">
-                    Very Good
-                </option>
-
-                <option value="GOOD">
-                    Good
-                </option>
-
-                <option value="FAIR">
-                    Fair
-                </option>
-
-                <option value="POOR">
-                    Poor
-                </option>
-            </select>
-
-        </div>
-
-
-        <!-- Note -->
-
-        <div class="field">
-
-            <div class="field-header">
-                <label for="listing-note">
-                    Note about item
-                </label>
-
-                <span class="char-counter">
-                    {{ form.listingNote?.length || 0 }}/50
-                </span>
-            </div>
-
-            <textarea
-                id="listing-note"
-                v-model="form.listingNote"
-                maxlength="50"
-                rows="2"
-                placeholder="Extended Edition with slipcover..."
-            ></textarea>
-
-        </div>
-
-    </section>
-
-
-    <!-- =====================================================
-         SALE
-         ===================================================== -->
-
-    <section class="edit-section">
-
-        <div class="section-title">
-            <h3>Sale</h3>
-        </div>
-
-
-        <div class="option-card">
-
-            <label class="checkbox-label">
-
-                <input
-                    type="checkbox"
-                    v-model="form.canSell"
-                >
-
-                <span>
-                    Offer for sale
-                </span>
-
-            </label>
-
-
-            <div
-                v-if="form.canSell"
-                class="price-field"
-            >
-
-                <label for="sell-price">
-                    Price
-                </label>
-
-                <div class="price-input">
-
-                    <input
-                        id="sell-price"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        v-model.number="form.sellPrice"
+                    <button
+                        type="button"
+                        class="secondary-button"
+                        @click="goBack"
                     >
-
-                    <span>€</span>
+                        ← Back
+                    </button>
 
                 </div>
 
+
+                <!-- =================================================
+                     MEDIA REFERENCE
+                     ================================================= -->
+
+                <div class="media-reference">
+
+                    <div class="media-reference-title">
+
+                        <strong>
+                            {{ copy.media?.title || "Unknown media" }}
+                        </strong>
+
+                        <span
+                            v-if="copy.media?.releaseYear"
+                        >
+                            {{ copy.media.releaseYear }}
+                        </span>
+
+                    </div>
+
+                    <span class="copy-id">
+                        Copy #{{ copy.id }}
+                    </span>
+
+                </div>
+
+
+                <!-- =================================================
+                     COPY DETAILS
+                     ================================================= -->
+
+                <section class="edit-section">
+
+                    <div class="section-title">
+                        <h3>
+                            Copy details
+                        </h3>
+                    </div>
+
+
+                    <div class="contains">
+
+                        <!-- Edition -->
+
+                        <div class="detail-row">
+
+                            <span class="detail-label">
+                                Edition
+                            </span>
+
+                            <span class="detail-value">
+                                {{ copy.edition }}
+                            </span>
+
+                        </div>
+
+
+                        <!-- Includes Blu-ray -->
+
+                        <div
+                            v-if="copy.includesBluRay"
+                            class="included-item"
+                        >
+
+                            <span>
+                                Includes Blu-ray
+                            </span>
+
+                            <button
+                                type="button"
+                                class="small-button"
+                                :disabled="saving"
+                                @click="splitCopy"
+                            >
+                                Split
+                            </button>
+
+                        </div>
+
+
+                        <!-- Box Set -->
+
+                        <div
+                            v-if="hasBoxSet"
+                            class="included-item"
+                        >
+
+                            <span>
+                                Part of
+                            </span>
+
+                            <RouterLink
+                                :to="{
+                                    name: 'boxset',
+                                    params: {
+                                        id: copy.boxSet.id
+                                    },
+                                    query: {
+                                        from: 'collection-edit'
+                                    }
+                                }"
+                            >
+                                Box Set #{{ copy.boxSet.id }}
+                            </RouterLink>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Condition -->
+
+                    <div class="field">
+
+                        <label for="condition">
+                            Condition
+                        </label>
+
+                        <select
+                            id="condition"
+                            v-model="form.condition"
+                        >
+                            <option value="MINT">
+                                Mint
+                            </option>
+
+                            <option value="VERY_GOOD">
+                                Very Good
+                            </option>
+
+                            <option value="GOOD">
+                                Good
+                            </option>
+
+                            <option value="FAIR">
+                                Fair
+                            </option>
+
+                            <option value="POOR">
+                                Poor
+                            </option>
+                        </select>
+
+                    </div>
+
+
+                    <!-- Listing note -->
+
+                    <div class="field">
+
+                        <div class="field-header">
+
+                            <label for="listing-note">
+                                Note about item
+                            </label>
+
+                            <span class="char-counter">
+                                {{ form.listingNote?.length || 0 }}/50
+                            </span>
+
+                        </div>
+
+                        <textarea
+                            id="listing-note"
+                            v-model="form.listingNote"
+                            maxlength="50"
+                            rows="2"
+                            placeholder="Extended Edition with slipcover..."
+                        ></textarea>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     SALE
+                     ================================================= -->
+
+                <section class="edit-section">
+
+                    <div class="section-title">
+                        <h3>
+                            Sale
+                        </h3>
+                    </div>
+
+
+                    <div class="option-card">
+
+                        <label class="checkbox-label">
+
+                            <input
+                                type="checkbox"
+                                v-model="form.canSell"
+                            >
+
+                            <span>
+                                Offer for sale
+                            </span>
+
+                        </label>
+
+
+                        <div
+                            v-if="form.canSell"
+                            class="price-field"
+                        >
+
+                            <label for="sell-price">
+                                Price
+                            </label>
+
+                            <div class="price-input">
+
+                                <input
+                                    id="sell-price"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    v-model.number="form.sellPrice"
+                                >
+
+                                <span>
+                                    €
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     ACTIONS
+                     ================================================= -->
+
+                <div class="form-actions">
+
+                    <button
+                        type="button"
+                        class="primary-button"
+                        :disabled="saving"
+                        @click="saveCopy"
+                    >
+                        {{ saving ? "Saving..." : "Save" }}
+                    </button>
+
+                    <button
+                        type="button"
+                        class="secondary-button"
+                        :disabled="saving"
+                        @click="goBack"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="button"
+                        class="delete-button"
+                        :disabled="saving"
+                        @click="deleteCopy"
+                    >
+                        Delete
+                    </button>
+
+                </div>
+
+
+                <p
+                    v-if="saveError"
+                    class="form-error"
+                >
+                    {{ saveError }}
+                </p>
+
             </div>
 
         </div>
 
-    </section>
-
-
-    <!-- =====================================================
-         ACTIONS
-         ===================================================== -->
-
-    <div class="form-actions">
-
-        <button
-            type="button"
-            class="primary-button"
-            @click="saveCopy"
-        >
-            Save
-        </button>
-
-        <button
-            type="button"
-            class="secondary-button"
-            @click="emit('close')"
-        >
-            Cancel
-        </button>
-
     </div>
-
-</div>
-</div>
 </template>
 
+
 <script setup>
-import { computed, reactive } from 'vue'
 import {
+    computed,
+    onMounted,
+    reactive,
+    ref,
+} from "vue";
+
+import {
+    RouterLink,
+    useRoute,
+    useRouter,
+} from "vue-router";
+
+import Breadcrumbs from "../layout/Breadcrumbs.vue";
+
+import {
+    getCopyById,
     updateCopy,
     deleteCopyById,
-    splitCopyById
-} from '../../api/copyAPI'
+    splitCopyById,
+} from "../../api/copyAPI.js";
 
-const props = defineProps({
-    media: Object,
-    copy: Object
-})
 
-const emit = defineEmits([
-    'saved',
-    'close'
-])
+const route = useRoute();
+const router = useRouter();
+
+
+/* ============================================================
+   STATE
+   ============================================================ */
+
+const copy = ref(null);
+
+const loading = ref(true);
+const saving = ref(false);
+
+const error = ref("");
+const saveError = ref("");
+
+
+/* ============================================================
+   FORM
+   ============================================================ */
 
 const form = reactive({
-    canSell: props.copy.canSell,
-    sellPrice: props.copy.sellPrice,
+    canSell: false,
+    sellPrice: null,
 
-    listingNote: props.copy.listingNote,
-    condition: props.copy.condition,
+    listingNote: "",
+    condition: "GOOD",
 
-    canRent: props.copy.canRent,
-    rentPrice: props.copy.rentPrice,
-    deposit: props.copy.deposit,
-})
+    canRent: false,
+});
 
-const hasBoxSet = computed(() => props.copy?.boxSet != null)
-const boxSetLabel = computed(
-    () => props.copy?.boxSet?.name || props.copy?.boxSet?.title || 'Box set',
-)
 
-async function saveCopy() {
-    const payload = {
-        canSell: form.canSell,
-        sellPrice: form.canSell ? form.sellPrice : null,
-        listingNote: form.listingNote,
-        condition: form.condition,
-        canRent: form.canRent,
-        rentPrice: form.canRent ? form.rentPrice : null,
-        deposit: form.canRent ? form.deposit : null,
+/* ============================================================
+   COMPUTED
+   ============================================================ */
+
+const pageTitle = computed(() => {
+
+    if (!copy.value) {
+        return "Edit Copy";
     }
 
-    await updateCopy(
-        props.copy.id,
-        payload,
-    )
+    return copy.value.media?.title
+        ? `Edit ${copy.value.media.title}`
+        : "Edit Copy";
+});
 
-    emit('saved')
-    emit('close')
+
+const hasBoxSet = computed(() => {
+    return copy.value?.boxSet != null;
+});
+
+
+/* ============================================================
+   MAP COPY → FORM
+   ============================================================ */
+
+function mapCopyToForm(data) {
+
+    form.canSell =
+        data.canSell ?? false;
+
+    form.sellPrice =
+        data.sellPrice ?? null;
+
+    form.listingNote =
+        data.listingNote ?? "";
+
+    form.condition =
+        data.condition ?? "GOOD";
+
+    form.canRent =
+        data.canRent ?? false;
+
 }
+
+
+/* ============================================================
+   LOAD COPY
+   ============================================================ */
+
+async function loadCopy() {
+
+    loading.value = true;
+    error.value = "";
+
+    const id = Number(route.params.id);
+
+    if (!Number.isInteger(id)) {
+
+        error.value =
+            "Invalid copy ID.";
+
+        loading.value = false;
+
+        return;
+    }
+
+    try {
+
+        const data =
+            await getCopyById(id);
+
+        copy.value = data;
+
+        mapCopyToForm(data);
+
+        document.title =
+            `Komu - Edit ${data.media?.title || "Copy"}`;
+
+    } catch (err) {
+
+        console.error(
+            "Failed to load copy:",
+            err
+        );
+
+        error.value =
+            err.message ||
+            "Unable to load this copy.";
+
+    } finally {
+
+        loading.value = false;
+    }
+}
+
+
+/* ============================================================
+   SAVE
+   ============================================================ */
+
+async function saveCopy() {
+
+    if (!copy.value) {
+        return;
+    }
+
+    saving.value = true;
+    saveError.value = "";
+
+    const payload = {
+
+        canSell:
+            form.canSell,
+
+        sellPrice:
+            form.canSell
+                ? form.sellPrice
+                : null,
+
+        listingNote:
+            form.listingNote,
+
+        condition:
+            form.condition,
+
+        canRent:
+            form.canRent,
+
+    };
+
+
+    try {
+
+        await updateCopy(
+            copy.value.id,
+            payload
+        );
+
+        router.back();
+
+    } catch (err) {
+
+        console.error(
+            "Failed to save copy:",
+            err
+        );
+
+        saveError.value =
+            err.message ||
+            "Unable to save copy.";
+
+    } finally {
+
+        saving.value = false;
+    }
+}
+
+
+/* ============================================================
+   DELETE
+   ============================================================ */
 
 async function deleteCopy() {
-    if (!confirm('Delete this copy?')) return
 
-    await deleteCopyById(props.copy.id)
+    if (!copy.value) {
+        return;
+    }
 
-    emit('saved')
-    emit('close')
+    const confirmed =
+        window.confirm(
+            "Delete this copy?"
+        );
+
+    if (!confirmed) {
+        return;
+    }
+
+    saving.value = true;
+    saveError.value = "";
+
+    try {
+
+        await deleteCopyById(
+            copy.value.id
+        );
+
+        router.back();
+
+    } catch (err) {
+
+        console.error(
+            "Failed to delete copy:",
+            err
+        );
+
+        saveError.value =
+            err.message ||
+            "Unable to delete copy.";
+
+        saving.value = false;
+    }
 }
+
+
+/* ============================================================
+   SPLIT
+   ============================================================ */
 
 async function splitCopy() {
-    await splitCopyById(props.copy.id)
 
-    emit('saved')
+    if (!copy.value) {
+        return;
+    }
+
+    const confirmed =
+        window.confirm(
+            "Split the included Blu-ray into a separate copy?"
+        );
+
+    if (!confirmed) {
+        return;
+    }
+
+    saving.value = true;
+    saveError.value = "";
+
+    try {
+
+        await splitCopyById(
+            copy.value.id
+        );
+
+        /*
+         * Reload rather than navigating away.
+         * This lets the user see the resulting copy
+         * state immediately.
+         */
+
+        await loadCopy();
+
+    } catch (err) {
+
+        console.error(
+            "Failed to split copy:",
+            err
+        );
+
+        saveError.value =
+            err.message ||
+            "Unable to split copy.";
+
+    } finally {
+
+        saving.value = false;
+    }
 }
-</script>
-<style scoped>
-.edit-copy {
-    width: min(100%, 600px);
-    height: 100dvh;
-    max-height: 100dvh;
 
-    overflow-y: auto;
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+
+function goBack() {
+    router.back();
+}
+
+
+/* ============================================================
+   INITIAL LOAD
+   ============================================================ */
+
+onMounted(loadCopy);
+
+</script>
+
+
+<style scoped>
+
+.edit-copy-page {
+    width: 100%;
+    max-width: 700px;
+
+    margin: 0 auto;
+
     overscroll-behavior: contain;
+}
+
+
+.edit-copy {
+    width: 100%;
 
     padding: 24px;
 
@@ -345,60 +720,50 @@ async function splitCopy() {
     border-radius: var(--radius);
 
     box-shadow: var(--shadow);
+
+    box-sizing: border-box;
 }
 
 
-/* Header */
+/* =========================================================
+   HEADER
+   ========================================================= */
 
-.dialog-header {
+.page-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
 
+    gap: 16px;
+
     margin-bottom: 20px;
 }
 
-.dialog-header h2 {
+.page-header h1 {
     margin: 0;
 
     color: var(--text-h);
 }
 
-.close-button {
-    width: 34px;
-    height: 34px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    padding: 0;
+.page-subtitle {
+    margin: 4px 0 0;
 
     color: var(--text-muted);
-    background: transparent;
 
-    border: 0;
-    border-radius: var(--radius-small);
-
-    font-size: 24px;
-    line-height: 1;
-
-    cursor: pointer;
-}
-
-.close-button:hover {
-    color: var(--text-h);
-    background: var(--bg-hover);
+    font-size: 13px;
 }
 
 
-/* Media reference */
+/* =========================================================
+   MEDIA REFERENCE
+   ========================================================= */
 
 .media-reference {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
-    gap: 8px;
+
+    gap: 12px;
 
     margin-bottom: 20px;
     padding: 11px 12px;
@@ -409,20 +774,38 @@ async function splitCopy() {
     border-radius: var(--radius-small);
 }
 
+.media-reference-title {
+    display: flex;
+    align-items: baseline;
+
+    gap: 8px;
+
+    min-width: 0;
+}
+
 .media-reference strong {
     color: var(--text-h);
 
     font-size: 15px;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.media-reference span {
+.media-reference-title span,
+.copy-id {
     color: var(--text-muted);
 
     font-size: 13px;
+
+    white-space: nowrap;
 }
 
 
-/* Sections */
+/* =========================================================
+   SECTIONS
+   ========================================================= */
 
 .edit-section {
     display: flex;
@@ -448,13 +831,22 @@ async function splitCopy() {
 }
 
 
-/* Copy details */
+/* =========================================================
+   COPY DETAILS
+   ========================================================= */
 
 .contains {
     display: flex;
     flex-direction: column;
 
     gap: 7px;
+}
+
+.detail-row {
+    display: flex;
+    flex-direction: column;
+
+    gap: 2px;
 }
 
 .detail-label {
@@ -502,15 +894,24 @@ async function splitCopy() {
     border-radius: 4px;
 
     font-size: 11px;
+
+    cursor: pointer;
 }
 
 .small-button:hover {
-    color: var(--text-h);
     background: var(--bg-hover);
 }
 
+.small-button:disabled {
+    opacity: 0.5;
 
-/* Fields */
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   FIELDS
+   ========================================================= */
 
 .field {
     display: flex;
@@ -548,6 +949,8 @@ async function splitCopy() {
     border-radius: var(--radius-small);
 
     font: inherit;
+
+    box-sizing: border-box;
 }
 
 .field select {
@@ -556,6 +959,7 @@ async function splitCopy() {
 
 .field textarea {
     resize: vertical;
+
     min-height: 60px;
 }
 
@@ -573,7 +977,9 @@ async function splitCopy() {
 }
 
 
-/* Sale / lending */
+/* =========================================================
+   SALE / LENDING
+   ========================================================= */
 
 .option-card {
     display: flex;
@@ -641,7 +1047,9 @@ async function splitCopy() {
 }
 
 
-/* Actions */
+/* =========================================================
+   ACTIONS
+   ========================================================= */
 
 .form-actions {
     display: flex;
@@ -667,7 +1075,6 @@ async function splitCopy() {
     font: inherit;
 
     cursor: pointer;
-
 }
 
 .primary-button {
@@ -695,6 +1102,7 @@ async function splitCopy() {
 
 .delete-button {
     margin-left: auto;
+
     color: var(--danger);
     background: var(--danger-bg);
 
@@ -705,17 +1113,75 @@ async function splitCopy() {
     background: var(--danger-bg);
 }
 
+.primary-button:disabled,
+.secondary-button:disabled,
+.delete-button:disabled {
+    opacity: 0.5;
 
-/* Mobile */
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   ERROR
+   ========================================================= */
+
+.error-panel {
+    padding: 20px;
+
+    background: var(--bg-secondary);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.error-panel h2 {
+    margin-top: 0;
+
+    color: var(--text-h);
+}
+
+.error-panel p,
+.form-error {
+    color: var(--danger);
+
+    font-size: 13px;
+}
+
+.form-error {
+    margin-top: 12px;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
 
 @media (max-width: 600px) {
 
+    .edit-copy-page {
+        max-width: none;
+    }
+
     .edit-copy {
-        width: 100%;
-
-        max-height: calc(100vh - 20px);
-
         padding: 18px;
+    }
+
+    .page-header {
+        align-items: flex-start;
+    }
+
+    .page-header .secondary-button {
+        white-space: nowrap;
+    }
+
+    .media-reference {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .media-reference-title {
+        flex-wrap: wrap;
     }
 
     .rent-fields {
@@ -735,4 +1201,5 @@ async function splitCopy() {
         margin-left: 0;
     }
 }
+
 </style>

@@ -56,6 +56,7 @@
                 :mediaList="filteredMedia"
                 mode="collection"
                 fromContext="collection"
+                :category="selectedCategory"
             />
         </div>
 
@@ -246,7 +247,7 @@ const filteredMedia = computed(() => {
     const byCollection = new Map();
 
     for (const media of flat) {
-        const col = media.movieCollection;
+        const col = media.mediaCollection;
         const key = col ? `col-${col.id}` : `single-${media.id}`;
         const title = col ? col.title : null;
 

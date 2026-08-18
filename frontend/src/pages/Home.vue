@@ -50,7 +50,7 @@
             </RouterLink>
 
 
-            <RouterLink
+            <!--<RouterLink
                 :to="{ path: '/search', query: { category: 'COMIC' } }"
                 class="sector-button"
             >
@@ -59,7 +59,7 @@
                     <strong>Comics</strong>
                     <small>Browse comics</small>
                 </span>
-            </RouterLink>
+            </RouterLink> -->
 
         </div>
 

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, watch, computed } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 import { useAuth } from "../composables/useAuth"
 
@@ -17,6 +17,7 @@ import MediaList from "../components/media/MediaList.vue";
 import MediaGrid from "../components/media/MediaGrid.vue";
 
 const route = useRoute();
+const router = useRouter();
 const mediaDetails = ref(null);
 const showAddCopy = ref(false);
 const showEditCopy = ref(false);
@@ -27,15 +28,48 @@ const currentContext = computed(() => route.query.from || 'search');
 
 async function loadMedia() {
     mediaDetails.value = await getMedia(route.params.id);
+    console.log("Media details loaded:", mediaDetails.value);
 }
 
 function editCopy(id) {
     idEditCopy.value = id;
     showEditCopy.value = true;
 }
+function buyCopy(copy) {
+    router.push({
+        name: 'seller-listings',
+        params: {
+            username: copy.owner.username,
+        },
+        query: {
+            copyId: copy.id,
+        },
+    });
+}
+function buyBoxSet(boxSet) {
+    router.push({
+        name: "seller-listings",
+        params: {
+            username: boxSet.owner.username,
+        },
+        query: {
+            boxSetId: boxSet.boxSet.id,
+        },
+    });
+}
 
-function posterSource(poster) {
-    return poster?.startsWith("http") ? poster : `/posters/${poster}`;
+function posterSource(poster, category) {
+    if (poster) {
+        return poster.startsWith("http")
+            ? poster
+            : `/posters/${poster}`;
+    }
+
+    if (category === "BOOK" || category === "COMIC") {
+        return "/posters/book-placeholder.png";
+    }
+
+    return "/posters/movie-placeholder.png";
 }
 
 onMounted(loadMedia);
@@ -93,7 +127,13 @@ const filteredCollectionMedias = computed(() => {
             class="poster"
         >
             <img
-                :src="posterSource(mediaDetails.media.poster)"
+                :src="posterSource(mediaDetails.media.poster, mediaDetails.media.category)"
+                :alt="mediaDetails.media.title"
+            >
+        </div>
+        <div v-else>
+            <img
+                :src="posterSource(mediaDetails.media.poster, mediaDetails.media.category)"
                 :alt="mediaDetails.media.title"
             >
         </div>
@@ -281,16 +321,20 @@ const filteredCollectionMedias = computed(() => {
                     </div>
 
 
-                    <button
-                        type="button"
-                        class="secondary-button"
-                        @click="
-                            showEditCopy = true;
-                            idEditCopy = copy.id
-                        "
+                    <RouterLink
+                        :to="{
+                            name: 'EditCopy',
+                            params: {
+                                id: copy.id
+                            },
+                            query: {
+                                from: currentContext
+                            }
+                        }"
+                        class="edit-button"
                     >
                         Edit
-                    </button>
+                    </RouterLink>
 
                 </div>
 
@@ -345,31 +389,28 @@ const filteredCollectionMedias = computed(() => {
                         <span>
                             {{ copy.edition }}
                         </span>
-
                     </div>
-
-
-                    <p
-                        v-if="copy.listingNote"
-                        class="listing-note"
-                    >
-                        {{ copy.listingNote }}
-                    </p>
-
+                    
 
                     <div class="seller-offers">
 
                         <span v-if="copy.canSell">
+                            <!-- Individual copy -->
+                            <button
+                                type="button"
+                                @click="buyCopy(copy)"
+                            >
+                                Buy
+                            </button>
+                            <p
+                                v-if="copy.listingNote"
+                                class="listing-note"
+                            >
+                                {{ copy.listingNote }}
+                            </p>
                             💰 For sale:
                             <strong>
                                 {{ copy.sellPrice }} €
-                            </strong>
-                        </span>
-
-                        <span v-if="copy.canRent">
-                            Deposit:
-                            <strong>
-                                {{ copy.deposit }} €
                             </strong>
                         </span>
 
@@ -382,7 +423,13 @@ const filteredCollectionMedias = computed(() => {
                              copy.boxSet.canRent)"
                         class="boxset-offer"
                     >
-
+                    <!-- Box set -->
+                        <button
+                            type="button"
+                            @click="buyBoxSet(copy)"
+                        >
+                            Buy
+                        </button>
                         <p>
                             Part of
 
@@ -400,7 +447,12 @@ const filteredCollectionMedias = computed(() => {
                                 Box Set #{{ copy.boxSet.id }}
                             </RouterLink>
                         </p>
-
+                        <p
+                            v-if="copy.boxSet.listingNote"
+                            class="listing-note"
+                        >
+                            {{ copy.boxSet.listingNote }}
+                        </p>
                         <span v-if="copy.boxSet.canSell">
                             💰 Box set for sale:
                             <strong>
@@ -434,7 +486,7 @@ const filteredCollectionMedias = computed(() => {
     </section>
 
     <!-- =====================================================
-         COLLECTION
+         PART OF
          ===================================================== -->
 
     <section
@@ -471,6 +523,7 @@ const filteredCollectionMedias = computed(() => {
                     mediaDetails.media.id
                 "
                 :fromContext="currentContext"
+                :category="mediaDetails.media.category"
             />
 
         </div>
@@ -497,16 +550,6 @@ const filteredCollectionMedias = computed(() => {
     class="dialog-overlay"
     @click.self="showEditCopy = false"
 >
-    <EditCopy
-        :media="mediaDetails.media"
-        :copy="
-            mediaDetails.myCopies.find(
-                copy => copy.id === idEditCopy
-            )
-        "
-        @close="showEditCopy = false"
-        @saved="loadMedia"
-    />
 </div>
 
 </div>

@@ -143,7 +143,7 @@ const requestMessage = ref("");
 const requestingTrade = ref(false);
 const requestError = ref("");
 
-const categories = ["MOVIE", "TV_SHOW", "BOOK", "COMIC"];
+const categories = ["MOVIE", "TV_SHOW", "BOOK"];
 
 const pageTitle = computed(() => {
   return sellerData.value?.seller?.username
@@ -232,6 +232,45 @@ function toggleSelected(listing) {
   selectedListingKeys.value = [...selectedListingKeys.value, listing.key];
 }
 
+function autoSelectFromQuery() {
+    const copyId = route.query.copyId
+        ? Number(route.query.copyId)
+        : null;
+
+    const boxSetId = route.query.boxSetId
+        ? Number(route.query.boxSetId)
+        : null;
+
+    if (!copyId && !boxSetId) {
+        return;
+    }
+
+    const listing = activeListings.value.find((item) => {
+        if (copyId) {
+            return (
+                item.type === "copy" &&
+                item.copyIds?.includes(copyId)
+            );
+        }
+
+        if (boxSetId) {
+            return (
+                item.type === "boxSet" &&
+                item.boxSetId === boxSetId
+            );
+        }
+
+        return false;
+    });
+
+    if (!listing) {
+        return;
+    }
+
+    selectedCategory.value = listing.category;
+    selectedListingKeys.value = [listing.key];
+}
+
 function flattenSelectedCopyIds() {
   return filteredListings.value
     .filter((item) => selectedListingKeys.value.includes(item.key))
@@ -239,19 +278,25 @@ function flattenSelectedCopyIds() {
 }
 
 async function loadSellerListings() {
-  loading.value = true;
-  selectedListingKeys.value = [];
-  requestMessage.value = "";
-  requestError.value = "";
+    loading.value = true;
+    selectedListingKeys.value = [];
+    requestMessage.value = "";
+    requestError.value = "";
 
-  if (auth.token.value && !auth.user.value) {
-    await auth.loadUser();
-  }
+    if (auth.token.value && !auth.user.value) {
+        await auth.loadUser();
+    }
 
-  sellerData.value = await getSellerListings(route.params.username);
-  document.title = `Komu - ${pageTitle.value}`;
-  loading.value = false;
+    sellerData.value = await getSellerListings(route.params.username);
+
+    document.title = `Komu - ${pageTitle.value}`;
+
+    loading.value = false;
+
+    autoSelectFromQuery();
 }
+
+
 
 async function submitTradeRequest() {
   requestError.value = "";

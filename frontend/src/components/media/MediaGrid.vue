@@ -6,15 +6,8 @@
     :key="media.id"
     :media="media"
     :mode="mode"
-    :to="{
-        name: 'media',
-        params: {
-            id: media.id
-        },
-        query: {
-            from: mode
-        }
-    }"
+    :category="category"
+    :fromContext="fromContext"
 />
 
     </section>
@@ -25,17 +18,24 @@
 
 import MediaCard from "./MediaCard.vue";
 import { RouterLink } from "vue-router";
-
-defineProps({
+const props = defineProps({
 
     mediaList: {
         type: Array,
         required: true
     },
     mode: String,
+    category: {
+        type: String,
+        default: null,
+    },
+
+    fromContext: {
+        type: String,
+        default: null,
+    },
 
 });
-
 </script>
 
 <style scoped>

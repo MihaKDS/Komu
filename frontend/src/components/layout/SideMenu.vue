@@ -36,14 +36,14 @@
             >
                 📚Books
             </RouterLink>            
-            <RouterLink
+           <!-- <RouterLink
                 :to="{ path: '/search', query: { category: 'COMIC' } }"
                 @click="$emit('close-menu')"
                 class="nav"
                 :class="{ active: isSearchCategory('COMIC') }"
             >
                 📖Comics
-            </RouterLink>            
+            </RouterLink>-->            
             <div v-if="user">
                 <hr>
                 <RouterLink
@@ -52,6 +52,13 @@
                     class="nav"
                 >
                     📦Collection
+                </RouterLink>             
+                <RouterLink
+                    :to="{ path: '/collection/edit' }"
+                    @click="$emit('close-menu')"
+                    class="nav"
+                >
+                    📦Collection Edit
                 </RouterLink>             
                 <RouterLink
                     :to="{ path: '/trades' }"
@@ -66,6 +73,13 @@
                     class="nav"
                 >
                     ➕Add Media
+                </RouterLink>
+                <RouterLink
+                    :to="{ path: '/edit-media' }"
+                    @click="$emit('close-menu')"
+                    class="nav"
+                >
+                    ✏️Edit Media
                 </RouterLink>
             </div>
             <div v-else>

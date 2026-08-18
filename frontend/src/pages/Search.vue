@@ -44,6 +44,7 @@
               :is="viewMode === 'list' ? MediaList : MediaGrid"
               :mediaList="displayedMedia"
               mode="search"
+            :category="selectedCategory"
           />
 
         </section>
@@ -274,7 +275,7 @@ const groupedMedia = computed(() => {
     ) {
 
         const collection =
-            item.movieCollection;
+            item.mediaCollection;
 
         const key = collection
             ? `col-${collection.id}`

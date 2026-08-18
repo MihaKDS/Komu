@@ -131,8 +131,8 @@ function select(category) {
 }
 
 .categories button.active .category-count {
-    color: var(--accent-bg);
-    background: var(--text-h);
-    border-color: var(--text-h);
+    color: var(--text-h);
+    background: var(--code-bg);
+    border-color: var(--accent);
 }
 </style>

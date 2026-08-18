@@ -53,7 +53,7 @@ const showBackButton = ref(false);
 
 // Pages that are directly accessible from Home (one route away)
 // Don't show back button on these pages
-const mainPages = ['Search', 'Collection', 'Lists', 'Profile', 'trades'];
+const mainPages = ['Search', 'Collection', 'Lists', 'Profile', 'trades', 'CollectionEdit', 'EditMedia', 'AddMedia'];
 
 // Track navigation history to enable proper back functionality
 onMounted(() => {
@@ -75,11 +75,15 @@ const showBreadcrumbs = computed(() => {
 // Map query parameter values to breadcrumb context
 const contextBreadcrumbMap = {
     'collection': { label: 'My Collection', to: '/collection' },
-    'search': { label: 'Search', to: '/search' },
+    'collectionEdit': { label: 'Collection Edit', to: '/collection/edit' },
     'seller': { label: 'Seller Listings', to: null },
     'trades': { label: 'Trades', to: '/trades' },
     'books': { label: 'Books', to: null },
     'games': { label: 'Games', to: null },
+    MOVIE: { label: 'Movies', to: '/search?category=MOVIE'},
+    TV_SHOW: { label: 'TV Shows', to: '/search?category=TV_SHOW' },
+    BOOK: { label: 'Books', to: '/search?category=BOOK' },
+    COMIC: { label: 'Comics', to: '/search?category=COMIC'},
 };
 
 const items = computed(() => {

@@ -24,3 +24,19 @@ export function createMedia(media) {
         body: JSON.stringify(media),
     });
 }
+
+export function updateMedia(id, dto) {
+    return apiFetch(`/media/${id}`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(dto),
+    });
+}
+
+export function deleteMediaById(id) {
+    return apiFetch(`/media/${id}`, {
+        method: "DELETE",
+    });
+}

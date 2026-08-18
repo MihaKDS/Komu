@@ -18,6 +18,10 @@ export function getMyCopies() {
     return apiFetch("/copies/my");
 }
 
+export function getCopyById(id) {
+    return apiFetch(`/copies/${id}`);
+}
+
 export function updateCopy(id, dto) {
     return apiFetch(`/copies/${id}`, {
         method: "PATCH",
@@ -37,5 +41,19 @@ export function deleteCopyById(id) {
 export function splitCopyById(id) {
     return apiFetch(`/copies/${id}/split`, {
         method: "POST",
+    });
+}
+
+export function bulkUpdateCopies(copyIds, action, data = {}) {
+    return apiFetch("/copies/bulk", {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            copyIds,
+            action,
+            ...data,
+        }),
     });
 }

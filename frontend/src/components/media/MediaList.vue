@@ -10,7 +10,13 @@
       <img 
         v-if="media.poster"
         class="poster"
-        :src="posterSource(media.poster)"
+        :src="posterSource(media.poster, props.category)"
+        :alt="media.title"
+      />
+      <img 
+        v-else
+        class="poster"
+        :src="posterSource(media.poster, props.category)"
         :alt="media.title"
       />
 
@@ -170,20 +176,40 @@ const props = defineProps({
     type: String,
     default: 'search',
   },
+  category: {
+    type: String,
+    default: null,
+  },
 });
 
-function posterSource(poster) {
-  return poster?.startsWith('http') ? poster : `/posters/${poster}`;
+function posterSource(poster, category) {
+    if (poster) {
+        return poster.startsWith("http")
+            ? poster
+            : `/posters/${poster}`;
+    }
+
+    if (category === "BOOK" || category === "COMIC") {
+        return "/posters/book-placeholder.png";
+    }
+
+    return "/posters/movie-placeholder.png";
 }
 
 function mediaLink(media) {
+  let tempFrom = props.fromContext;
+
+  if(props.fromContext === 'search'){
+    tempFrom =  props.category;
+    console.log(props.category);
+  }
   return {
     name: 'media',
     params: {
       id: media.id,
     },
     query: {
-      from: props.fromContext || 'search',
+      from: tempFrom || 'search',
     },
   };
 }

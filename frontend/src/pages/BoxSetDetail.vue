@@ -167,8 +167,6 @@ const boxSetForm = reactive({
   canSell: false,
   sellPrice: null,
   canRent: false,
-  rentPrice: null,
-  deposit: null,
 });
 
 const addForm = reactive({
@@ -267,8 +265,6 @@ function syncBoxSetForm() {
   boxSetForm.canSell = Boolean(boxSet.value.canSell);
   boxSetForm.sellPrice = boxSet.value.sellPrice;
   boxSetForm.canRent = Boolean(boxSet.value.canRent);
-  boxSetForm.rentPrice = boxSet.value.rentPrice;
-  boxSetForm.deposit = boxSet.value.deposit;
 }
 
 function toggleEditing() {
@@ -289,16 +285,6 @@ async function saveBoxSet() {
     return;
   }
 
-  if (boxSetForm.canRent && (!boxSetForm.rentPrice || boxSetForm.rentPrice <= 0)) {
-    errorMessage.value = 'Rent price must be greater than 0.';
-    return;
-  }
-
-  if (boxSetForm.canRent && (!boxSetForm.deposit || boxSetForm.deposit <= 0)) {
-    errorMessage.value = 'Deposit must be greater than 0.';
-    return;
-  }
-
   savingBoxSet.value = true;
   errorMessage.value = '';
 
@@ -309,8 +295,6 @@ async function saveBoxSet() {
       canSell: boxSetForm.canSell,
       sellPrice: boxSetForm.canSell ? boxSetForm.sellPrice : null,
       canRent: boxSetForm.canRent,
-      rentPrice: boxSetForm.canRent ? boxSetForm.rentPrice : null,
-      deposit: boxSetForm.canRent ? boxSetForm.deposit : null,
     });
 
     syncBoxSetForm();

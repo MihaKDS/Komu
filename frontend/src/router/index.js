@@ -16,6 +16,9 @@ import TradeDetail from "../pages/TradeDetail.vue";
 import Login from '../pages/Login.vue'
 import Register from "../pages/Register.vue";
 import AddMedia from "../components/ui/AddMedia.vue";
+import CollectionEdit from "../pages/CollectionEdit.vue";
+import EditCopy from "../components/ui/EditCopy.vue";
+import EditMedia from "../components/ui/EditMedia.vue";
 
 const routes = [
 
@@ -50,6 +53,38 @@ const routes = [
         meta: {
             title: "Collection",
             breadcrumb: "My Collection",
+            requiresAuth: true
+        }
+    },
+    //collection edit route
+    {
+        path: "/collection/edit",
+        name: "CollectionEdit",
+        component: CollectionEdit,
+        meta: {
+            title: "Collection Edit",
+            breadcrumb: "Edit My Collection",
+            requiresAuth: true
+        }
+    },
+        // Box Set Detail
+    {
+        path: '/collection/edit/boxset/:id',
+        name: 'boxset',
+        component: BoxSetDetail,
+        meta: {
+            title: 'Box Set',
+            breadcrumb: 'Box Set',
+        }
+    },
+    //copy edit route
+    {
+        path: "/collection/edit/copy/:id",
+        name: "EditCopy",
+        component: EditCopy,
+        meta: {
+            title: "Edit Copy",
+            breadcrumb: "Edit Item",
             requiresAuth: true
         }
     },
@@ -113,6 +148,16 @@ const routes = [
             requiresAuth: true
         }
     },
+{
+    path: "/edit-media/",
+    name: "EditMedia",
+    component: EditMedia,
+    meta: {
+        title: "Edit Media",
+        breadcrumb: "Edit Media",
+        requiresAuth: true
+    }
+},
 
     // Media Detail
     {
@@ -127,18 +172,6 @@ const routes = [
         }
     },
 
-    // Box Set Detail
-    {
-        path: '/boxsets/:id',
-        name: 'boxset',
-        component: BoxSetDetail,
-        meta: {
-            title: 'Box Set',
-            breadcrumb: 'Box Set',
-            parentBreadcrumb: "Search",
-            parentRoute: "/search"
-        }
-    },
 
     // Seller Listings
     {

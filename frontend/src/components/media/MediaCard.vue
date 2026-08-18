@@ -1,13 +1,13 @@
 <template>
 <RouterLink
-    :to="to"
+    :to="mediaLink"
     class="media-card-link"
 >
     <article class="media-card">
 
         <img
-            :src="posterSource(media.poster)"
-            :alt="media.title"
+            :src="posterSource(props.media.poster, props.category)"
+            :alt="props.media.title"
             class="media-poster"
         >
 
@@ -119,29 +119,64 @@
 
 <script setup>
 import { useRouter } from "vue-router";
+import { computed } from "vue";
 
 const router = useRouter();
 
-defineProps({
-
+const props = defineProps({
     media: {
         type: Object,
-        required: true
-    },
-    showOwnership: {
-        type: Boolean,
-        default: false,
-    },
-    mode: String,
-    to: { 
-        type:[String, Object],
         required: true,
-    }
+    },
+
+    mode: {
+        type: String,
+        default: null,
+    },
+
+    category: {
+        type: String,
+        default: null,
+    },
+
+    fromContext: {
+        type: String,
+        default: null,
+    },
+
 });
 
-function posterSource(poster) {
-    return poster?.startsWith("http") ? poster : `/posters/${poster}`;
+function posterSource(poster, category) {
+    if (poster) {
+        return poster.startsWith("http")
+            ? poster
+            : `/posters/${poster}`;
+    }
+
+    if (category === "BOOK" || category === "COMIC") {
+        return "/posters/book-placeholder.png";
+    }
+
+    return "/posters/movie-placeholder.png";
 }
+const mediaLink = computed(() => {
+    let breadcrumbContext = props.fromContext;
+
+    // Search uses category as breadcrumb context
+    if (props.mode === 'search') {
+        breadcrumbContext = props.category;
+    }
+
+    return {
+        name: 'media',
+        params: {
+            id: props.media.id,
+        },
+        query: {
+            from: breadcrumbContext || 'search',
+        },
+    };
+});
 
 function openTrade(tradeId) {
     router.push({
