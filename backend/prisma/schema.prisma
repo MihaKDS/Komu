@@ -66,7 +66,7 @@ model BoxSet {
 
   canSell     Boolean  @default(false)
   sellPrice   Float?
-  buyBack     Boolean   @default(false)
+  canRent     Boolean   @default(false)
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -88,7 +88,7 @@ model Copy {
 
   canSell        Boolean   @default(false)
   sellPrice      Float?
-  buyBack        Boolean   @default(false)
+  canRent        Boolean   @default(false)
 
   isArchived     Boolean   @default(false)
   archivedAt     DateTime?
