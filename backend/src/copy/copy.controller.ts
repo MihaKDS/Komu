@@ -15,6 +15,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth/jwt-auth.guard';
 import { CopyService } from './copy.service';
 import { CreateCopyDto } from './dto/create-copy.dto';
 import { UpdateCopyDto } from './dto/update-copy.dto';
+import { BulkCopyDto } from './dto/bulk-copy.dto';
 
 @Controller('copies')
 export class CopyController {
@@ -35,6 +36,16 @@ export class CopyController {
     return this.copyService.findByUser(req.user.id);
   }
 
+  // Logged-in user's copy
+  @UseGuards(JwtAuthGuard)
+  @Get(':id')
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req,
+  ) {
+    return this.copyService.findOne(id, req.user.id);
+  }
+
   // Add copy
   @UseGuards(JwtAuthGuard)
   @Post()
@@ -43,6 +54,19 @@ export class CopyController {
     @Request() req,
   ) {
     return this.copyService.create(dto, req.user.id);
+  }
+
+    // Bulk collection actions
+  @UseGuards(JwtAuthGuard)
+  @Patch('bulk')
+  bulkUpdate(
+    @Body() dto: BulkCopyDto,
+    @Request() req,
+  ) {
+    return this.copyService.bulkUpdate(
+      dto,
+      req.user.id,
+    );
   }
 
   // Update copy
@@ -75,4 +99,5 @@ export class CopyController {
   ) {
     return this.copyService.split(id, req.user.id);
   }
+  
 }

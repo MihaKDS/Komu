@@ -12,14 +12,16 @@ export class CreateMediaDto {
   @MaxLength(200)
   author?: string;
 
+  @IsOptional()
   @IsString()
   description: string;
 
-  @Type(() => Number)
-  @IsInt()
-  @Min(1888)
-  @Max(new Date().getFullYear() + 5)
-  releaseYear: number;
+@IsOptional()
+@Type(() => Number)
+@IsInt()
+@Min(1)
+@Max(9999)
+releaseYear?: number | null;
 
   @IsOptional()
   @IsUrl()
@@ -45,7 +47,7 @@ export class CreateMediaDto {
 
   // Optional collection info when creating from TMDb
   @IsOptional()
-  movieCollection?: {
+  MediaCollection?: {
     tmdbId?: number;
     title?: string;
     poster?: string | null;

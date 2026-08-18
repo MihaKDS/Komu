@@ -23,14 +23,6 @@ export class UpdateCopyDto {
   canRent: boolean;
 
   @IsOptional()
-  @IsNumber()
-  rentPrice?: number;
-
-  @IsOptional()
-  @IsNumber()
-  deposit?: number;
-
-  @IsOptional()
   @IsString()
   @MaxLength(100)
   boxSetName?: string;
@@ -51,12 +43,4 @@ export class UpdateCopyDto {
   @IsOptional()
   @IsBoolean()
   boxSetCanRent?: boolean;
-
-  @IsOptional()
-  @IsNumber()
-  boxSetRentPrice?: number;
-
-  @IsOptional()
-  @IsNumber()
-  boxSetDeposit?: number;
 }

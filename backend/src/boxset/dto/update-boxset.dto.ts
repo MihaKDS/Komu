@@ -23,11 +23,4 @@ export class UpdateBoxSetDto {
   @IsBoolean()
   canRent?: boolean;
 
-  @IsOptional()
-  @IsNumber()
-  rentPrice?: number | null;
-
-  @IsOptional()
-  @IsNumber()
-  deposit?: number | null;
 }

@@ -18,7 +18,7 @@ export class BoxSetService {
           include: {
             media: {
               include: {
-                movieCollection: {
+                mediaCollection: {
                   select: {
                     id: true,
                     title: true,
@@ -52,9 +52,9 @@ export class BoxSetService {
     const medias = [...mediasById.values()];
     medias.sort((a, b) => {
       if (
-        a.movieCollectionId &&
-        b.movieCollectionId &&
-        a.movieCollectionId === b.movieCollectionId
+        a.mediaCollectionId &&
+        b.mediaCollectionId &&
+        a.mediaCollectionId === b.mediaCollectionId
       ) {
         return (a.collectionPosition ?? 0) - (b.collectionPosition ?? 0);
       }
@@ -70,8 +70,6 @@ export class BoxSetService {
       canSell: boxSet.canSell,
       sellPrice: boxSet.sellPrice,
       canRent: boxSet.canRent,
-      rentPrice: boxSet.rentPrice,
-      deposit: boxSet.deposit,
       medias,
       copies: boxSet.copies.map((copy) => ({
         id: copy.id,
@@ -82,15 +80,13 @@ export class BoxSetService {
         canSell: copy.canSell,
         sellPrice: copy.sellPrice,
         canRent: copy.canRent,
-        rentPrice: copy.rentPrice,
-        deposit: copy.deposit,
         media: {
           id: copy.media.id,
           title: copy.media.title,
           poster: copy.media.poster,
           releaseYear: copy.media.releaseYear,
           collectionPosition: copy.media.collectionPosition,
-          movieCollection: copy.media.movieCollection,
+          mediaCollection: copy.media.mediaCollection,
         },
         owner: {
           id: copy.user.id,
@@ -306,8 +302,6 @@ export class BoxSetService {
         canSell: dto.canSell ?? false,
         sellPrice: dto.canSell ? dto.sellPrice ?? null : null,
         canRent: dto.canRent ?? false,
-        rentPrice: dto.canRent ? dto.rentPrice ?? null : null,
-        deposit: dto.canRent ? dto.deposit ?? null : null,
       },
     });
 

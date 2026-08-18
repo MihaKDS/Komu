@@ -9,7 +9,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateCopyDto } from './dto/create-copy.dto';
 import { UpdateCopyDto } from './dto/update-copy.dto';
 import { PublicCopyDto } from './dto/public-copy.dto';
-
+import {
+  BulkCopyDto,
+  BulkCopyAction,
+} from './dto/bulk-copy.dto';
+  
 const RESERVED_TRADE_STATUSES = [TradeStatus.ACCEPTED, TradeStatus.RENTING];
 
 @Injectable()
@@ -46,8 +50,6 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
       sellPrice: true,
 
       canRent: true,
-      rentPrice: true,
-      deposit: true,
 
       boxSet: {
         select: {
@@ -58,8 +60,6 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
           canSell: true,
           sellPrice: true,
           canRent: true,
-          rentPrice: true,
-          deposit: true,
         },
       },
 
@@ -85,8 +85,6 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
     sellPrice: copy.sellPrice,
 
     canRent: copy.canRent,
-    rentPrice: copy.rentPrice,
-    deposit: copy.deposit,
 
     owner: {
       username: copy.user.username,
@@ -99,11 +97,12 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
     const copies = await this.prisma.copy.findMany({
       where: {
         userId,
+        isArchived: false,
       },
       include: {
         media: {
           include: {
-            movieCollection: true,
+            mediaCollection: true,
           },
         },
         boxSet: true,
@@ -192,6 +191,32 @@ private async createMultipleCopies(
       },
     });
   }
+  
+  async findOne(id: number, userId: number) {
+  const copy = await this.prisma.copy.findFirst({
+    where: {
+      id,
+      userId,
+    },
+    include: {
+      media: true,
+      boxSet: true,
+      user: {
+        select: {
+          id: true,
+          username: true,
+          city: true,
+        },
+      },
+    },
+  });
+
+  if (!copy) {
+    throw new NotFoundException('Copy not found');
+  }
+
+  return copy;
+}
 
   private async createBoxSet(
     dto: CreateCopyDto,
@@ -207,8 +232,6 @@ private async createMultipleCopies(
           canSell: dto.boxSetCanSell ?? false,
           sellPrice: dto.boxSetCanSell ? dto.boxSetSellPrice : null,
           canRent: dto.boxSetCanRent ?? false,
-          rentPrice: dto.boxSetCanRent ? dto.boxSetRentPrice : null,
-          deposit: dto.boxSetCanRent ? dto.boxSetDeposit : null,
         },
       });
 
@@ -313,8 +336,6 @@ private async createMultipleCopies(
       sellPrice: dto.canSell ? dto.sellPrice : null,
 
       canRent: dto.canRent,
-      rentPrice: dto.canRent ? dto.rentPrice : null,
-      deposit: dto.canRent ? dto.deposit : null,
     };
 
     const boxSetData: any = {};
@@ -332,8 +353,6 @@ private async createMultipleCopies(
       }
       if (dto.boxSetCanRent !== undefined) {
         boxSetData.canRent = dto.boxSetCanRent;
-        boxSetData.rentPrice = dto.boxSetCanRent ? dto.boxSetRentPrice : null;
-        boxSetData.deposit = dto.boxSetCanRent ? dto.boxSetDeposit : null;
       }
     }
 
@@ -366,33 +385,57 @@ private async createMultipleCopies(
     });
   }
 
-  async remove(
-    id: number,
-    userId: number,
-  ) {
+async remove(
+  id: number,
+  userId: number,
+) {
+  const copy = await this.prisma.copy.findUnique({
+    where: { id },
+    include: {
+      tradeItems: {
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
 
-    const copy = await this.prisma.copy.findUnique({
-      where: { id },
-    });
+  if (!copy) {
+    throw new NotFoundException('Copy not found');
+  }
 
-    if (!copy) {
-      throw new NotFoundException('Copy not found');
-    }
+  if (copy.userId !== userId) {
+    throw new ForbiddenException(
+      'You do not own this copy',
+    );
+  }
 
-    if (copy.userId !== userId) {
-      throw new ForbiddenException(
-        'You do not own this copy',
-      );
-    }
+  await this.assertCopyNotInActiveTrade(id);
 
-    await this.assertCopyNotInActiveTrade(id);
-
-    return this.prisma.copy.delete({
+  // If the copy has historical trade records,
+  // archive it instead of physically deleting it.
+  if (copy.tradeItems.length > 0) {
+    return this.prisma.copy.update({
       where: {
         id,
       },
+      data: {
+        isArchived: true,
+        archivedAt: new Date(),
+        canSell: false,
+        canRent: false,
+        sellPrice: null,
+      },
     });
   }
+
+  // No trade history -> safe to physically delete.
+  return this.prisma.copy.delete({
+    where: {
+      id,
+    },
+  });
+}
 
   async split(
     id: number,
@@ -457,8 +500,6 @@ private async createMultipleCopies(
           sellPrice: original.sellPrice,
 
           canRent: original.canRent,
-          rentPrice: original.rentPrice,
-          deposit: original.deposit,
         },
       });
 
@@ -488,4 +529,205 @@ private async createMultipleCopies(
       throw new ForbiddenException('This copy is currently part of an active trade');
     }
   }
+
+  
+
+async bulkUpdate(
+  dto: BulkCopyDto,
+  userId: number,
+) {
+  const copyIds = [...new Set(dto.copyIds)];
+
+  if (copyIds.length === 0) {
+    throw new ForbiddenException('No copies selected');
+  }
+
+  return this.prisma.$transaction(async (tx) => {
+
+    // Get all selected copies
+    const copies = await tx.copy.findMany({
+      where: {
+        id: {
+          in: copyIds,
+        },
+      },
+      select: {
+        id: true,
+        userId: true,
+        boxSetId: true,
+      },
+    });
+
+    // Make sure every requested copy exists
+    if (copies.length !== copyIds.length) {
+      throw new NotFoundException(
+        'One or more copies were not found',
+      );
+    }
+
+    // Make sure the user owns every selected copy
+    if (copies.some(copy => copy.userId !== userId)) {
+      throw new ForbiddenException(
+        'You do not own one or more selected copies',
+      );
+    }
+
+    // Copies inside a box set cannot be deleted here.
+    // They must be managed through Box Set Edit.
+    if (
+      dto.action === BulkCopyAction.DELETE &&
+      copies.some(copy => copy.boxSetId !== null)
+    ) {
+      throw new ForbiddenException(
+        'Copies that belong to a box set must be deleted from the Box Set page',
+      );
+    }
+
+    // No selected copy can currently be involved
+    // in an active trade.
+    const activeTradeItem =
+      await tx.tradeItem.findFirst({
+        where: {
+          copyId: {
+            in: copyIds,
+          },
+          trade: {
+            status: {
+              in: RESERVED_TRADE_STATUSES,
+            },
+          },
+        },
+        select: {
+          copyId: true,
+        },
+      });
+
+    if (activeTradeItem) {
+      throw new ForbiddenException(
+        'One or more selected copies are currently part of an active trade',
+      );
+    }
+
+    /*
+     * Find historical trade records.
+     *
+     * Copies with historical trades cannot be physically
+     * deleted because TradeItem still references them.
+     * They will instead be archived.
+     */
+    const tradeItems = await tx.tradeItem.findMany({
+      where: {
+        copyId: {
+          in: copyIds,
+        },
+      },
+      select: {
+        copyId: true,
+      },
+    });
+
+    const copiesWithTradeHistory = new Set(
+      tradeItems.map(item => item.copyId),
+    );
+
+    const copiesToArchive = copyIds.filter(
+      id => copiesWithTradeHistory.has(id),
+    );
+
+    const copiesToDelete = copyIds.filter(
+      id => !copiesWithTradeHistory.has(id),
+    );
+
+    switch (dto.action) {
+
+      case BulkCopyAction.SET_PRICE:
+
+        if (dto.sellPrice == null) {
+          throw new ForbiddenException(
+            'Sell price is required',
+          );
+        }
+
+        return tx.copy.updateMany({
+          where: {
+            id: {
+              in: copyIds,
+            },
+            userId,
+          },
+          data: {
+            canSell: true,
+            sellPrice: dto.sellPrice,
+          },
+        });
+
+
+      case BulkCopyAction.REMOVE_FROM_SALE:
+
+        return tx.copy.updateMany({
+          where: {
+            id: {
+              in: copyIds,
+            },
+            userId,
+          },
+          data: {
+            canSell: false,
+            sellPrice: null,
+          },
+        });
+
+
+      case BulkCopyAction.DELETE: {
+
+        // Copies with historical trades are archived
+        // instead of physically deleted.
+        if (copiesToArchive.length > 0) {
+          await tx.copy.updateMany({
+            where: {
+              id: {
+                in: copiesToArchive,
+              },
+              userId,
+            },
+            data: {
+              isArchived: true,
+              archivedAt: new Date(),
+
+              canSell: false,
+              canRent: false,
+
+              sellPrice: null,
+            },
+          });
+        }
+
+        // Copies with no trade history can be
+        // physically deleted.
+        if (copiesToDelete.length > 0) {
+          await tx.copy.deleteMany({
+            where: {
+              id: {
+                in: copiesToDelete,
+              },
+              userId,
+            },
+          });
+        }
+
+        return {
+          archived: copiesToArchive.length,
+          deleted: copiesToDelete.length,
+        };
+      }
+
+
+      default:
+        throw new ForbiddenException(
+          'Unsupported bulk action',
+        );
+    }
+  });
+}
+
 }

@@ -11,8 +11,6 @@ export class PublicCopyDto {
   sellPrice: number | null;
 
   canRent: boolean;
-  rentPrice: number | null;
-  deposit: number | null;
 
   boxSet?: {
     id: number;
@@ -22,8 +20,6 @@ export class PublicCopyDto {
     canSell: boolean;
     sellPrice: number | null;
     canRent: boolean;
-    rentPrice: number | null;
-    deposit: number | null;
     _count?: {
       copies: number;
     };

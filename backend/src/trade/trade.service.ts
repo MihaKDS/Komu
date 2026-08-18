@@ -39,8 +39,7 @@ export class TradeService {
             canSell: true,
             sellPrice: true,
             canRent: true,
-            rentPrice: true,
-            deposit: true,
+
             _count: {
               select: {
                 copies: true,
@@ -217,7 +216,7 @@ export class TradeService {
               include: {
                 media: {
                   include: {
-                    movieCollection: {
+                    mediaCollection: {
                       select: {
                         id: true,
                         title: true,
@@ -282,7 +281,7 @@ export class TradeService {
           releaseYear: item.copy.media.releaseYear,
           poster: item.copy.media.poster,
           category: item.copy.media.category,
-          movieCollection: item.copy.media.movieCollection,
+          mediaCollection: item.copy.media.mediaCollection,
         },
         boxSet: item.copy.boxSet,
       })),
@@ -554,8 +553,6 @@ export class TradeService {
             canSell: false,
             sellPrice: null,
             canRent: false,
-            rentPrice: null,
-            deposit: null,
           },
         });
       }
@@ -640,8 +637,6 @@ export class TradeService {
           canSell: false,
           sellPrice: null,
           canRent: false,
-          rentPrice: null,
-          deposit: null,
         },
       });
 
@@ -656,8 +651,6 @@ export class TradeService {
             canSell: false,
             sellPrice: null,
             canRent: false,
-            rentPrice: null,
-            deposit: null,
           },
         });
       }
@@ -678,14 +671,12 @@ export class TradeService {
       canSell: boolean;
       sellPrice: number | null;
       canRent: boolean;
-      deposit: number | null;
       media: { title: string };
       boxSet: {
         id: number;
         canSell: boolean;
         sellPrice: number | null;
         canRent: boolean;
-        deposit: number | null;
         _count: { copies: number };
       } | null;
     }>,
@@ -724,20 +715,9 @@ export class TradeService {
         };
       }
 
-      if (fullBoxSetSelected && copy.boxSet?.canRent && copy.boxSet.deposit != null) {
-        return {
-          copyId: copy.id,
-          agreedPrice: index === copies.findIndex((item) => item.boxSet?.id === copy.boxSet?.id) ? copy.boxSet.deposit : 0,
-        };
-      }
-
-      if (!copy.canRent || copy.deposit == null) {
-        throw new BadRequestException(`"${copy.media.title}" is not available for rent`);
-      }
-
       return {
         copyId: copy.id,
-        agreedPrice: copy.deposit,
+        agreedPrice: copy.sellPrice ?? 0,
       };
     });
   }

@@ -56,14 +56,6 @@ export class CreateCopyDto {
   boxSetCanRent?: boolean;
 
   @IsOptional()
-  @IsNumber()
-  boxSetRentPrice?: number;
-
-  @IsOptional()
-  @IsNumber()
-  boxSetDeposit?: number;
-
-  @IsOptional()
   @Type(() => Number)
   @IsInt()
   existingBoxSetId?: number;

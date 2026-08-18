@@ -1,9 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {   BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { TradeStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PublicCopyDto } from '../copy/dto/public-copy.dto';
 import { CreateMediaDto } from './dto/create-media.dto';
 import { TmdbService } from '../tmdb/tmdb.service';
+import { UpdateMediaDto } from './dto/update-media.dto';
 
 const RESERVED_TRADE_STATUSES = [TradeStatus.ACCEPTED, TradeStatus.RENTING];
 
@@ -14,7 +18,7 @@ export class MediaService {
   async findAll() {
     const media = await this.prisma.media.findMany({
       include: {
-        movieCollection: {
+        mediaCollection: {
           select: {
             id: true,
             title: true,
@@ -29,13 +33,13 @@ export class MediaService {
   }
 
   async create(dto: CreateMediaDto) {
-    // If the DTO carries TMDb collection info, upsert the MovieCollection and link it
-    let movieCollectionId: number | undefined = dto.collectionId ?? undefined;
+    // If the DTO carries TMDb collection info, upsert the MediaCollection and link it
+    let mediaCollectionId: number | undefined = dto.collectionId ?? undefined;
     let upsertedCollection: any = null;
-    if (!movieCollectionId && (dto as any).movieCollection) {
-      const mc = (dto as any).movieCollection;
+    if (!mediaCollectionId && (dto as any).mediaCollection) {
+      const mc = (dto as any).mediaCollection;
       if (mc.tmdbId) {
-        upsertedCollection = await this.prisma.movieCollection.upsert({
+        upsertedCollection = await this.prisma.mediaCollection.upsert({
           where: { tmdbId: mc.tmdbId },
           update: {
             title: mc.title ?? undefined,
@@ -45,17 +49,18 @@ export class MediaService {
             tmdbId: mc.tmdbId,
             title: mc.title ?? 'Collection',
             poster: mc.poster ?? null,
+            category: 'MOVIE', // Default category, can be changed later
           },
         });
-        movieCollectionId = upsertedCollection.id;
+        mediaCollectionId = upsertedCollection.id;
       } else if (mc.title) {
-        const existing = await this.prisma.movieCollection.findFirst({ where: { title: mc.title } });
+        const existing = await this.prisma.mediaCollection.findFirst({ where: { title: mc.title } });
         if (existing) {
-          movieCollectionId = existing.id;
+          mediaCollectionId = existing.id;
           upsertedCollection = existing;
         } else {
-          const created = await this.prisma.movieCollection.create({ data: { title: mc.title, poster: mc.poster ?? null } });
-          movieCollectionId = created.id;
+          const created = await this.prisma.mediaCollection.create({ data: { title: mc.title, poster: mc.poster ?? null, category: 'MOVIE' } });
+          mediaCollectionId = created.id;
           upsertedCollection = created;
         }
       }
@@ -71,7 +76,7 @@ export class MediaService {
       collectionPosition:
         dto.collectionPosition ?? null,
     };
-    if (movieCollectionId) createData.movieCollectionId = movieCollectionId;
+    if (mediaCollectionId) createData.mediaCollectionId = mediaCollectionId;
 
     const createdMedia = await this.prisma.media.create({ data: createData });
 
@@ -103,7 +108,7 @@ export class MediaService {
 
             if (existing) {
               const updateData: any = {
-                movieCollectionId,
+                mediaCollectionId,
                 collectionPosition: i + 1,
               };
               if (!existing.tmdbId && part.id) {
@@ -120,7 +125,7 @@ export class MediaService {
                     poster: part.poster_path ? `https://image.tmdb.org/t/p/w342${part.poster_path}` : null,
                     category: 'MOVIE',
                     tmdbId: part.id,
-                    movieCollectionId,
+                    mediaCollectionId,
                     collectionPosition: i + 1,
                   },
                 }),
@@ -137,12 +142,109 @@ export class MediaService {
 
     return createdMedia;
   }
+  async update(
+    id: number,
+    dto: UpdateMediaDto,
+  ) {
+    const media =
+      await this.prisma.media.findUnique({
+        where: {
+          id,
+        },
+      });
 
+    if (!media) {
+      throw new NotFoundException(
+        'Media not found',
+      );
+    }
+
+
+    /*
+    * Prevent duplicate TMDB IDs.
+    */
+    if (
+      dto.tmdbId !== undefined &&
+      dto.tmdbId !== null
+    ) {
+      const existing =
+        await this.prisma.media.findFirst({
+          where: {
+            tmdbId: dto.tmdbId,
+
+            NOT: {
+              id,
+            },
+          },
+        });
+
+      if (existing) {
+        throw new BadRequestException(
+          'Another media item already uses this TMDB ID.',
+        );
+      }
+    }
+
+
+    return this.prisma.media.update({
+      where: {
+        id,
+      },
+
+      data: {
+        title:
+          dto.title !== undefined
+            ? dto.title.trim()
+            : undefined,
+
+        author:
+          dto.author !== undefined
+            ? dto.author?.trim() || null
+            : undefined,
+
+        description:
+          dto.description !== undefined
+            ? dto.description?.trim() || null
+            : undefined,
+
+        releaseYear:
+          dto.releaseYear !== undefined
+            ? dto.releaseYear
+            : undefined,
+
+        poster:
+          dto.poster !== undefined
+            ? dto.poster?.trim() || null
+            : undefined,
+
+        category:
+          dto.category !== undefined
+            ? dto.category
+            : undefined,
+
+        tmdbId:
+          dto.tmdbId !== undefined
+            ? dto.tmdbId
+            : undefined,
+      },
+
+      include: {
+        mediaCollection: {
+          select: {
+            id: true,
+            title: true,
+            tmdbId: true,
+            poster: true,
+          },
+        },
+      },
+    });
+  }
   async findOne(id: number, userId?: number) {
     const media = await this.prisma.media.findUnique({
       where: { id },
       include: {
-        movieCollection: {
+        mediaCollection: {
           select: {
             id: true,
             title: true,
@@ -178,8 +280,6 @@ export class MediaService {
             canSell: true,
             sellPrice: true,
             canRent: true,
-            rentPrice: true,
-            deposit: true,
             _count: {
               select: {
                 copies: true,
@@ -216,9 +316,9 @@ export class MediaService {
 
     // If this media belongs to a collection, load the other medias in that collection
     let collectionMedias: Array<{ id: number; title: string; poster: string | null; collectionPosition: number | null; releaseYear: number | null }> = [];
-    if (media.movieCollectionId) {
+    if (media.mediaCollectionId) {
       collectionMedias = await this.prisma.media.findMany({
-        where: { movieCollectionId: media.movieCollectionId },
+        where: { mediaCollectionId: media.mediaCollectionId },
         orderBy: { releaseYear: 'asc' },
         select: { id: true, title: true, collectionPosition: true, poster: true, releaseYear: true },
       });
@@ -247,13 +347,12 @@ export class MediaService {
         includesBluRay: copy.includesBluRay,
 
         condition: copy.condition,
+        listingNote: copy.listingNote,
 
         canSell: copy.canSell,
         sellPrice: copy.sellPrice,
 
         canRent: copy.canRent,
-        rentPrice: copy.rentPrice,
-        deposit: copy.deposit,
 
         boxSet: copy.boxSet
           ? {
@@ -264,8 +363,6 @@ export class MediaService {
               canSell: copy.boxSet.canSell,
               sellPrice: copy.boxSet.sellPrice,
               canRent: copy.boxSet.canRent,
-              rentPrice: copy.boxSet.rentPrice,
-              deposit: copy.boxSet.deposit,
             }
           : null,
 
@@ -282,10 +379,10 @@ export class MediaService {
       myCopies,
       otherOwnersCount,
       otherCopies,
-      collection: media.movieCollectionId
+      collection: media.mediaCollectionId
         ? {
-            id: media.movieCollectionId,
-            title: media.movieCollection?.title ?? null,
+            id: media.mediaCollectionId,
+            title: media.mediaCollection?.title ?? null,
             medias: collectionMedias,
           }
         : null,
@@ -305,7 +402,7 @@ export class MediaService {
       },
       take: 20,
       include: {
-        movieCollection: {
+        mediaCollection: {
           select: {
             id: true,
             title: true,
@@ -318,7 +415,56 @@ export class MediaService {
 
     return this.addCopyCounts(media);
   }
+async remove(id: number) {
 
+  const media =
+    await this.prisma.media.findUnique({
+      where: {
+        id,
+      },
+
+      include: {
+        copies: {
+          select: {
+            id: true,
+          },
+        },
+
+        mediaCollection: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+    });
+
+
+  if (!media) {
+    throw new NotFoundException(
+      'Media not found',
+    );
+  }
+
+
+  /*
+   * Do not delete media that has copies.
+   *
+   * Copies can be connected to trades.
+   */
+  if (media.copies.length > 0) {
+    throw new BadRequestException(
+      'Cannot delete media that has copies. Remove or archive the copies first.',
+    );
+  }
+
+
+  return this.prisma.media.delete({
+    where: {
+      id,
+    },
+  });
+}
   async findSellerListings(username: string) {
     const seller = await this.prisma.user.findUnique({
       where: { username },
@@ -355,7 +501,7 @@ export class MediaService {
       include: {
         media: {
           include: {
-            movieCollection: {
+            mediaCollection: {
               select: {
                 id: true,
                 title: true,
@@ -374,8 +520,6 @@ export class MediaService {
             canSell: true,
             sellPrice: true,
             canRent: true,
-            rentPrice: true,
-            deposit: true,
             _count: {
               select: {
                 copies: true,
@@ -397,14 +541,14 @@ export class MediaService {
       releaseYear: media.releaseYear,
       poster: media.poster,
       category: media.category,
-      movieCollectionId: media.movieCollectionId,
+      mediaCollectionId: media.mediaCollectionId,
       collectionPosition: media.collectionPosition,
-      movieCollection: media.movieCollection
+      mediaCollection: media.mediaCollection
         ? {
-            id: media.movieCollection.id,
-            title: media.movieCollection.title,
-            tmdbId: media.movieCollection.tmdbId,
-            poster: media.movieCollection.poster,
+            id: media.mediaCollection.id,
+            title: media.mediaCollection.title,
+            tmdbId: media.mediaCollection.tmdbId,
+            poster: media.mediaCollection.poster,
           }
         : null,
     });
@@ -430,8 +574,6 @@ export class MediaService {
             canSell: copy.boxSet.canSell,
             sellPrice: copy.boxSet.sellPrice,
             canRent: copy.boxSet.canRent,
-            rentPrice: copy.boxSet.rentPrice,
-            deposit: copy.boxSet.deposit,
             copyCount: copy.boxSet._count?.copies ?? 0,
           },
           copyIds: [],

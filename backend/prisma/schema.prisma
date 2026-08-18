@@ -17,10 +17,10 @@ model Media {
   category            Category
   tmdbId              Int?     @unique
 
-  // Optional link to a MovieCollection (TMDb collection)
-  movieCollectionId   Int?
+  // Optional link to a mediaCollection
+  mediaCollectionId   Int?
   collectionPosition  Int?
-  movieCollection     MovieCollection? @relation(fields: [movieCollectionId], references: [id])
+  mediaCollection     MediaCollection? @relation(fields: [mediaCollectionId], references: [id])
 
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
@@ -28,12 +28,13 @@ model Media {
   copies              Copy[]
 }
 
-model MovieCollection {
+model MediaCollection {
   id        Int      @id @default(autoincrement())
   tmdbId    Int?     @unique
   title     String
   overview  String?
   poster    String?
+  category  Category
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -65,10 +66,7 @@ model BoxSet {
 
   canSell     Boolean  @default(false)
   sellPrice   Float?
-
-  canRent     Boolean  @default(false)
-  rentPrice   Float?
-  deposit     Float?
+  buyBack     Boolean   @default(false)
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -77,35 +75,28 @@ model BoxSet {
 }
 
 model Copy {
-  id               Int       @id @default(autoincrement())
+  id             Int       @id @default(autoincrement())
+  mediaId        Int
+  userId         Int
 
-  mediaId          Int
-  userId           Int
+  edition        Edition
+  title          String?
+  includesBluRay Boolean   @default(false)
+  listingNote    String?
+  boxSetId       Int?
+  condition      Condition @default(VERY_GOOD)
 
-  edition          Edition
-  title            String?
-  includesBluRay   Boolean   @default(false)
+  canSell        Boolean   @default(false)
+  sellPrice      Float?
+  buyBack        Boolean   @default(false)
 
-  listingNote      String?
+  isArchived     Boolean   @default(false)
+  archivedAt     DateTime?
 
-  boxSetId         Int?
-
-  condition        Condition @default(VERY_GOOD)
-
-  // Selling
-  canSell          Boolean   @default(false)
-  sellPrice        Float?
-
-  // Lending
-  canRent          Boolean   @default(false)
-  rentPrice        Float?
-  deposit          Float?
-
-  media            Media     @relation(fields: [mediaId], references: [id])
-  user             User      @relation(fields: [userId], references: [id])
-
-  boxSet           BoxSet?   @relation(fields: [boxSetId], references: [id])
-  tradeItems       TradeItem[]
+  media          Media     @relation(fields: [mediaId], references: [id])
+  user           User      @relation(fields: [userId], references: [id])
+  boxSet         BoxSet?   @relation(fields: [boxSetId], references: [id])
+  tradeItems     TradeItem[]
 }
 
 model Trade {
