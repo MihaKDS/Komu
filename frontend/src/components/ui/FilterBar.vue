@@ -197,7 +197,7 @@ const emit = defineEmits([
     "update:viewMode",
     "update:displayMode",
 ]);
-const isOpen = ref(false);
+const isOpen = ref(true);
 
 const selectedFormat = ref(props.format);
 const selectedCollection = ref(props.collection);

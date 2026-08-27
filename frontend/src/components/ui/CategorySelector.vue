@@ -81,8 +81,8 @@ function select(category) {
     color: var(--text-secondary);
     background: var(--bg-secondary);
 
-    border: 1px solid var(--border);
-    border-radius: var(--radius-small);
+    border: 1px solid var(--accent-border);
+    border-radius: 10px;
 
     font: inherit;
     font-size: 13px;

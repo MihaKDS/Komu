@@ -1696,7 +1696,7 @@ async function deleteSelected() {
 
     padding: 4px 8px;
 
-    color: var(--text-secondary);
+    color: var(--accent);
     background: var(--bg);
 
     border: 1px solid var(--border);
@@ -1709,7 +1709,7 @@ async function deleteSelected() {
 
 .edit-button:hover {
     color: var(--text-h);
-    background: var(--bg-hover);
+    background: var(--accent-bg);
 }
 
 .mobile-secondary {

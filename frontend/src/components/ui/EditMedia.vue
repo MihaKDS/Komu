@@ -160,7 +160,13 @@
                         {{ filteredMedia.length }}
                     </span>
                 </div>
-
+                <button
+                    type="button"
+                    class="add-media-button"
+                    @click="openMediaAdd"
+                >
+                    + Add media
+                </button>
             </div>
 
 
@@ -973,6 +979,179 @@
 
     </div>
 </div>
+<div
+    v-if="showMediaAdd"
+    class="modal-backdrop"
+    @click.self="closeMediaAdd"
+>
+    <div class="modal media-edit-modal">
+
+        <div class="modal-header">
+
+            <h2>
+                Add Media
+            </h2>
+
+            <button
+                type="button"
+                class="close-button"
+                :disabled="creatingMedia"
+                @click="closeMediaAdd"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div class="media-edit-form">
+
+            <label>
+                <span>Title</span>
+
+                <input
+                    v-model="mediaAddForm.title"
+                    type="text"
+                    placeholder="Title"
+                >
+            </label>
+
+
+            <label>
+                <span>Category</span>
+
+                <select
+                    v-model="mediaAddForm.category"
+                >
+                    <option value="MOVIE">
+                        Movie
+                    </option>
+
+                    <option value="TV_SHOW">
+                        TV Show
+                    </option>
+
+                    <option value="BOOK">
+                        Book
+                    </option>
+                </select>
+            </label>
+
+
+            <label>
+                <span>Author</span>
+
+                <input
+                    v-model="mediaAddForm.author"
+                    type="text"
+                    placeholder="Author"
+                >
+            </label>
+
+
+            <label>
+                <span>Release year</span>
+
+                <input
+                    v-model="mediaAddForm.releaseYear"
+                    type="number"
+                    min="0"
+                    max="9999"
+                    placeholder="Year"
+                >
+            </label>
+
+
+            <label>
+                <span>Description</span>
+
+                <textarea
+                    v-model="mediaAddForm.description"
+                    rows="5"
+                    placeholder="Description"
+                />
+            </label>
+
+
+            <label>
+                <span>Poster URL</span>
+
+                <input
+                    v-model="mediaAddForm.poster"
+                    type="text"
+                    placeholder="https://..."
+                >
+            </label>
+
+
+            <div
+                v-if="mediaAddForm.poster"
+                class="media-edit-poster-preview"
+            >
+                <img
+                    :src="mediaAddForm.poster"
+                    :alt="mediaAddForm.title"
+                >
+            </div>
+
+
+            <label>
+                <span>TMDB ID</span>
+
+                <input
+                    v-model="mediaAddForm.tmdbId"
+                    type="number"
+                    min="1"
+                    placeholder="TMDB ID"
+                >
+            </label>
+
+
+            <p
+                v-if="mediaAddError"
+                class="error"
+            >
+                {{ mediaAddError }}
+            </p>
+
+        </div>
+
+
+        <div class="form-actions">
+
+            <div class="form-actions-right">
+
+                <button
+                    type="button"
+                    class="secondary-button"
+                    :disabled="creatingMedia"
+                    @click="closeMediaAdd"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    type="button"
+                    class="primary-button"
+                    :disabled="
+                        creatingMedia ||
+                        !mediaAddForm.title.trim()
+                    "
+                    @click="saveMediaAdd"
+                >
+                    {{
+                        creatingMedia
+                            ? "Creating..."
+                            : "Create"
+                    }}
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
         <div
     v-if="showTmdbImport"
     class="modal-backdrop"
@@ -1301,6 +1480,20 @@ const collectionMediaSearch = ref("");
 const collectionMediaSearchResults = ref([]);
 const searchingCollectionMedia = ref(false);
 const collectionMediaSearchError = ref("");
+
+const showMediaAdd = ref(false);
+const creatingMedia = ref(false);
+const mediaAddError = ref("");
+
+const mediaAddForm = ref({
+    title: "",
+    category: "MOVIE",
+    author: "",
+    releaseYear: "",
+    description: "",
+    poster: "",
+    tmdbId: "",
+});
 
 const collectionMedia = ref([]);
 
@@ -2040,7 +2233,89 @@ async function createNewCollection() {
             "Failed to create collection.";
     }
 }
+function openMediaAdd() {
+    mediaAddForm.value = {
+        title: "",
+        category: "MOVIE",
+        author: "",
+        releaseYear: "",
+        description: "",
+        poster: "",
+        tmdbId: "",
+    };
 
+    mediaAddError.value = "";
+    showMediaAdd.value = true;
+}
+
+function closeMediaAdd() {
+    if (creatingMedia.value) {
+        return;
+    }
+
+    showMediaAdd.value = false;
+}
+async function saveMediaAdd() {
+    if (!mediaAddForm.value.title.trim()) {
+        return;
+    }
+
+    creatingMedia.value = true;
+    mediaAddError.value = "";
+
+    try {
+        const createdMedia = await createMedia({
+            title: mediaAddForm.value.title.trim(),
+
+            category: mediaAddForm.value.category,
+
+            author:
+                mediaAddForm.value.author?.trim() || null,
+
+            releaseYear:
+                mediaAddForm.value.releaseYear
+                    ? Number(mediaAddForm.value.releaseYear)
+                    : null,
+
+            description:
+                mediaAddForm.value.description?.trim() || null,
+
+            poster:
+                mediaAddForm.value.poster?.trim() || null,
+
+            tmdbId:
+                mediaAddForm.value.tmdbId
+                    ? Number(mediaAddForm.value.tmdbId)
+                    : null,
+        });
+
+        console.log(
+            "Media created:",
+            createdMedia
+        );
+
+        // Refresh media list
+        await loadData();
+
+        // Close modal
+        closeMediaAdd();
+        openMediaEdit(createdMedia);
+    } catch (error) {
+
+        console.error(
+            "Failed to create media:",
+            error
+        );
+
+        mediaAddError.value =
+            error.message ||
+            "Failed to create media.";
+
+    } finally {
+
+        creatingMedia.value = false;
+    }
+}
 /* ============================================================
    TMDB
    ============================================================ */

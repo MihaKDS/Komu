@@ -57,3 +57,29 @@ export function acceptTradeReturn(id) {
     method: "POST",
   });
 }
+
+export function cancelTrade(id) {
+  return apiFetch(`/trades/${id}/cancel`, {
+    method: "POST",
+  });
+}
+
+export function declineTradeTransfer(id) {
+  return apiFetch(`/trades/${id}/decline-transfer`, {
+    method: "POST",
+  });
+}
+
+export function updateTradeItems(id, items) {
+  return apiFetch(`/trades/${id}/items`, {
+    method: "PATCH",
+    body: JSON.stringify({ items }),
+  });
+}
+
+export function completeTrade(id, transferCopies) {
+  return apiFetch(`/trades/${id}/complete`, {
+    method: "POST",
+    body: JSON.stringify({ transferCopies }),
+  });
+}

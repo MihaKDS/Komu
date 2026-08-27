@@ -88,11 +88,21 @@
             <p class="listing-meta">
               {{ listing.type === 'boxSet' ? `${listing.boxSet.copyCount} movies` : `${listing.edition} • ${listing.condition}` }}
             </p>
-
-            <p v-if="listing.type === 'boxSet' && listing.boxSet.listingNote" class="listing-note">
-              {{ listing.boxSet.listingNote }}
+            <p
+              v-if="
+                listing.type === 'boxSet'
+                  ? listing.boxSet?.listingNote
+                  : listing.listingNote
+              "
+              class="listing-note"
+            >
+              {{
+                listing.type === 'boxSet'
+                  ? listing.boxSet?.listingNote
+                  : listing.listingNote
+              }}
             </p>
-
+            
             <p class="listing-price">
               {{ activeMode === 'SELL' ? `${listing.price} €` : `Deposit: ${listing.price} €` }}
             </p>
@@ -190,7 +200,6 @@ function matchesFormat(item) {
 
 const filteredListings = computed(() => {
   const searchValue = search.value.toLowerCase();
-
   return activeListings.value.filter((item) => {
     return (
       item.category === selectedCategory.value &&
@@ -275,8 +284,8 @@ function flattenSelectedCopyIds() {
   return filteredListings.value
     .filter((item) => selectedListingKeys.value.includes(item.key))
     .flatMap((item) => item.copyIds || []);
+    
 }
-
 async function loadSellerListings() {
     loading.value = true;
     selectedListingKeys.value = [];

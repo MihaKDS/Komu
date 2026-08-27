@@ -4,13 +4,6 @@
         :class="{ open: isOpen }"
     >
         <nav class="nav">
-            <RouterLink
-                :to="{ path: '/' }"
-                @click="$emit('close-menu')"
-                class="nav"
-            >
-                Home
-            </RouterLink>  
             <p>Search:</p>
             <RouterLink
                 :to="{ path: '/search', query: { category: 'MOVIE' } }"
@@ -52,14 +45,7 @@
                     class="nav"
                 >
                     📦Collection
-                </RouterLink>             
-                <RouterLink
-                    :to="{ path: '/collection/edit' }"
-                    @click="$emit('close-menu')"
-                    class="nav"
-                >
-                    📦Collection Edit
-                </RouterLink>             
+                </RouterLink>                        
                 <RouterLink
                     :to="{ path: '/trades' }"
                     @click="$emit('close-menu')"
@@ -75,6 +61,7 @@
                     ➕Add Media
                 </RouterLink>
                 <RouterLink
+                    v-if="user && ['admin', 'miha'].includes(user.username)"
                     :to="{ path: '/edit-media' }"
                     @click="$emit('close-menu')"
                     class="nav"

@@ -152,6 +152,14 @@ const routes = [
     path: "/edit-media/",
     name: "EditMedia",
     component: EditMedia,
+    beforeEnter: () => {
+    const { user } = useAuth();
+
+    return user.value &&
+      ["admin", "miha"].includes(user.value.username)
+      ? true
+      : { name: "home" };
+  },
     meta: {
         title: "Edit Media",
         breadcrumb: "Edit Media",

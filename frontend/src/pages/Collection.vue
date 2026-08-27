@@ -2,6 +2,13 @@
     <div class="page">
         <Breadcrumbs />
         <h1>My Collection ({{ totalCopies }})</h1>
+        <RouterLink
+            :to="{ path: '/collection/edit' }"
+            @click="$emit('close-menu')"
+            class="nav"
+        >
+            📦Collection Edit
+        </RouterLink>     
 
         <CategorySelector
             :categories="categories"
@@ -305,7 +312,9 @@ const filteredMedia = computed(() => {
     return result;
 });
 
-const totalCopies = computed(() => copies.value.length);
+const totalCopies = computed(() =>
+  copies.value.filter(copy => copy.isArchived !== true).length
+);
 
 function openMedia(filteredMedia) {
 

@@ -21,7 +21,7 @@ const label = computed(() => {
     case "REQUESTED":
       return "Pending";
     case "ACCEPTED":
-      return "Reserved";
+      return "Sent";
     case "RENTING":
       return "Renting";
     case "COMPLETED":
