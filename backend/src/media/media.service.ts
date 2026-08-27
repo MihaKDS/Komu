@@ -262,6 +262,7 @@ export class MediaService {
     const copies = await this.prisma.copy.findMany({
       where: {
         mediaId: id,
+        archivedAt: null,
       },
       include: {
         user: {
@@ -606,6 +607,7 @@ async remove(id: number) {
         title: copy.media.title,
         poster: copy.media.poster,
         category: copy.media.category,
+        listingNote: copy.listingNote,
         releaseYear: copy.media.releaseYear,
         edition: copy.edition,
         condition: copy.condition,
@@ -693,6 +695,7 @@ async remove(id: number) {
         mediaId: {
           in: mediaIds,
         },
+        archivedAt: null,
         tradeItems: {
           none: {
             trade: {

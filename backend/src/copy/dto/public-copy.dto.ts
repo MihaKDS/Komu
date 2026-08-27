@@ -7,6 +7,8 @@ export class PublicCopyDto {
 
   condition: string;
 
+  listingNote: string | null;
+
   canSell: boolean;
   sellPrice: number | null;
 

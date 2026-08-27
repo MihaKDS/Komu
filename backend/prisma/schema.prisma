@@ -119,13 +119,14 @@ model Trade {
 }
 
 model TradeItem {
-  id         Int    @id @default(autoincrement())
-  tradeId    Int
-  copyId     Int
-  agreedPrice Float
+  id             Int     @id @default(autoincrement())
+  tradeId        Int
+  copyId         Int
+  agreedPrice    Float
+  sellerAccepted Boolean @default(true)
 
-  trade      Trade @relation(fields: [tradeId], references: [id])
-  copy       Copy  @relation(fields: [copyId], references: [id])
+  trade Trade @relation(fields: [tradeId], references: [id])
+  copy  Copy  @relation(fields: [copyId], references: [id])
 
   @@unique([tradeId, copyId])
 }
@@ -172,7 +173,6 @@ enum TradeType {
 enum TradeStatus {
   REQUESTED
   ACCEPTED
-  REJECTED
   CANCELLED
   RENTING
   COMPLETED

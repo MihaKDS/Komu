@@ -25,6 +25,7 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
   const copies = await this.prisma.copy.findMany({
     where: {
       mediaId,
+      archivedAt: null,
       tradeItems: {
         none: {
           trade: {
@@ -44,6 +45,7 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
       includesBluRay: true,
 
       condition: true,
+
       listingNote: true,
 
       canSell: true,
@@ -97,7 +99,7 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
     const copies = await this.prisma.copy.findMany({
       where: {
         userId,
-        isArchived: false,
+        archivedAt: null,
       },
       include: {
         media: {
@@ -197,6 +199,7 @@ private async createMultipleCopies(
     where: {
       id,
       userId,
+      archivedAt: null,
     },
     include: {
       media: true,

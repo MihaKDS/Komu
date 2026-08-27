@@ -3,6 +3,8 @@ import { TradeStatus, TradeType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { CreateTradeMessageDto } from './dto/create-trade-message.dto';
+import { UpdateTradeItemsDto } from './dto/update-trade-items.dto';
+import { CompleteTradeDto } from './dto/complete-trade.dto';
 
 const RESERVED_TRADE_STATUSES = [TradeStatus.ACCEPTED, TradeStatus.RENTING];
 const AUTO_CANCELLED_REASON = 'Cancelled automatically. Item is no longer available.';
@@ -274,6 +276,7 @@ export class TradeService {
         id: item.id,
         copyId: item.copyId,
         agreedPrice: item.agreedPrice,
+        sellerAccepted: item.sellerAccepted,
         edition: item.copy.edition,
         media: {
           id: item.copy.media.id,
@@ -312,7 +315,6 @@ export class TradeService {
     this.ensureParticipant(trade, userId);
 
     if (
-      trade.status === TradeStatus.REJECTED ||
       trade.status === TradeStatus.CANCELLED ||
       trade.status === TradeStatus.COMPLETED
     ) {
@@ -330,30 +332,36 @@ export class TradeService {
     return this.findOne(id, userId);
   }
 
-  async accept(id: number, userId: number) {
-    const trade = await this.prisma.trade.findUnique({
-      where: { id },
-      include: {
-        items: {
-          select: {
-            copyId: true,
-          },
+async accept(id: number, userId: number) {
+  const trade = await this.prisma.trade.findUnique({
+    where: { id },
+    include: {
+      items: {
+        select: {
+          copyId: true,
         },
       },
-    });
+    },
+  });
 
-    if (!trade) {
-      throw new NotFoundException('Trade not found');
-    }
+  if (!trade) {
+    throw new NotFoundException('Trade not found');
+  }
 
-    this.ensureSeller(trade, userId);
+  this.ensureSeller(trade, userId);
 
-    if (trade.status !== TradeStatus.REQUESTED) {
-      throw new BadRequestException('Only requested trades can be accepted');
-    }
+  if (trade.status !== TradeStatus.REQUESTED) {
+    throw new BadRequestException(
+      'Only requested trades can be transferred',
+    );
+  }
 
-    const copyIds = trade.items.map((item) => item.copyId);
-    const reservedByOtherTrade = await this.prisma.tradeItem.findFirst({
+  const copyIds = trade.items.map(
+    (item) => item.copyId,
+  );
+
+  const reservedByOtherTrade =
+    await this.prisma.tradeItem.findFirst({
       where: {
         copyId: {
           in: copyIds,
@@ -372,42 +380,113 @@ export class TradeService {
       },
     });
 
-    if (reservedByOtherTrade) {
-      throw new BadRequestException('One or more items are no longer available');
-    }
+  if (reservedByOtherTrade) {
+    throw new BadRequestException(
+      'One or more items are no longer available',
+    );
+  }
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.trade.update({
-        where: { id },
-        data: {
-          status: TradeStatus.ACCEPTED,
-          cancelledReason: null,
+  await this.prisma.$transaction(async (tx) => {
+
+    /*
+     * Seller has transferred the physical copies.
+     * Ownership now belongs to the buyer.
+     */
+    await tx.copy.updateMany({
+      where: {
+        id: {
+          in: copyIds,
         },
-      });
+      },
+      data: {
+        userId: trade.buyerId,
+        canSell: false,
+        sellPrice: null,
+        canRent: false,
+      },
+    });
 
-      await tx.trade.updateMany({
+    /*
+     * Remove the box set from active listings.
+     */
+    const copies = await tx.copy.findMany({
+      where: {
+        id: {
+          in: copyIds,
+        },
+      },
+      select: {
+        boxSetId: true,
+      },
+    });
+
+    const boxSetIds = [
+      ...new Set(
+        copies
+          .map((copy) => copy.boxSetId)
+          .filter(
+            (boxSetId): boxSetId is number =>
+              boxSetId != null,
+          ),
+      ),
+    ];
+
+    if (boxSetIds.length > 0) {
+      await tx.boxSet.updateMany({
         where: {
           id: {
-            not: id,
+            in: boxSetIds,
           },
-          status: TradeStatus.REQUESTED,
-          items: {
-            some: {
-              copyId: {
-                in: copyIds,
-              },
+        },
+        data: {
+          canSell: false,
+          sellPrice: null,
+          canRent: false,
+        },
+      });
+    }
+
+    /*
+     * Trade is now waiting for buyer confirmation.
+     */
+    await tx.trade.update({
+      where: {
+        id,
+      },
+      data: {
+        status: TradeStatus.ACCEPTED,
+        sellerConfirmedTransfer: true,
+        buyerConfirmedTransfer: false,
+        cancelledReason: null,
+      },
+    });
+
+    /*
+     * Cancel competing requests.
+     */
+    await tx.trade.updateMany({
+      where: {
+        id: {
+          not: id,
+        },
+        status: TradeStatus.REQUESTED,
+        items: {
+          some: {
+            copyId: {
+              in: copyIds,
             },
           },
         },
-        data: {
-          status: TradeStatus.CANCELLED,
-          cancelledReason: AUTO_CANCELLED_REASON,
-        },
-      });
+      },
+      data: {
+        status: TradeStatus.CANCELLED,
+        cancelledReason: AUTO_CANCELLED_REASON,
+      },
     });
+  });
 
-    return this.findOne(id, userId);
-  }
+  return this.findOne(id, userId);
+}
 
   async reject(id: number, userId: number) {
     const trade = await this.getTradeForAction(id);
@@ -420,7 +499,7 @@ export class TradeService {
     await this.prisma.trade.update({
       where: { id },
       data: {
-        status: TradeStatus.REJECTED,
+        status: TradeStatus.CANCELLED,
         cancelledReason: null,
       },
     });
@@ -428,44 +507,125 @@ export class TradeService {
     return this.findOne(id, userId);
   }
 
-  async confirmSellerTransfer(id: number, userId: number) {
-    const trade = await this.getTradeForAction(id);
-    this.ensureSeller(trade, userId);
+async confirmBuyerTransfer(id: number, userId: number) {
+  const trade = await this.getTradeForAction(id);
 
-    if (trade.status !== TradeStatus.ACCEPTED) {
-      throw new BadRequestException('Transfer can only be confirmed on accepted trades');
-    }
+  this.ensureBuyer(trade, userId);
 
-    await this.prisma.trade.update({
-      where: { id },
-      data: {
-        sellerConfirmedTransfer: true,
-      },
-    });
-
-    await this.finalizeTransferIfReady(id);
-    return this.findOne(id, userId);
+  if (trade.status !== TradeStatus.ACCEPTED) {
+    throw new BadRequestException(
+      'There is no pending transfer to accept',
+    );
   }
 
-  async confirmBuyerTransfer(id: number, userId: number) {
-    const trade = await this.getTradeForAction(id);
-    this.ensureBuyer(trade, userId);
-
-    if (trade.status !== TradeStatus.ACCEPTED) {
-      throw new BadRequestException('Transfer can only be confirmed on accepted trades');
-    }
-
-    await this.prisma.trade.update({
-      where: { id },
+  await this.prisma.$transaction(async (tx) => {
+    await tx.trade.update({
+      where: {
+        id,
+      },
       data: {
         buyerConfirmedTransfer: true,
+        status:
+          trade.type === TradeType.RENT
+            ? TradeStatus.RENTING
+            : TradeStatus.COMPLETED,
+      },
+    });
+  });
+
+  return this.findOne(id, userId);
+}
+async declineTransfer(id: number, userId: number) {
+  const trade = await this.getTradeForAction(id);
+
+  this.ensureBuyer(trade, userId);
+
+  if (trade.status !== TradeStatus.ACCEPTED) {
+    throw new BadRequestException(
+      'There is no pending transfer to decline',
+    );
+  }
+
+  const tradeWithCopies =
+    await this.prisma.trade.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        items: {
+          select: {
+            copyId: true,
+          },
+        },
       },
     });
 
-    await this.finalizeTransferIfReady(id);
-    return this.findOne(id, userId);
+  if (!tradeWithCopies) {
+    throw new NotFoundException('Trade not found');
   }
 
+  const copyIds = tradeWithCopies.items.map(
+    (item) => item.copyId,
+  );
+
+  await this.prisma.$transaction(async (tx) => {
+
+    /*
+     * Buyer declines the transferred copies.
+     * They are not returned to the seller.
+     *
+     * They are archived because the physical item
+     * has already left the seller's ownership.
+     */
+    await tx.copy.updateMany({
+      where: {
+        id: {
+          in: copyIds,
+        },
+      },
+      data: {
+        archivedAt: new Date(),
+      },
+    });
+
+    await tx.trade.update({
+      where: {
+        id,
+      },
+      data: {
+        status: TradeStatus.CANCELLED,
+        buyerConfirmedTransfer: false,
+        cancelledReason:
+          'Buyer declined the transferred copy.',
+      },
+    });
+  });
+
+  return this.findOne(id, userId);
+}
+async cancelByBuyer(id: number, userId: number) {
+  const trade = await this.getTradeForAction(id);
+
+  this.ensureBuyer(trade, userId);
+
+  if (trade.status !== TradeStatus.REQUESTED) {
+    throw new BadRequestException(
+      'This trade can no longer be cancelled by the buyer',
+    );
+  }
+
+  await this.prisma.trade.update({
+    where: {
+      id,
+    },
+    data: {
+      status: TradeStatus.CANCELLED,
+      cancelledReason: null,
+    },
+  });
+
+  return this.findOne(id, userId);
+}
   async requestReturn(id: number, userId: number) {
     const trade = await this.getTradeForAction(id);
     this.ensureBuyer(trade, userId);
@@ -759,4 +919,248 @@ export class TradeService {
       throw new ForbiddenException('Only the buyer can perform this action');
     }
   }
+  async updateItems(
+  tradeId: number,
+  dto: UpdateTradeItemsDto,
+  userId: number,
+) {
+  const trade = await this.prisma.trade.findUnique({
+    where: { id: tradeId },
+    include: {
+      items: true,
+    },
+  });
+
+  if (!trade) {
+    throw new NotFoundException('Trade not found');
+  }
+
+  if (trade.sellerId !== userId) {
+    throw new ForbiddenException(
+      'Only the seller can change trade items',
+    );
+  }
+
+  if (trade.status !== TradeStatus.REQUESTED) {
+    throw new BadRequestException(
+      'Trade items can only be changed while the trade is requested',
+    );
+  }
+
+  const tradeItemIds = new Set(
+    trade.items.map((item) => item.id),
+  );
+
+  for (const item of dto.items) {
+    if (!tradeItemIds.has(item.tradeItemId)) {
+      throw new BadRequestException(
+        `Trade item ${item.tradeItemId} does not belong to this trade`,
+      );
+    }
+  }
+
+  await this.prisma.$transaction(
+    dto.items.map((item) =>
+      this.prisma.tradeItem.update({
+        where: {
+          id: item.tradeItemId,
+        },
+        data: {
+          sellerAccepted: item.sellerAccepted,
+        },
+      }),
+    ),
+  );
+
+  return this.findOne(tradeId, userId);
+}
+async complete(
+  id: number,
+  dto: CompleteTradeDto,
+  userId: number,
+) {
+  const trade = await this.prisma.trade.findUnique({
+    where: { id },
+    include: {
+      items: {
+        include: {
+          copy: {
+            select: {
+              id: true,
+              userId: true,
+              archivedAt: true,
+              boxSetId: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!trade) {
+    throw new NotFoundException('Trade not found');
+  }
+
+  this.ensureSeller(trade, userId);
+
+  if (trade.status !== TradeStatus.REQUESTED) {
+    throw new BadRequestException(
+      'Only requested trades can be completed',
+    );
+  }
+
+  const selectedItems = trade.items.filter(
+    (item) => item.sellerAccepted,
+  );
+
+  if (selectedItems.length === 0) {
+    throw new BadRequestException(
+      'At least one trade item must be selected',
+    );
+  }
+
+  /*
+   * Make sure the selected copies still belong to the seller
+   * and have not been archived.
+   */
+  for (const item of selectedItems) {
+    if (
+      item.copy.userId !== trade.sellerId ||
+      item.copy.archivedAt !== null
+    ) {
+      throw new BadRequestException(
+        `Copy ${item.copy.id} is no longer available`,
+      );
+    }
+  }
+
+  /*
+   * Completing without transferring ownership.
+   *
+   * The trade is simply marked complete and the copies remain
+   * with the seller. Other pending trades are untouched.
+   */
+  if (!dto.transferCopies) {
+    await this.prisma.trade.update({
+      where: { id },
+      data: {
+        status: TradeStatus.COMPLETED,
+        sellerConfirmedTransfer: false,
+        buyerConfirmedTransfer: false,
+        cancelledReason: null,
+      },
+    });
+
+    return this.findOne(id, userId);
+  }
+
+  const copyIds = selectedItems.map(
+    (item) => item.copyId,
+  );
+
+  await this.prisma.$transaction(async (tx) => {
+    /*
+     * Transfer ownership immediately.
+     *
+     * The seller clicking Transfer means the copies have
+     * physically left the seller's ownership.
+     */
+    await tx.copy.updateMany({
+      where: {
+        id: {
+          in: copyIds,
+        },
+        userId: trade.sellerId,
+        archivedAt: null,
+      },
+      data: {
+        userId: trade.buyerId,
+        canSell: false,
+        sellPrice: null,
+        canRent: false,
+      },
+    });
+
+    /*
+     * Disable box-set listings for affected box sets.
+     */
+    const copies = await tx.copy.findMany({
+      where: {
+        id: {
+          in: copyIds,
+        },
+      },
+      select: {
+        boxSetId: true,
+      },
+    });
+
+    const boxSetIds = [
+      ...new Set(
+        copies
+          .map((copy) => copy.boxSetId)
+          .filter(
+            (boxSetId): boxSetId is number =>
+              boxSetId != null,
+          ),
+      ),
+    ];
+
+    if (boxSetIds.length > 0) {
+      await tx.boxSet.updateMany({
+        where: {
+          id: {
+            in: boxSetIds,
+          },
+        },
+        data: {
+          canSell: false,
+          sellPrice: null,
+          canRent: false,
+        },
+      });
+    }
+
+    /*
+     * The trade is now waiting for the buyer to accept
+     * or decline the transferred copies.
+     */
+    await tx.trade.update({
+      where: { id },
+      data: {
+        status: TradeStatus.ACCEPTED,
+        sellerConfirmedTransfer: true,
+        buyerConfirmedTransfer: false,
+        cancelledReason: null,
+      },
+    });
+
+    /*
+     * IMPORTANT:
+     * Do not cancel competing trades.
+     *
+     * Instead, mark the affected TradeItems as unavailable.
+     * This allows a trade containing several copies to remain
+     * active even if only one of its requested copies was sold.
+     */
+    await tx.tradeItem.updateMany({
+      where: {
+        copyId: {
+          in: copyIds,
+        },
+        tradeId: {
+          not: id,
+        },
+        trade: {
+          status: TradeStatus.REQUESTED,
+        },
+      },
+      data: {
+        sellerAccepted: false,
+      },
+    });
+  });
+
+  return this.findOne(id, userId);
+}
 }
