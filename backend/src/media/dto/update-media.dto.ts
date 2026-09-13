@@ -1,4 +1,5 @@
 import {
+  IsArray,
   IsEnum,
   IsInt,
   IsOptional,
@@ -24,6 +25,16 @@ export class UpdateMediaDto {
   @IsOptional()
   @IsString()
   description?: string | null;
+
+  @IsArray()
+  @IsOptional()
+  @IsString()
+  languages?: string[];
+
+  @IsArray()
+  @IsOptional()
+  @IsString()
+  genres?: string[];
 
 
   @IsOptional()

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { GoogleBooksModule } from './googleBooks/google-books.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MediaModule } from './media/media.module';
@@ -11,7 +12,7 @@ import { TradeModule } from './trade/trade.module';
 import { MediaCollectionModule } from './media-collection/media-collection.module';
 
 @Module({
-  imports: [MediaModule, PrismaModule, CopyModule, AuthModule, TmdbModule, BoxSetModule, TradeModule, MediaCollectionModule],
+  imports: [MediaModule, PrismaModule, CopyModule, AuthModule, TmdbModule, BoxSetModule, TradeModule, MediaCollectionModule, GoogleBooksModule],
   controllers: [AppController],
   providers: [AppService],
 })

@@ -68,15 +68,19 @@ export class MediaService {
 
     const createData: any = {
       title: dto.title.trim(),
-      description: dto.description,
-      releaseYear: dto.releaseYear,
-      poster: dto.poster ?? null,
+      author: dto.author?.trim() || null,
+      description: dto.description?.trim() || null,
+      releaseYear: dto.releaseYear ?? null,
+      poster: dto.poster?.trim() || null,
       category: dto.category,
       tmdbId: dto.tmdbId ?? undefined,
-      collectionPosition:
-        dto.collectionPosition ?? null,
+      genres: dto.genres ?? [],
+      languages: dto.languages ?? [],
+      collectionPosition: dto.collectionPosition ?? null,
     };
-    if (mediaCollectionId) createData.mediaCollectionId = mediaCollectionId;
+    if (mediaCollectionId) {
+      createData.mediaCollectionId = mediaCollectionId;
+    }
 
     const createdMedia = await this.prisma.media.create({ data: createData });
 
@@ -124,6 +128,8 @@ export class MediaService {
                     releaseYear: year,
                     poster: part.poster_path ? `https://image.tmdb.org/t/p/w342${part.poster_path}` : null,
                     category: 'MOVIE',
+                    languages: part.original_language ? [part.original_language] : [],
+                    genres: part.genre_ids ? part.genre_ids.map((id: number) => `Genre ${id}`) : [],
                     tmdbId: part.id,
                     mediaCollectionId,
                     collectionPosition: i + 1,
@@ -676,7 +682,16 @@ async remove(id: number) {
 
     const countsByMedia = new Map<
       number,
-      { dvd: number; bluray: number; fourk: number; availableCopies: number; hasSell: boolean; hasRent: boolean }
+      {
+        dvd: number;
+        bluray: number;
+        fourk: number;
+        softcover: number;
+        hardcover: number;
+        availableCopies: number;
+        hasSell: boolean;
+        hasRent: boolean;
+      }
     >();
 
     for (const id of mediaIds) {
@@ -684,6 +699,8 @@ async remove(id: number) {
         dvd: 0,
         bluray: 0,
         fourk: 0,
+        softcover: 0,
+        hardcover: 0,
         availableCopies: 0,
         hasSell: false,
         hasRent: false,
@@ -723,22 +740,51 @@ async remove(id: number) {
     for (const copy of copiesWithAvailability) {
       const counts = countsByMedia.get(copy.mediaId);
       if (!counts) continue;
-      if (copy.canSell || copy.canRent || copy.boxSet?.canSell || copy.boxSet?.canRent) {
-        counts.availableCopies++;
-      }
-      if (copy.canSell || copy.boxSet?.canSell) counts.hasSell = true;
-      if (copy.canRent || copy.boxSet?.canRent) counts.hasRent = true;
 
-      switch (copy.edition) {
-        case 'DVD':
-          counts.dvd++;
-          break;
-        case 'BLURAY':
-          counts.bluray++;
-          break;
-        case 'UHD_4K':
-          counts.fourk++;
-          break;
+      const canSell =
+        copy.canSell || copy.boxSet?.canSell;
+
+      const canRent =
+        copy.canRent || copy.boxSet?.canRent;
+
+      /*
+      * Available for marketplace
+      *
+      * A copy is available for sale if it can currently
+      * be sold and isn't tied up in a reserved trade.
+      */
+      if (canSell) {
+        counts.availableCopies++;
+        counts.hasSell = true;
+
+        switch (copy.edition) {
+          case 'DVD':
+            counts.dvd++;
+            break;
+
+          case 'BLURAY':
+            counts.bluray++;
+            break;
+
+          case 'UHD_4K':
+            counts.fourk++;
+            break;
+
+          case 'SOFT_COVER':
+            counts.softcover++;
+            break;
+
+          case 'HARD_COVER':
+            counts.hardcover++;
+            break;
+        }
+      }
+
+      /*
+      * Rental availability is kept separate.
+      */
+      if (canRent) {
+        counts.hasRent = true;
       }
     }
 
