@@ -1152,7 +1152,7 @@
 
     </div>
 </div>
-        <div
+<div
     v-if="showTmdbImport"
     class="modal-backdrop"
     @click.self="closeTmdbImport"
@@ -1487,12 +1487,14 @@ const mediaAddError = ref("");
 
 const mediaAddForm = ref({
     title: "",
-    category: "MOVIE",
+    category: "",
     author: "",
-    releaseYear: "",
+    releaseYear: null,
     description: "",
     poster: "",
-    tmdbId: "",
+    tmdbId: null,
+    genres: [],
+    languages: [],
 });
 
 const collectionMedia = ref([]);
@@ -1507,12 +1509,14 @@ const collectionEditForm = ref({
 
 const mediaEditForm = ref({
     title: "",
-    category: "MOVIE",
+    category: "",
     author: "",
     releaseYear: null,
     description: "",
     poster: "",
     tmdbId: null,
+    genres: [],
+    languages: [],
 });
 
 const loading = ref(true);
@@ -1771,6 +1775,8 @@ function editMedia(item) {
         description: item.description || "",
         poster: item.poster || "",
         tmdbId: item.tmdbId || null,
+        genres: item.genres || [],
+        languages: item.languages || [],
     };
 
     mediaEditError.value = "";
@@ -1830,6 +1836,11 @@ async function saveMediaEdit() {
                             mediaEditForm.value.tmdbId
                         )
                         : null,
+                genres:
+                    mediaEditForm.value.genres || [],
+
+                languages:
+                    mediaEditForm.value.languages || [],
             }
         );
 
@@ -2236,12 +2247,14 @@ async function createNewCollection() {
 function openMediaAdd() {
     mediaAddForm.value = {
         title: "",
-        category: "MOVIE",
+        category: "",
         author: "",
-        releaseYear: "",
+        releaseYear: null,
         description: "",
         poster: "",
-        tmdbId: "",
+        tmdbId: null,
+        genres: [],
+        languages: [],
     };
 
     mediaAddError.value = "";
@@ -2287,6 +2300,11 @@ async function saveMediaAdd() {
                 mediaAddForm.value.tmdbId
                     ? Number(mediaAddForm.value.tmdbId)
                     : null,
+            genres:
+                mediaAddForm.value.genres || [],
+
+            languages:
+                mediaAddForm.value.languages || [],
         });
 
         console.log(
@@ -2449,10 +2467,12 @@ async function selectTmdbMovie(movie) {
             tmdbCollectionMovies.value =
                 (collection.parts || []).map(
                     part => ({
-
                         id: part.id,
 
                         title: part.title,
+
+                        description:
+                            part.description || "",
 
                         poster:
                             part.poster_path
@@ -2464,6 +2484,13 @@ async function selectTmdbMovie(movie) {
                                 part.release_date?.slice(0, 4)
                             ) || null,
 
+                        genres:
+                            part.genres || [],
+
+                        languages:
+                            part.original_language
+                                ? [part.original_language]
+                                : [],
                     })
                 );
 
@@ -2622,7 +2649,7 @@ async function importTmdbMovies() {
                         releaseYear:
                             movie.releaseYear || null,
 
-                        description: "",
+                        description: movie.description || "",
 
                         poster:
                             movie.poster || null,
@@ -2633,6 +2660,10 @@ async function importTmdbMovies() {
                         collectionId,
 
                         collectionPosition,
+
+                        genres: movie.genres || [],
+
+                        languages: movie.languages || [],
 
                     });
 
@@ -2648,7 +2679,7 @@ async function importTmdbMovies() {
 
             const movie =
                 selectedTmdbMovie.value;
-
+            console.log("Selected movie:", movie);
 
             await createMedia({
 
@@ -2670,6 +2701,10 @@ async function importTmdbMovies() {
 
                 tmdbId:
                     movie.id,
+                
+                genres: movie.genres || [],
+
+                languages: movie.languages || [],   
 
             });
 

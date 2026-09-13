@@ -187,7 +187,7 @@ const props = defineProps({
     },
     category: {
         type: String,
-        default: "movies",
+        default: "MOVIE",
     },
 });
 

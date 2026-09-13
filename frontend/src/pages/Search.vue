@@ -83,7 +83,7 @@ const selectedCategory = ref(
 const selectedFormat = ref("ALL");
 const collectionFilter = ref("ALL");
 
-const viewMode = ref("list");
+const viewMode = ref("grid");
 
 /*
  * New FilterBar display mode.
@@ -172,6 +172,8 @@ function shouldShowMedia(mediaItem) {
             DVD: mediaItem.dvd,
             BLURAY: mediaItem.bluray,
             UHD_4K: mediaItem.fourk,
+            SOFTCOVER: mediaItem.softcover,
+            HARDCOVER: mediaItem.hardcover,
         };
 
         if (!map[selectedFormat.value]) {

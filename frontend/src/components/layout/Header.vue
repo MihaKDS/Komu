@@ -1,72 +1,61 @@
 <template>
-<header class="header">
+    <header class="header">
 
-    <button
-        class="menu-button"
-        type="button"
-        aria-label="Open navigation menu"
-        @click="$emit('toggle-menu')"
-    >
-        ☰
-    </button>
-
-    <RouterLink
-        to="/"
-        class="logo"
-    >
-        Komu
-    </RouterLink>
-
-    <div class="header-user">
-
-        <span v-if="loading" class="loading">
-            Loading...
-        </span>
-
-        <template v-else-if="user">
-
-            <span class="username">
-                {{ user.username }}
-            </span>
-
-            <RouterLink
-                to="/"
-                class="login-link"
-                @click="logout"
-            >
-                Logout
-            </RouterLink>
-
-        </template>
+        <button
+            class="menu-button"
+            type="button"
+            aria-label="Open navigation menu"
+            @click="$emit('toggle-menu')"
+        >
+            ☰
+        </button>
 
         <RouterLink
-            v-else
-            to="/login"
-            class="login-link"
+            to="/"
+            class="logo"
+            @click="$emit('close-menu')"
         >
-            Login
+            Komu
         </RouterLink>
 
-    </div>
+        <div class="header-user">
+            <RouterLink
+                v-if="user"
+                to="/profile"
+                class="username"
+            >
+                {{ user.username }}
+            </RouterLink>
 
-</header>
+            <RouterLink
+                v-else
+                to="/login"
+                class="login-link"
+            >
+                Login
+            </RouterLink>
+        </div>
+
+    </header>
 </template>
 
 <script setup>
 import { useAuth } from '../../composables/useAuth'
-import { useRouter } from 'vue-router'
 
 const {
   user,
-  loading,
-  logout,
 } = useAuth()
+
 defineEmits([
-    "toggle-menu"
+    "toggle-menu",
+    "close-menu"
 ]);
 </script>
 
 <style scoped>
+.searchTop {
+    margin-left: 16px;
+}
 .header {
     position: relative;
     z-index: 1000;

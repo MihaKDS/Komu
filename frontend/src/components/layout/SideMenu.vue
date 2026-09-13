@@ -3,32 +3,7 @@
         class="side-menu"
         :class="{ open: isOpen }"
     >
-        <nav class="nav">
-            <p>Search:</p>
-            <RouterLink
-                :to="{ path: '/search', query: { category: 'MOVIE' } }"
-                @click="$emit('close-menu')"
-                class="nav"
-                :class="{ active: isSearchCategory('MOVIE') }"
-            >
-                🎬Movies
-            </RouterLink>            
-            <RouterLink
-                :to="{ path: '/search', query: { category: 'TV_SHOW' } }"
-                @click="$emit('close-menu')"
-                class="nav"
-                :class="{ active: isSearchCategory('TV_SHOW') }"
-            >
-                📺TV Shows
-            </RouterLink>            
-            <RouterLink
-                :to="{ path: '/search', query: { category: 'BOOK' } }"
-                @click="$emit('close-menu')"
-                class="nav"
-                :class="{ active: isSearchCategory('BOOK') }"
-            >
-                📚Books
-            </RouterLink>            
+        <nav class="nav">          
            <!-- <RouterLink
                 :to="{ path: '/search', query: { category: 'COMIC' } }"
                 @click="$emit('close-menu')"
@@ -37,8 +12,14 @@
             >
                 📖Comics
             </RouterLink>-->            
+            <RouterLink
+                :to="{ path: '/' }"
+                @click="$emit('close-menu')"
+                class="nav"
+            >
+                🔍Search
+            </RouterLink>                        
             <div v-if="user">
-                <hr>
                 <RouterLink
                     :to="{ path: '/collection' }"
                     @click="$emit('close-menu')"
@@ -68,6 +49,34 @@
                 >
                     ✏️Edit Media
                 </RouterLink>
+                <hr>
+                    <div class="header-user">
+
+                        <span v-if="loading" class="loading">
+                            Loading...
+                        </span>
+
+                        <template v-else-if="user">
+
+                            <RouterLink
+                                :to="{ path: '/profile' }"
+                                @click="$emit('close-menu')"
+                                class="nav"
+                            >
+                                👤Profile
+                            </RouterLink>
+
+                        </template>
+
+                        <RouterLink
+                            v-else
+                            to="/login"
+                            class="nav"
+                        >
+                            Login
+                        </RouterLink>
+
+                    </div>
             </div>
             <div v-else>
                 <hr>
@@ -98,6 +107,8 @@ function isSearchCategory(category) {
 
 const {
   user,
+  loading,
+  logout,
 } = useAuth()
 
 defineEmits([
@@ -174,5 +185,23 @@ nav {
     width: 96%;
     margin-left: 2%;
 }
+.logoutBtn {
+    display: inline-flex;
+    align-items: center;
 
+    color: var(--text-h);
+    background: var(--danger-bg);
+
+    border: 1px solid var(--social-bg);
+    border-radius: 8px;
+
+    text-decoration: none;
+
+}
+
+.logoutBtn:hover {
+    color: var(--text-h);
+    background: var(--bg-hover);
+    border-color: var(--border-light);
+}
 </style>

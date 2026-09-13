@@ -1,152 +1,177 @@
 <template>
-<div class="home-page">
+    <div class="home-page">
 
-    <section class="home-hero">
-        <p class="lead">
-            Browse movies, TV shows, books and comics.
-        </p>
-    </section>
+        <!-- Global media search -->
 
 
-    <section class="browse-section">
 
-        <h2>Browse</h2>
+        <!-- Browse -->
+        <section class="browse-section">
 
-        <div class="sectors">
+            <h2>Browse</h2>
+            <section class="home-search">
+                <AllMediaSearch />
+            </section>
+            <div class="sectors">
 
-            <RouterLink
-                :to="{ path: '/search', query: { category: 'MOVIE' } }"
-                class="sector-button"
-            >
-                <span class="sector-icon">🎬</span>
-                <span>
-                    <strong>Movies</strong>
-                    <small>Browse movies</small>
-                </span>
-            </RouterLink>
+                <RouterLink
+                    :to="{ path: '/search', query: { category: 'BOOK' } }"
+                    class="sector-button"
+                >
+                    <span class="sector-icon">📚</span>
 
+                    <span>
+                        <strong>Books</strong>
+                        <small>Browse books</small>
+                    </span>
+                </RouterLink>
 
-            <RouterLink
-                :to="{ path: '/search', query: { category: 'TV_SHOW' } }"
-                class="sector-button"
-            >
-                <span class="sector-icon">📺</span>
-                <span>
-                    <strong>TV Shows</strong>
-                    <small>Browse TV shows</small>
-                </span>
-            </RouterLink>
+                <RouterLink
+                    :to="{ path: '/search', query: { category: 'MOVIE' } }"
+                    class="sector-button"
+                >
+                    <span class="sector-icon">🎬</span>
 
-
-            <RouterLink
-                :to="{ path: '/search', query: { category: 'BOOK' } }"
-                class="sector-button"
-            >
-                <span class="sector-icon">📚</span>
-                <span>
-                    <strong>Books</strong>
-                    <small>Browse books</small>
-                </span>
-            </RouterLink>
+                    <span>
+                        <strong>Movies</strong>
+                        <small>Browse movies</small>
+                    </span>
+                </RouterLink>
 
 
-            <!--<RouterLink
-                :to="{ path: '/search', query: { category: 'COMIC' } }"
-                class="sector-button"
-            >
-                <span class="sector-icon">📖</span>
-                <span>
-                    <strong>Comics</strong>
-                    <small>Browse comics</small>
-                </span>
-            </RouterLink> -->
+                <RouterLink
+                    :to="{ path: '/search', query: { category: 'TV_SHOW' } }"
+                    class="sector-button"
+                >
+                    <span class="sector-icon">📺</span>
 
-        </div>
+                    <span>
+                        <strong>TV Shows</strong>
+                        <small>Browse TV shows</small>
+                    </span>
+                </RouterLink>
 
-    </section>
+                <!-- Future category -->
+                <!--
+                <RouterLink
+                    :to="{ path: '/search', query: { category: 'COMIC' } }"
+                    class="sector-button"
+                >
+                    <span class="sector-icon">📖</span>
 
+                    <span>
+                        <strong>Comics</strong>
+                        <small>Browse comics</small>
+                    </span>
+                </RouterLink>
+                -->
 
-    <section
-        v-if="user"
-        class="account-section"
-    >
+            </div>
 
-        <h2>Your Komu</h2>
-
-        <div class="account-links">
-
-            <RouterLink
-                :to="{
-                    path: '/collection',
-                    query: { category: 'MOVIE' }
-                }"
-                class="account-button"
-            >
-                <span class="sector-icon">📦</span>
-
-                <span>
-                    <strong>My Collection</strong>
-                    <small>Manage your collection</small>
-                </span>
-            </RouterLink>
+        </section>
 
 
-            <RouterLink
-                :to="{
-                    path: '/trades',
-                    query: { category: 'MOVIE' }
-                }"
-                class="account-button"
-            >
-                <span class="sector-icon">🔄</span>
+        <!-- User area -->
+        <section
+            v-if="user"
+            class="account-section"
+        >
 
-                <span>
-                    <strong>Trades</strong>
-                    <small>View your trades</small>
-                </span>
-            </RouterLink>
+            <h2>Your Komu</h2>
 
-        </div>
+            <div class="account-links">
 
-    </section>
+                <RouterLink
+                    to="/collection"
+                    class="account-button"
+                >
+                    <span class="sector-icon">📦</span>
 
-</div>
+                    <span>
+                        <strong>My Collection</strong>
+                        <small>Manage your collection</small>
+                    </span>
+                </RouterLink>
+
+
+                <RouterLink
+                    to="/trades"
+                    class="account-button"
+                >
+                    <span class="sector-icon">🔄</span>
+
+                    <span>
+                        <strong>Trades</strong>
+                        <small>View your trades</small>
+                    </span>
+                </RouterLink>
+
+
+                <RouterLink
+                    to="/lists"
+                    class="account-button"
+                >
+                    <span class="sector-icon">📋</span>
+
+                    <span>
+                        <strong>Lists</strong>
+                        <small>Your watchlist and wishlist</small>
+                    </span>
+                </RouterLink>
+
+
+                <RouterLink
+                    to="/profile"
+                    class="account-button"
+                >
+                    <span class="sector-icon">👤</span>
+
+                    <span>
+                        <strong>Profile</strong>
+                        <small>Your account and activity</small>
+                    </span>
+                </RouterLink>
+
+            </div>
+
+        </section>
+
+    </div>
 </template>
 
-<script setup>
-import { useAuth } from '../composables/useAuth'
 
+<script setup>
+import { useAuth } from "../composables/useAuth";
+import AllMediaSearch from "../components/media/AllMediaSearch.vue";
 const {
-  user,
-} = useAuth()
+    user,
+} = useAuth();
 </script>
 
+
 <style scoped>
+
 .home-page {
     width: 100%;
     max-width: 900px;
 
     margin: 0 auto;
-    padding: 40px 20px 60px;
+    padding: 30px 20px 60px;
 }
 
 
-/* Hero */
+/* Search */
 
-.home-hero {
-    text-align: center;
-    padding: 35px 20px 45px;
+.home-search {
+    display: flex;
+    justify-content: center;
+
+    margin-bottom: 35px;
 }
 
-.home-hero h1 {
-    margin-bottom: 12px;
-}
-
-.home-hero .lead {
-    margin: 0;
-
-    color: var(--text-secondary);
-    font-size: 18px;
+.home-search :deep(.all-media-search) {
+    width: 100%;
+    max-width: 600px;
 }
 
 
@@ -169,9 +194,9 @@ const {
     display: grid;
 
     grid-template-columns:
-        repeat(2, minmax(0, 1fr));
+        repeat(3, minmax(0, 1fr));
 
-    gap: 14px;
+    gap: 12px;
 }
 
 .sector-button,
@@ -179,11 +204,11 @@ const {
     display: flex;
     align-items: center;
 
-    gap: 14px;
+    gap: 10px;
 
-    min-height: 85px;
+    min-height: 70px;
 
-    padding: 16px;
+    padding: 12px;
 
     color: var(--text-h);
     text-decoration: none;
@@ -217,8 +242,8 @@ const {
 /* Icons */
 
 .sector-icon {
-    width: 44px;
-    height: 44px;
+    width: 38px;
+    height: 38px;
 
     flex-shrink: 0;
 
@@ -228,32 +253,34 @@ const {
 
     background: var(--accent-bg);
 
-    border-radius: 10px;
+    border-radius: 8px;
 
-    font-size: 22px;
+    font-size: 19px;
 }
 
 
-/* Text inside buttons */
+/* Text */
 
 .sector-button span:last-child,
 .account-button span:last-child {
     display: flex;
     flex-direction: column;
 
-    gap: 3px;
+    gap: 2px;
+
+    min-width: 0;
 }
 
 .sector-button strong,
 .account-button strong {
-    font-size: 17px;
+    font-size: 15px;
     font-weight: 600;
 }
 
 .sector-button small,
 .account-button small {
     color: var(--text-muted);
-    font-size: 13px;
+    font-size: 12px;
 }
 
 
@@ -273,8 +300,73 @@ const {
     grid-template-columns:
         repeat(2, minmax(0, 1fr));
 
-    gap: 14px;
+    gap: 12px;
 }
+/* Home search */
+
+.home-search {
+    display: flex;
+    justify-content: center;
+
+    width: 100%;
+
+    margin: 10px 0 45px;
+}
+
+.home-search :deep(.all-media-search) {
+    width: 100%;
+    max-width: 650px;
+}
+
+.home-search :deep(.all-media-search input) {
+    width: 100%;
+    height: 48px;
+
+    box-sizing: border-box;
+
+    padding: 0 16px;
+
+    font-size: 16px;
+
+    color: var(--text);
+    background: var(--text-h);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+
+    outline: none;
+
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.home-search :deep(.all-media-search input::placeholder) {
+    color: var(--text-muted);
+}
+
+.home-search :deep(.all-media-search input:focus) {
+    border-color: var(--accent-border);
+
+    box-shadow: var(--shadow-small);
+}
+
+
+/* Search results */
+
+.home-search :deep(.search-results) {
+    width: 100%;
+
+    margin-top: 6px;
+
+    border: 1px solid var(--accent-bg);
+    border-radius: var(--radius);
+
+    background: #111;
+
+    box-shadow: var(--shadow-small);
+}
+
 
 
 /* Mobile */
@@ -282,25 +374,38 @@ const {
 @media (max-width: 600px) {
 
     .home-page {
-        padding: 25px 12px 40px;
+        padding: 20px 12px 40px;
     }
 
-    .home-hero {
-        padding: 25px 10px 30px;
+    .home-search {
+        margin-bottom: 28px;
     }
 
-    .home-hero .lead {
-        font-size: 16px;
+    .sectors {
+        grid-template-columns: 1fr;
     }
 
-    .sectors,
     .account-links {
         grid-template-columns: 1fr;
     }
 
     .sector-button,
     .account-button {
-        min-height: 72px;
+        min-height: 65px;
+    }
+        .home-search {
+        margin: 5px 0 35px;
+    }
+
+    .home-search :deep(.all-media-search) {
+        max-width: none;
+    }
+
+    .home-search :deep(.all-media-search input) {
+        height: 44px;
+
+        font-size: 15px;
     }
 }
+
 </style>

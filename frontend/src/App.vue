@@ -1,6 +1,6 @@
 <template>
     <div :class="{ 'menu-open': isMenuOpen }">
-        <Header @toggle-menu="toggleMenu" />
+        <Header @toggle-menu="toggleMenu" @close-menu="closeMenu" />
 
         <SideMenu
             :isOpen="isMenuOpen"
