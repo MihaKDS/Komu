@@ -83,6 +83,7 @@ model Copy {
 
   edition        Edition
   title          String?
+  volumes        String[]  @default([])
   includesBluRay Boolean   @default(false)
   listingNote    String?
   boxSetId       Int?
@@ -150,6 +151,8 @@ enum Edition {
   UHD_4K
   SOFT_COVER
   HARD_COVER
+  CD
+  VINYL
 }
 
 enum Condition {
@@ -165,6 +168,7 @@ enum Category {
   TV_SHOW
   BOOK
   COMIC
+  MUSIC
 }
 
 enum TradeType {

@@ -33,6 +33,8 @@ export class MediaService {
   }
 
   async create(dto: CreateMediaDto) {
+    const collectionCategory = dto.category;
+
     // If the DTO carries TMDb collection info, upsert the MediaCollection and link it
     let mediaCollectionId: number | undefined = dto.collectionId ?? undefined;
     let upsertedCollection: any = null;
@@ -44,12 +46,13 @@ export class MediaService {
           update: {
             title: mc.title ?? undefined,
             poster: mc.poster ?? undefined,
+            category: collectionCategory,
           },
           create: {
             tmdbId: mc.tmdbId,
             title: mc.title ?? 'Collection',
             poster: mc.poster ?? null,
-            category: 'MOVIE', // Default category, can be changed later
+            category: collectionCategory,
           },
         });
         mediaCollectionId = upsertedCollection.id;
@@ -59,7 +62,7 @@ export class MediaService {
           mediaCollectionId = existing.id;
           upsertedCollection = existing;
         } else {
-          const created = await this.prisma.mediaCollection.create({ data: { title: mc.title, poster: mc.poster ?? null, category: 'MOVIE' } });
+          const created = await this.prisma.mediaCollection.create({ data: { title: mc.title, poster: mc.poster ?? null, category: collectionCategory } });
           mediaCollectionId = created.id;
           upsertedCollection = created;
         }
@@ -326,7 +329,11 @@ export class MediaService {
     if (media.mediaCollectionId) {
       collectionMedias = await this.prisma.media.findMany({
         where: { mediaCollectionId: media.mediaCollectionId },
-        orderBy: { releaseYear: 'asc' },
+        orderBy: [
+          { collectionPosition: 'asc' },
+          { releaseYear: 'asc' },
+          { title: 'asc' },
+        ],
         select: { id: true, title: true, collectionPosition: true, poster: true, releaseYear: true },
       });
     }
@@ -352,6 +359,7 @@ export class MediaService {
 
         edition: copy.edition,
         includesBluRay: copy.includesBluRay,
+        volumes: copy.volumes,
 
         condition: copy.condition,
         listingNote: copy.listingNote,
@@ -688,6 +696,8 @@ async remove(id: number) {
         fourk: number;
         softcover: number;
         hardcover: number;
+        cd: number;
+        vinyl: number;
         availableCopies: number;
         hasSell: boolean;
         hasRent: boolean;
@@ -701,6 +711,8 @@ async remove(id: number) {
         fourk: 0,
         softcover: 0,
         hardcover: 0,
+        cd: 0,
+        vinyl: 0,
         availableCopies: 0,
         hasSell: false,
         hasRent: false,
@@ -746,6 +758,7 @@ async remove(id: number) {
 
       const canRent =
         copy.canRent || copy.boxSet?.canRent;
+      const editionValue = String(copy.edition);
 
       /*
       * Available for marketplace
@@ -757,7 +770,7 @@ async remove(id: number) {
         counts.availableCopies++;
         counts.hasSell = true;
 
-        switch (copy.edition) {
+        switch (editionValue) {
           case 'DVD':
             counts.dvd++;
             break;
@@ -776,6 +789,14 @@ async remove(id: number) {
 
           case 'HARD_COVER':
             counts.hardcover++;
+            break;
+
+          case 'CD':
+            counts.cd++;
+            break;
+
+          case 'VINYL':
+            counts.vinyl++;
             break;
         }
       }

@@ -29,9 +29,9 @@ export class CreateCopyDto {
 
   @IsOptional()
   @IsArray()
-  @IsInt({ each: true })
-  @Type(() => Number)
-  volumes: number[];
+  @IsString({ each: true })
+  @MaxLength(50, { each: true })
+  volumes?: string[];
 
   @IsOptional()
   @IsString()

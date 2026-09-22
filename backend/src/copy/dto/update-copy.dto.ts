@@ -1,5 +1,5 @@
 import { Condition } from '@prisma/client';
-import { IsBoolean, IsEnum, IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsArray, IsBoolean, IsEnum, IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class UpdateCopyDto {
 
@@ -18,6 +18,12 @@ export class UpdateCopyDto {
   @IsOptional()
   @IsNumber()
   sellPrice?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @MaxLength(50, { each: true })
+  volumes?: string[];
 
   @IsBoolean()
   canRent: boolean;

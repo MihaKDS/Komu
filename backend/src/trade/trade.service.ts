@@ -181,6 +181,7 @@ export class TradeService {
         mediaId: item.copy.media.id,
         title: item.copy.media.title,
         poster: item.copy.media.poster,
+        volumes: item.copy.volumes,
         agreedPrice: item.agreedPrice,
       })),
       lastMessage: trade.messages[0]
@@ -278,6 +279,7 @@ export class TradeService {
         agreedPrice: item.agreedPrice,
         sellerAccepted: item.sellerAccepted,
         edition: item.copy.edition,
+        volumes: item.copy.volumes,
         media: {
           id: item.copy.media.id,
           title: item.copy.media.title,

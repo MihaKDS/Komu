@@ -34,7 +34,7 @@ export class CreateMediaDto {
 releaseYear?: number | null;
 
   @IsOptional()
-  @IsUrl()
+  @IsString()
   poster?: string | null;
 
   @IsOptional()

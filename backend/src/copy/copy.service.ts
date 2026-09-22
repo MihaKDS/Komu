@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   ForbiddenException,
   NotFoundException,
@@ -43,6 +44,7 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
       title: true,
       edition: true,
       includesBluRay: true,
+      volumes: true,
 
       condition: true,
 
@@ -79,6 +81,7 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
     title: copy.title,
     edition: copy.edition,
     includesBluRay: copy.includesBluRay,
+    volumes: copy.volumes,
 
     condition: copy.condition,
     listingNote: copy.listingNote,
@@ -142,6 +145,25 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
   }
 
   async create(dto: CreateCopyDto, userId: number) {
+    if (dto.volumes !== undefined) {
+      if (dto.mediaIds.length !== 1) {
+        throw new BadRequestException('Comic volumes can only be assigned to one media item at a time.');
+      }
+
+      const media = await this.prisma.media.findUnique({
+        where: { id: dto.mediaIds[0] },
+        select: { category: true },
+      });
+
+      if (!media) {
+        throw new NotFoundException('Media not found');
+      }
+
+      if (media.category !== 'COMIC') {
+        throw new BadRequestException('Volumes can only be assigned to comic copies.');
+      }
+    }
+
     if (dto.partOfBox) {
       if (dto.existingBoxSetId) {
         return this.addCopiesToExistingBoxSet(dto, userId);
@@ -149,34 +171,7 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
       return this.createBoxSet(dto, userId);
     }
 
-    if(dto.volumes !== undefined && dto.volumes.length > 0) {
-      return this.createMultipleCopies(dto, userId);
-    }
-
     return this.createSingleCopy(dto, userId);
-  }
-
-private async createMultipleCopies(
-    dto: CreateCopyDto,
-    userId: number,
-  ) {
-    return this.prisma.$transaction(async (prisma) => {
-      const copies = await Promise.all(
-        dto.volumes.map((volume) =>
-          prisma.copy.create({
-            data: {
-              mediaId: dto.mediaIds[0],
-              userId,
-              title: `Vol. ${volume}`,
-              edition: dto.edition,
-              includesBluRay: dto.includesBluRay,
-            },
-          }),
-        ),
-      );
-
-      return copies;
-    });
   }
 
   private async createSingleCopy(
@@ -188,6 +183,7 @@ private async createMultipleCopies(
         mediaId: dto.mediaIds[0],
         userId,
         title: dto.title ?? null,
+        volumes: this.normalizeVolumes(dto.volumes),
         edition: dto.edition,
         includesBluRay: dto.includesBluRay,
       },
@@ -245,6 +241,7 @@ private async createMultipleCopies(
               mediaId,
               userId,
               title: dto.title ?? null,
+              volumes: this.normalizeVolumes(dto.volumes),
               edition: dto.edition,
               includesBluRay: dto.includesBluRay,
               boxSetId: boxSet.id,
@@ -294,6 +291,7 @@ private async createMultipleCopies(
               mediaId,
               userId,
               title: dto.title ?? null,
+              volumes: this.normalizeVolumes(dto.volumes),
               edition: dto.edition,
               includesBluRay: dto.includesBluRay,
               boxSetId: boxSet.id,
@@ -317,6 +315,13 @@ private async createMultipleCopies(
 
     const copy = await this.prisma.copy.findUnique({
       where: { id },
+      include: {
+        media: {
+          select: {
+            category: true,
+          },
+        },
+      },
     });
 
     if (!copy) {
@@ -331,6 +336,10 @@ private async createMultipleCopies(
 
     await this.assertCopyNotInActiveTrade(id);
 
+    if (dto.volumes !== undefined && copy.media.category !== 'COMIC') {
+      throw new BadRequestException('Volumes can only be assigned to comic copies.');
+    }
+
     const copyData: Prisma.CopyUpdateInput = {
       listingNote: dto.listingNote ? dto.listingNote : null,
       condition: dto.condition,
@@ -339,6 +348,7 @@ private async createMultipleCopies(
       sellPrice: dto.canSell ? dto.sellPrice : null,
 
       canRent: dto.canRent,
+      volumes: dto.volumes !== undefined ? this.normalizeVolumes(dto.volumes) : undefined,
     };
 
     const boxSetData: any = {};
@@ -531,6 +541,10 @@ async remove(
     if (activeTradeItem) {
       throw new ForbiddenException('This copy is currently part of an active trade');
     }
+  }
+
+  private normalizeVolumes(volumes: string[] | undefined): string[] {
+    return volumes?.map((volume) => volume.trim()).filter(Boolean) ?? [];
   }
 
   

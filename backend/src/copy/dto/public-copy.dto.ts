@@ -5,6 +5,8 @@ export class PublicCopyDto {
 
   includesBluRay: boolean;
 
+  volumes: string[];
+
   condition: string;
 
   listingNote: string | null;
