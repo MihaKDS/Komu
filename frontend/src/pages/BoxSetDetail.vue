@@ -22,7 +22,7 @@
 
       <div class="boxset-summary">
         <p>Contains {{ boxSet.medias.length }} items</p>
-        <p v-if="boxSet.canSell">Selling whole box for €{{ boxSet.sellPrice }}</p>
+        <p v-if="boxSet.canSell" class="sell-tag">Selling whole box for €{{ boxSet.sellPrice }}</p>
       </div>
 
       <div class="boxset-media">
@@ -45,17 +45,17 @@
         <div class="form-row" v-if="canEdit">
           <div class="nested-fields">
           <label>
-            <input type="checkbox" v-model="boxSetForm.canSell" />
-            Sell entire box
+            <input class="checkboxSell" type="checkbox" v-model="boxSetForm.canSell" />
+            Sell boxset
           </label>
             <label>Price</label>
-            <input v-model.number="boxSetForm.sellPrice" type="number" min="0.01">
+            <input class="inputPrice" v-model.number="boxSetForm.sellPrice" type="number" min="0.01">
             <button
           type="button"
           :disabled="savingBoxSet"
           @click="saveBoxSet"
         >
-          {{ savingBoxSet ? 'Saving...' : 'Save box set details' }}
+          {{ savingBoxSet ? 'Saving...' : 'Save changes' }}
         </button>
           </div>
         </div>
@@ -94,7 +94,7 @@
             Includes Blu-ray
           </label>
         </div>
-
+        <hr>
         <div class="form-row">
           <h3>Add movies</h3>
           <MediaSearch
@@ -337,7 +337,7 @@ onMounted(loadBoxSet);
    ========================================================= */
 
 .boxset-details {
-    width: min(100%, 850px);
+    width: min(100%, 900px);
     margin: 0 auto;
 }
 
@@ -374,12 +374,12 @@ onMounted(loadBoxSet);
    ========================================================= */
 
 .boxset-details button {
-    min-height: 36px;
+    min-height: 34px;
 
     padding: 7px 12px;
 
     color: var(--text);
-    background: var(--accent-bg);
+    background: var(--bg-secondary);
 
     border: 1px solid var(--border);
     border-radius: var(--radius-small);
@@ -456,7 +456,26 @@ onMounted(loadBoxSet);
     /* keeps summary pills visually consistent */
 }
 
+.boxset-summary .sell-tag {
+    color: #7fdc9a;
+    background: rgba(45, 164, 78, 0.16);
+    border-color: rgba(45, 164, 78, 0.45);
+}
+.inputPrice {
+    width: 100px !important;
+    min-width: 0 !important;
+    max-width: 100px !important;
 
+    height: 30px !important;
+    min-height: 30px !important;
+    max-height: 30px !important;
+
+    padding: 4px 7px !important;
+    box-sizing: border-box !important;
+
+    font-size: 12px !important;
+    line-height: 20px !important;
+}
 /* =========================================================
    MEDIA LIST
    ========================================================= */
@@ -542,12 +561,12 @@ onMounted(loadBoxSet);
     gap: 14px;
 
     margin-top: 24px;
-    padding: 18px;
+    padding: 16px;
 
     background: var(--bg-secondary);
 
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: var(--radius-small);
 }
 
 .edit-section h2 {
@@ -591,21 +610,21 @@ onMounted(loadBoxSet);
 .form-row select {
     width: 100%;
 
-    min-height: 40px;
+    min-height: 32px;
 
-    padding: 8px 10px;
+    padding: 5px 8px;
 
-    color: var(--text-h);
-    background: var(--bg);
+    color: var(--field-text);
+    background: var(--field-bg);
 
-    border: 1px solid var(--border);
+    border: 1px solid #b8c0ca;
     border-radius: var(--radius-small);
 
-    font: inherit;
+    font-size: 13px;
 }
 
 .form-row textarea {
-    min-height: 65px;
+    min-height: 50px;
 
     resize: vertical;
 }
@@ -632,8 +651,8 @@ onMounted(loadBoxSet);
 }
 
 .form-row input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
 
     margin: 0;
 
@@ -644,41 +663,53 @@ onMounted(loadBoxSet);
 /* =========================================================
    NESTED FIELDS
    ========================================================= */
-
 .nested-fields {
     display: flex;
+    flex-direction: row;
     align-items: center;
-
+    flex-wrap: nowrap;
     gap: 8px;
-
-    padding: 10px;
-
+    padding: 8px;
     background: var(--bg-card);
-
     border: 1px solid var(--border);
     border-radius: var(--radius-small);
+    overflow-x: auto;
 }
 
-.nested-fields label {
-    color: var(--text-muted);
-
-    font-size: 12px;
+.nested-fields > label {
+    display: flex;
+    align-items: center;
+    width: auto !important;
+    min-width: auto !important;
+    margin: 0;
+    white-space: nowrap;
 }
 
-.nested-fields input {
-    width: 120px;
-
-    min-height: 36px;
-
-    padding: 7px 9px;
-
-    color: var(--text-h);
-    background: var(--bg-secondary);
-
-    border: 1px solid var(--border);
-    border-radius: var(--radius-small);
+.nested-fields .checkboxSell {
+    flex: 0 0 auto;
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    min-height: 18px !important;
+    margin-right: 6px;
 }
 
+.nested-fields .inputPrice {
+    flex: 0 0 120px;
+    width: 120px !important;
+    min-width: 120px !important;
+    max-width: 120px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    max-height: 40px !important;
+    padding: 6px 10px !important;
+    box-sizing: border-box !important;
+}
+
+.nested-fields > button {
+    flex: 0 0 auto;
+    width: auto;
+}
 
 /* =========================================================
    DIVIDERS
@@ -833,10 +864,57 @@ onMounted(loadBoxSet);
 
     .title-row {
         align-items: flex-start;
+        flex-wrap: wrap;
     }
 
     .title-row h1 {
         font-size: 26px;
+    }
+
+    .nested-fields {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        gap: 8px;
+        overflow-x: auto;
+    }
+
+    .nested-fields > label {
+        display: flex !important;
+        flex: 0 0 auto !important;
+        width: auto !important;
+        min-width: auto !important;
+        white-space: nowrap;
+    }
+
+    .nested-fields .checkboxSell {
+        flex: 0 0 auto !important;
+        width: 18px !important;
+        height: 18px !important;
+        min-width: 18px !important;
+        min-height: 18px !important;
+    }
+
+    .nested-fields .inputPrice {
+        flex: 0 0 120px !important;
+        width: 120px !important;
+        min-width: 20px !important;
+        max-width: 50px !important;
+        box-sizing: border-box !important;
+    }
+
+    .nested-fields > button {
+        flex: 0 0 auto !important;
+        width: auto !important;
+        min-width: max-content !important;
+    }
+
+    .checkboxSell {
+        width: 14px !important;
+        height: 14px !important;
+        min-width: 14px !important;
+        min-height: 14px !important;
     }
 
     .boxset-summary {

@@ -44,11 +44,11 @@ const props = defineProps({
 
     display: grid;
 
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
 
-    gap: 1.5rem;
+    gap: 12px;
 
-    margin-top: 2rem;
+    margin-top: 16px;
 
 }
 

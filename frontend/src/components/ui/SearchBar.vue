@@ -28,12 +28,12 @@ watch(search, (value) => {
 .search-bar {
     width: 100%;
 
-    padding: .75rem 1rem;
+    padding: .55rem .75rem;
 
-    font-size: 1rem;
+    font-size: .9rem;
 
-    border: 1px solid #ccc;
-    border-radius: 8px;
+    border: 1px solid #b8c0ca;
+    border-radius: 4px;
 
     box-sizing: border-box;
 }

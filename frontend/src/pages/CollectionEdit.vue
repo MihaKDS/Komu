@@ -290,6 +290,13 @@
                                     </span>
 
                                     <span
+                                        v-if="comicVolumesLabel(copy)"
+                                        class="copy-volumes"
+                                    >
+                                        {{ comicVolumesLabel(copy) }}
+                                    </span>
+
+                                    <span
                                         v-if="copy.listingNote"
                                         class="mobile-secondary"
                                     >
@@ -409,6 +416,13 @@
                             <strong>
                                 {{ copy.media?.title || "Unknown title" }}
                             </strong>
+
+                            <span
+                                v-if="comicVolumesLabel(copy)"
+                                class="copy-volumes"
+                            >
+                                {{ comicVolumesLabel(copy) }}
+                            </span>
 
                             <span class="mobile-secondary">
                                 {{ copy.media?.releaseYear || "" }}
@@ -558,6 +572,7 @@ import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 
 import Breadcrumbs from "../components/layout/Breadcrumbs.vue";
+import { formatComicVolumesForCopy } from "../utils/comicVolumes.js";
 
 import {
     getMyCopies,
@@ -688,10 +703,15 @@ function matchesSearch(copy) {
     const edition =
         copy.edition?.toLowerCase() || "";
 
+    const volumes =
+        formatComicVolumesForCopy(copy)
+            .toLowerCase();
+
     return (
         title.includes(value) ||
         note.includes(value) ||
         edition.includes(value) ||
+        volumes.includes(value) ||
         String(copy.id).includes(value)
     );
 }
@@ -1022,6 +1042,10 @@ function conditionLabel(condition) {
         condition ||
         "—"
     );
+}
+
+function comicVolumesLabel(copy) {
+    return formatComicVolumesForCopy(copy);
 }
 
 
@@ -1635,6 +1659,13 @@ async function deleteSelected() {
     white-space: nowrap;
 
     font-size: 12px;
+}
+
+.copy-volumes {
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 500;
+    white-space: normal;
 }
 
 .price-cell {

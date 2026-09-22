@@ -104,7 +104,24 @@ const categories = [
     "TV_SHOW",
     "BOOK",
     "COMIC",
+    "MUSIC",
 ];
+
+function physicalCopyCount(mediaItem) {
+    if (Array.isArray(mediaItem.copies)) {
+        return mediaItem.copies.filter((copy) => copy.isArchived !== true).length;
+    }
+
+    return [
+        mediaItem.dvd,
+        mediaItem.bluray,
+        mediaItem.fourk,
+        mediaItem.softcover,
+        mediaItem.hardcover,
+        mediaItem.cd,
+        mediaItem.vinyl,
+    ].reduce((total, count) => total + (Number(count) || 0), 0);
+}
 
 
 /* =========================================================
@@ -172,8 +189,10 @@ function shouldShowMedia(mediaItem) {
             DVD: mediaItem.dvd,
             BLURAY: mediaItem.bluray,
             UHD_4K: mediaItem.fourk,
-            SOFTCOVER: mediaItem.softcover,
-            HARDCOVER: mediaItem.hardcover,
+            SOFT_COVER: mediaItem.softcover,
+            HARD_COVER: mediaItem.hardcover,
+            CD: mediaItem.cd,
+            VINYL: mediaItem.vinyl,
         };
 
         if (!map[selectedFormat.value]) {
@@ -372,6 +391,12 @@ const groupedMedia = computed(() => {
 
                 collectionSize:
                     group.medias.length,
+
+                collectionCopies:
+                    group.medias.reduce(
+                        (total, mediaItem) => total + physicalCopyCount(mediaItem),
+                        0,
+                    ),
 
                 id: group.medias[0].id,
             };

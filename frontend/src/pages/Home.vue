@@ -27,6 +27,30 @@
                 </RouterLink>
 
                 <RouterLink
+                    :to="{ path: '/search', query: { category: 'COMIC' } }"
+                    class="sector-button"
+                >
+                    <span class="sector-icon">📖</span>
+
+                    <span>
+                        <strong>Comics</strong>
+                        <small>Browse comics</small>
+                    </span>
+                </RouterLink>
+
+                <RouterLink
+                    :to="{ path: '/search', query: { category: 'MUSIC' } }"
+                    class="sector-button"
+                >
+                    <span class="sector-icon">🎵</span>
+
+                    <span>
+                        <strong>Music</strong>
+                        <small>Browse music</small>
+                    </span>
+                </RouterLink>
+
+                <RouterLink
                     :to="{ path: '/search', query: { category: 'MOVIE' } }"
                     class="sector-button"
                 >
@@ -50,21 +74,6 @@
                         <small>Browse TV shows</small>
                     </span>
                 </RouterLink>
-
-                <!-- Future category -->
-                <!--
-                <RouterLink
-                    :to="{ path: '/search', query: { category: 'COMIC' } }"
-                    class="sector-button"
-                >
-                    <span class="sector-icon">📖</span>
-
-                    <span>
-                        <strong>Comics</strong>
-                        <small>Browse comics</small>
-                    </span>
-                </RouterLink>
-                -->
 
             </div>
 
@@ -107,7 +116,7 @@
                 </RouterLink>
 
 
-                <RouterLink
+               <!-- <RouterLink
                     to="/lists"
                     class="account-button"
                 >
@@ -117,7 +126,7 @@
                         <strong>Lists</strong>
                         <small>Your watchlist and wishlist</small>
                     </span>
-                </RouterLink>
+                </RouterLink>-->
 
 
                 <RouterLink

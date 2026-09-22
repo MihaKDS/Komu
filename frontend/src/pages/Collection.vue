@@ -1,14 +1,16 @@
 <template>
     <div class="page">
         <Breadcrumbs />
-        <h1>My Collection ({{ totalCopies }})</h1>
-        <RouterLink
-            :to="{ path: '/collection/edit' }"
-            @click="$emit('close-menu')"
-            class="nav"
-        >
-            📦Collection Edit
-        </RouterLink>     
+        <div class="collection-title-row">
+            <h1>My Collection ({{ totalCopies }})</h1>
+            <RouterLink
+                :to="{ path: '/collection/edit' }"
+                @click="$emit('close-menu')"
+                class="collection-edit-button"
+            >
+                Collection edit
+            </RouterLink>
+        </div>
 
         <CategorySelector
             :categories="categories"
@@ -137,7 +139,8 @@ const categories = [
   "MOVIE",
   "TV_SHOW",
   "BOOK",
-  "COMIC"
+  "COMIC",
+  "MUSIC"
 ];
 
 function changeCategory(category) {
@@ -193,6 +196,10 @@ function matchesFormat(media) {
         DVD: media.dvd,
         BLURAY: media.bluray,
         UHD_4K: media.fourk,
+        SOFT_COVER: media.softcover,
+        HARD_COVER: media.hardcover,
+        CD: media.cd,
+        VINYL: media.vinyl,
     };
 
     return Boolean(formats[selectedFormat.value]);
@@ -286,6 +293,10 @@ const filteredMedia = computed(() => {
                 title: g.title,
                 isCollectionGroup: true,
                 collectionSize: g.medias.length,
+                collectionCopies: g.medias.reduce(
+                    (total, media) => total + media.copies.length,
+                    0,
+                ),
                 id: g.medias[0].id,
                 hasSell: g.medias.some(m => mediaMap.value.get(m.id)?.hasSell) || false,
                 hasRent: g.medias.some(m => mediaMap.value.get(m.id)?.hasRent) || false,
@@ -333,9 +344,48 @@ function openMedia(filteredMedia) {
 </script>
 
 <style scoped>
+.collection-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    text-align: left;
+}
+
+.collection-title-row h1 {
+    margin: 0;
+}
+
+.collection-edit-button {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 9px;
+    color: var(--text);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+    font-size: 12px;
+    text-decoration: none;
+}
+
+.collection-edit-button:hover {
+    color: var(--text-h);
+    background: var(--bg-hover);
+    border-color: var(--border-light);
+}
+
 .add-media-button {
     margin-top: 1rem;
 }
 
+@media (max-width: 600px) {
+    .collection-title-row {
+        align-items: flex-start;
+    }
+
+    .collection-title-row h1 {
+        font-size: 28px;
+    }
+}
 
 </style>

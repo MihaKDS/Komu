@@ -84,6 +84,7 @@ const contextBreadcrumbMap = {
     TV_SHOW: { label: 'TV Shows', to: '/search?category=TV_SHOW' },
     BOOK: { label: 'Books', to: '/search?category=BOOK' },
     COMIC: { label: 'Comics', to: '/search?category=COMIC'},
+    MUSIC: { label: 'Music', to: '/search?category=MUSIC' },
 };
 
 const items = computed(() => {
@@ -96,7 +97,7 @@ const items = computed(() => {
     ];
 
     // Check if there's a context query parameter (from where user came)
-    const fromContext = route.query.from;
+    const fromContext = route.query.from || route.query.category;
     const contextBreadcrumb = contextBreadcrumbMap[fromContext];
 
     if (contextBreadcrumb) {

@@ -88,6 +88,13 @@
             <p class="listing-meta">
               {{ listing.type === 'boxSet' ? `${listing.boxSet.copyCount} movies` : `${listing.edition} • ${listing.condition}` }}
             </p>
+
+            <p
+              v-if="listingComicVolumes(listing)"
+              class="listing-volumes"
+            >
+              {{ listingComicVolumes(listing) }}
+            </p>
             <p
               v-if="
                 listing.type === 'boxSet'
@@ -137,6 +144,7 @@ import SearchBar from "../components/ui/SearchBar.vue";
 import { getSellerListings } from "../api/mediaAPI.js";
 import { createTrade } from "../api/tradeAPI.js";
 import { useAuth } from "../composables/useAuth";
+import { formatComicVolumes } from "../utils/comicVolumes.js";
 
 const route = useRoute();
 const router = useRouter();
@@ -153,7 +161,7 @@ const requestMessage = ref("");
 const requestingTrade = ref(false);
 const requestError = ref("");
 
-const categories = ["MOVIE", "TV_SHOW", "BOOK"];
+const categories = ["MOVIE", "TV_SHOW", "BOOK", "COMIC", "MUSIC"];
 
 const pageTitle = computed(() => {
   return sellerData.value?.seller?.username
@@ -215,6 +223,16 @@ const canRequest = computed(() => {
 
 function posterSource(poster) {
   return poster?.startsWith("http") ? poster : `/posters/${poster}`;
+}
+
+function listingComicVolumes(listing) {
+  if (listing.category !== "COMIC") {
+    return "";
+  }
+
+  return formatComicVolumes(
+    listing.volumes ?? [],
+  );
 }
 
 function isSelected(key) {
@@ -670,6 +688,15 @@ watch(
     color: var(--text-muted);
 
     font-size: 12px;
+}
+
+.listing-volumes {
+    margin: 6px 0 0;
+
+    color: var(--text-secondary);
+
+    font-size: 12px;
+    font-weight: 600;
 }
 
 .listing-note {

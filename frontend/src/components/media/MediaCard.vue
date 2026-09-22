@@ -3,7 +3,9 @@
     :to="mediaLink"
     class="media-card-link"
 >
-    <article class="media-card">
+    <article
+        :class="['media-card', { 'is-collection': media.isCollectionGroup }]"
+    >
 
         <img
             :src="posterSource(props.media.poster, props.category)"
@@ -63,12 +65,16 @@
             </p>
 
 
+            <p v-if="media.isCollectionGroup" class="copy-count">
+                {{ media.isCollectionGroup ? media.collectionCopies : copyCount }}
+                {{ (media.isCollectionGroup ? media.collectionCopies : copyCount) === 1 ? "physical copy" : "physical copies" }}
+            </p>
+
             <p
-                v-else-if="media.availableCopies != null"
-                class="available-copies"
+                v-if="comicVolumesSummary"
+                class="comic-volumes"
             >
-                {{ media.availableCopies }}
-                available for sale
+                {{ comicVolumesSummary }}
             </p>
 
 
@@ -92,22 +98,42 @@
 
 
             <div
-                v-if="!media.isCollectionGroup && (media.category === 'MOVIE' || media.category === 'TV_SHOW')"
+                v-if="!media.isCollectionGroup && (media.category === 'MOVIE' || media.category === 'TV_SHOW' || media.category === 'MUSIC' || media.category === 'BOOK' || media.category === 'COMIC')"
                 class="media-formats"
             >
-                <div class="format">
+                <div v-if="media.category === 'MOVIE' || media.category === 'TV_SHOW'" class="format">
                     <span>DVD</span>
                     <strong>{{ media.dvd ?? 0 }}</strong>
                 </div>
 
-                <div class="format">
+                <div v-if="media.category === 'MOVIE' || media.category === 'TV_SHOW'" class="format">
                     <span>BR</span>
                     <strong>{{ media.bluray ?? 0 }}</strong>
                 </div>
 
-                <div class="format">
+                <div v-if="media.category === 'MOVIE' || media.category === 'TV_SHOW'" class="format">
                     <span>UHD</span>
                     <strong>{{ media.fourk ?? 0 }}</strong>
+                </div>
+
+                <div v-if="media.category === 'MUSIC'" class="format">
+                    <span>CD</span>
+                    <strong>{{ media.cd ?? 0 }}</strong>
+                </div>
+
+                <div v-if="media.category === 'MUSIC'" class="format">
+                    <span>VINYL</span>
+                    <strong>{{ media.vinyl ?? 0 }}</strong>
+                </div>
+
+                <div v-if="media.category === 'BOOK' || media.category === 'COMIC'" class="format">
+                    <span>SOFT</span>
+                    <strong>{{ media.softcover ?? 0 }}</strong>
+                </div>
+
+                <div v-if="media.category === 'BOOK' || media.category === 'COMIC'" class="format">
+                    <span>HARD</span>
+                    <strong>{{ media.hardcover ?? 0 }}</strong>
                 </div>
             </div>
 
@@ -120,6 +146,10 @@
 <script setup>
 import { useRouter } from "vue-router";
 import { computed } from "vue";
+import {
+    collectComicVolumeValuesFromCopies,
+    formatComicVolumes,
+} from "../../utils/comicVolumes.js";
 
 const router = useRouter();
 
@@ -153,7 +183,7 @@ function posterSource(poster, category) {
             : `/posters/${poster}`;
     }
 
-    if (category === "BOOK" || category === "COMIC") {
+    if (category === "BOOK" || category === "COMIC" || category === "MUSIC") {
         return "/posters/book-placeholder.png";
     }
 
@@ -189,6 +219,38 @@ function openTrade(tradeId) {
         },
     });
 }
+
+const comicVolumesSummary = computed(() => {
+    if (
+        props.media.category !== "COMIC" ||
+        props.media.isCollectionGroup ||
+        !Array.isArray(props.media.copies)
+    ) {
+        return "";
+    }
+
+    return formatComicVolumes(
+        collectComicVolumeValuesFromCopies(
+            props.media.copies,
+        ),
+    );
+});
+
+const copyCount = computed(() => {
+    if (Array.isArray(props.media.copies)) {
+        return props.media.copies.filter((copy) => copy.isArchived !== true).length;
+    }
+
+    return [
+        props.media.dvd,
+        props.media.bluray,
+        props.media.fourk,
+        props.media.softcover,
+        props.media.hardcover,
+        props.media.cd,
+        props.media.vinyl,
+    ].reduce((total, count) => total + (Number(count) || 0), 0);
+});
 </script>
 
 <style scoped>
@@ -206,12 +268,10 @@ function openTrade(tradeId) {
     background: var(--bg-card);
 
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: var(--radius-small);
 
-    transition:
-        transform 0.15s ease,
-        border-color 0.15s ease,
-        box-shadow 0.15s ease;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    text-align: left;
 }
 
 .media-card:hover {
@@ -219,9 +279,17 @@ function openTrade(tradeId) {
 
     border-color: var(--border-light);
 
-    transform: translateY(-2px);
+    background: var(--bg-hover);
+}
 
-    box-shadow: var(--shadow-small);
+.media-card.is-collection {
+    background: #1b2130;
+    border-color: #2c3a52;
+}
+
+.media-card.is-collection:hover {
+    background: #212940;
+    border-color: var(--accent-border);
 }
 
 
@@ -232,9 +300,9 @@ function openTrade(tradeId) {
 
     width: 100%;
 
-    aspect-ratio: 2 / 3;
+    aspect-ratio: 5 / 6;
 
-    object-fit: cover;
+    object-fit: contain;
 
     background: var(--bg-secondary);
 }
@@ -243,7 +311,7 @@ function openTrade(tradeId) {
 /* Content */
 
 .content {
-    padding: 12px;
+    padding: 10px;
 }
 
 .card-meta {
@@ -319,12 +387,21 @@ function openTrade(tradeId) {
 }
 
 .collection-summary,
-.available-copies {
+.copy-count {
     margin: 6px 0 0;
 
     color: var(--text-secondary);
 
     font-size: 12px;
+}
+
+.comic-volumes {
+    margin: 6px 0 0;
+
+    color: var(--text-secondary);
+
+    font-size: 12px;
+    font-weight: 600;
 }
 
 
@@ -430,7 +507,7 @@ function openTrade(tradeId) {
     }
 
     .collection-summary,
-    .available-copies {
+    .copy-count {
         font-size: 11px;
     }
 

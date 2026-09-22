@@ -41,6 +41,15 @@
 
         <select
             id="edition"
+            v-else-if="props.media.category === 'MUSIC'"
+            v-model="form.edition"
+        >
+            <option value="CD">CD</option>
+            <option value="VINYL">Vinyl</option>
+        </select>
+
+        <select
+            id="edition"
             v-else
             v-model="form.edition"
         >
@@ -50,129 +59,20 @@
 
     </section>
 
-
-    <!-- =====================================================
-         COMIC / MANGA VOLUMES
-         ===================================================== -->
-
-    <section
-        v-if="props.media.category === 'COMIC'"
-        class="form-section volume-section"
-    >
-
-        <div class="section-title">
-            <h3>Add volumes</h3>
-
-            <span class="section-hint">
-                Add multiple volumes at once
-            </span>
-        </div>
-
-
-        <div class="volume-input">
-
-            <input
-                type="number"
-                min="1"
-                v-model.number="form.volume"
-                placeholder="Volume"
-                @keyup.enter="addVolume"
-            />
-
-            <button
-                type="button"
-                class="secondary-button"
-                @click="addVolume"
-            >
-                Add volume
-            </button>
-
-        </div>
-
-
-        <div
-            v-if="form.volumes.length"
-            class="volume-list"
-        >
-
-            <div class="volume-list-header">
-                <span>
-                    Volumes to add
-                </span>
-
-                <span>
-                    {{ form.volumes.length }}
-                </span>
-            </div>
-
-
-            <div
-                v-for="volume in form.volumes"
-                :key="volume"
-                class="volume-item"
-            >
-
-                <span>
-                    {{ props.media.title }}
-                    <strong>Vol. {{ volume }}</strong>
-                </span>
-
-                <button
-                    type="button"
-                    class="remove-button"
-                    @click="removeVolume(volume)"
-                >
-                    Remove
-                </button>
-
-            </div>
-
-        </div>
-
-
-        <div
-            v-else
-            class="volume-empty"
-        >
-            No volumes added yet.
-        </div>
-
-
-        <div class="form-actions">
-
-            <button
-                type="button"
-                class="primary-button"
-                :disabled="form.volumes.length === 0"
-                @click="saveComic"
-            >
-                Add
-                {{ form.volumes.length || "" }}
-                volume<span v-if="form.volumes.length !== 1">s</span>
-                to collection
-            </button>
-
-            <button
-                type="button"
-                class="secondary-button"
-                @click="emit('close')"
-            >
-                Cancel
-            </button>
-
-        </div>
-
-    </section>
-
-
     <!-- =====================================================
          NORMAL MEDIA
          ===================================================== -->
 
-    <section
-        v-else
-        class="form-section"
-    >
+    <section class="form-section">
+
+        <ComicVolumesField
+            v-if="props.media.category === 'COMIC'"
+            v-model="form.volumes"
+            label="Volumes"
+            hint="Numbers sort numerically; text stays safe."
+            placeholder="Add volumes like 1, 2, 2.5, Special"
+            :auto-suggest-next="true"
+        />
 
         <!-- 4K -->
 
@@ -284,7 +184,11 @@
                 :disabled="
                     form.partOfBox &&
                     form.boxSetMode === 'existing' &&
-                    !form.existingBoxSetId
+                    !form.existingBoxSetId ||
+                    (
+                        props.media.category === 'COMIC' &&
+                        form.volumes.length === 0
+                    )
                 "
                 @click="saveCopy"
             >
@@ -312,7 +216,7 @@ import { reactive, computed, onMounted, ref } from "vue";
 import { createCopy } from "../../api/copyAPI";
 import { getMyBoxSets } from "../../api/boxsetAPI";
 import MediaSearch from "../media/MediaSearch.vue";
-import MediaDetail from "../../pages/MediaDetail.vue";
+import ComicVolumesField from "./ComicVolumesField.vue";
 
 const props = defineProps({
     media: {
@@ -339,7 +243,6 @@ const form = reactive({
     boxSetCanSell: false,
     boxSetSellPrice: null,
     boxSetCanRent: false,
-    volume: null,
     volumes: [],
 });
 
@@ -362,11 +265,13 @@ async function saveCopy() {
         }
 
         await createCopy({
-            title: `${props.media.title} Vol. ${form.volume}`,
             edition: form.edition,
             includesBluRay: form.includesBluRay,
             partOfBox: form.partOfBox,
             mediaIds: form.items.map(item => item.id),
+            volumes: props.media.category === "COMIC"
+                ? form.volumes
+                : undefined,
             existingBoxSetId: form.boxSetMode === 'existing' && form.existingBoxSetId ? Number(form.existingBoxSetId) : undefined,
             boxSetName: form.boxSetMode === 'new' ? form.boxSetName : undefined,
             boxSetListingNote: form.boxSetMode === 'new' ? form.boxSetListingNote : undefined,
@@ -381,57 +286,6 @@ async function saveCopy() {
         console.error(err);
     }
 };
-
-async function saveComic() {
-    try {
-        if (form.partOfBox && form.boxSetMode === 'existing' && !form.existingBoxSetId) {
-            return;
-        }
-
-        await createCopy({
-            volumes: form.volumes,
-            edition: form.edition,
-            includesBluRay: form.includesBluRay,
-            partOfBox: form.partOfBox,
-            mediaIds: form.items.map(item => item.id),
-            existingBoxSetId: form.boxSetMode === 'existing' && form.existingBoxSetId ? Number(form.existingBoxSetId) : undefined,
-            boxSetName: form.boxSetMode === 'new' ? form.boxSetName : undefined,
-            boxSetListingNote: form.boxSetMode === 'new' ? form.boxSetListingNote : undefined,
-            boxSetCanSell: form.boxSetMode === 'new' ? form.boxSetCanSell : undefined,
-            boxSetSellPrice: form.boxSetMode === 'new' ? form.boxSetSellPrice : undefined,
-            boxSetCanRent: form.boxSetMode === 'new' ? form.boxSetCanRent : undefined,
-        });
-
-        emit("saved");
-        emit("close");
-    } catch (err) {
-        console.error(err);
-    }
-};
-
-function addVolume() {
-    const volume = Number(form.volume);
-
-    if (!volume || volume < 1) {
-        return;
-    }
-
-    // Don't allow the same volume twice
-    if (form.volumes.includes(volume)) {
-        return;
-    }
-
-    form.volumes.push(volume);
-
-    // Prepare next volume
-    form.volume = volume + 1;
-}
-
-function removeVolume(volume) {
-    form.volumes = form.volumes.filter(
-        v => v !== volume
-    );
-}
 
 function addItem(media) {
     form.items.push(media);

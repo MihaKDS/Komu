@@ -1,9 +1,9 @@
 <template>
     <div class="add-media">
         <Breadcrumbs title="Add Media" />
-        <h1>Add Media</h1>
+        <h1>Add {{ categoryLabel }}</h1>
         <p class="help-text">
-            Add a movie, TV show, or book to Komu.
+            Add a movie, TV show, book, comic, or music title to Komu.
         </p>
 
         <section v-if="!categorySelected" class="category-section">
@@ -12,6 +12,14 @@
                 <button type="button" class="category-button" @click="selectCategory('BOOK')">
                     <span class="category-icon">📚</span>
                     <span>Book</span>
+                </button>
+                <button type="button" class="category-button" @click="selectCategory('COMIC')">
+                    <span class="category-icon">📖</span>
+                    <span>Comic</span>
+                </button>
+                <button type="button" class="category-button" @click="selectCategory('MUSIC')">
+                    <span class="category-icon">🎵</span>
+                    <span>Music</span>
                 </button>
                 <button type="button" class="category-button" @click="selectCategory('MOVIE')">
                     <span class="category-icon">🎬</span>
@@ -24,42 +32,12 @@
             </div>
         </section>
 
-        <form v-else class="media-form" @submit.prevent="saveMedia">
+        <form v-else class="media-form" @submit.prevent="openConfirmModal">
             <div class="selected-category">
                 <span>{{ categoryLabel }}</span>
                 <button type="button" class="change-category" @click="changeCategory">
                     Change
                 </button>
-            </div>
-
-            <!-- =================================================
-                 TMDB IMPORT
-                 ================================================= -->
-            <div
-            v-if="
-                form.category === 'MOVIE' ||
-                form.category === 'TV_SHOW' ||
-                form.category === 'BOOK'
-            "
-            class="external-search"
-            >
-            <button
-                v-if="form.category === 'MOVIE' || form.category === 'TV_SHOW'"
-                type="button"
-                class="tmdb-search-button"
-                @click="openTmdbImport"
-            >
-                Search TMDB
-            </button>
-
-            <button
-                v-if="form.category === 'BOOK'"
-                type="button"
-                class="tmdb-search-button"
-                @click="openGoogleBooksImport"
-            >
-                Search Google Books
-            </button>
             </div>
 
             <!-- =================================================
@@ -86,8 +64,30 @@
                     </div>
                 </label>
 
-                <label v-if="form.category === 'BOOK'">
-                    Author
+                <div class="title-search">
+                    <button
+                        v-if="form.category === 'MOVIE' || form.category === 'TV_SHOW'"
+                        type="button"
+                        class="title-search-button"
+                        :disabled="!form.title.trim()"
+                        @click="searchTmdbFromTitle"
+                    >
+                        Search TMDB
+                    </button>
+
+                    <button
+                        v-if="form.category === 'BOOK'"
+                        type="button"
+                        class="title-search-button"
+                        :disabled="!form.title.trim()"
+                        @click="searchGoogleBooksFromTitle"
+                    >
+                        Search books
+                    </button>
+                </div>
+
+                <label v-if="['BOOK', 'COMIC'].includes(form.category)">
+                    {{ form.category === 'BOOK' ? 'Author' : 'Author' }}
                     <div class="input-wrapper">
                         <input
                             v-model="form.author"
@@ -140,13 +140,13 @@
                  DETAILED FORM
                  ================================================= -->
             <section v-if="showDetailedFields" class="detailed-fields">
-                <label>
-                    {{ form.category === "BOOK" ? "Author" : "Author / Creator" }}
+                <label v-if="!['BOOK', 'COMIC'].includes(form.category)">
+                    {{ form.category === 'MUSIC' ? 'Artist' : 'Author / Creator' }}
                     <div class="input-wrapper">
                         <input
                             v-model="form.author"
                             type="text"
-                            placeholder="Author or creator"
+                            :placeholder="form.category === 'MUSIC' ? 'Artist' : 'Author or creator'"
                             autocomplete="off"
                         >
                         <button
@@ -192,6 +192,28 @@
                         >×</button>
                     </div>
                     <span class="field-help">Optional. You can leave this empty.</span>
+                </label>
+
+                <label>
+                    Cover photo
+                    <div class="upload-row">
+                        <input
+                            type="file"
+                            accept="image/*"
+                            :disabled="uploadingCover"
+                            @change="handleCoverUpload"
+                        >
+                        <span class="upload-status">
+                            {{ uploadingCover ? 'Uploading…' : 'Optional uploaded cover' }}
+                        </span>
+                    </div>
+                    <div v-if="coverUploadError" class="upload-error">{{ coverUploadError }}</div>
+                    <img
+                        v-if="uploadedCoverUrl"
+                        :src="uploadedCoverUrl"
+                        alt="Uploaded cover preview"
+                        class="cover-preview"
+                    >
                 </label>
 
                 <label>
@@ -602,6 +624,173 @@
 
             </div>
         </div>
+        <!-- =====================================================
+     CONFIRM MEDIA MODAL
+     ===================================================== -->
+        <div
+            v-if="showConfirmModal"
+            class="modal-backdrop"
+            @click.self="closeConfirmModal"
+        >
+            <div class="modal confirm-modal">
+
+                <div class="modal-header">
+                    <div>
+                        <h2>Confirm media</h2>
+
+                        <p class="modal-subtitle">
+                            Please check the information before adding it.
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="close-button"
+                        :disabled="saving"
+                        @click="closeConfirmModal"
+                    >
+                        ×
+                    </button>
+                </div>
+
+                <div class="confirm-content">
+
+                    <!-- Cover -->
+                    <div
+                        v-if="form.poster"
+                        class="confirm-poster"
+                    >
+                        <img
+                            :src="form.poster"
+                            :alt="form.title"
+                        >
+                    </div>
+
+                    <!-- Main information -->
+                    <div class="confirm-main">
+
+                        <div class="confirm-field">
+                            <span class="confirm-label">Category</span>
+                            <strong>{{ categoryLabel }}</strong>
+                        </div>
+
+                        <div class="confirm-field">
+                            <span class="confirm-label">Title</span>
+                            <strong>{{ form.title || "—" }}</strong>
+                        </div>
+
+                        <div
+                            v-if="form.author"
+                            class="confirm-field"
+                        >
+                            <span class="confirm-label">
+                                {{ form.category === "BOOK" ? "Author" : "Author / Creator" }}
+                            </span>
+
+                            <span>{{ form.author }}</span>
+                        </div>
+
+                        <div
+                            v-if="form.releaseYear"
+                            class="confirm-field"
+                        >
+                            <span class="confirm-label">Release year</span>
+                            <span>{{ form.releaseYear }}</span>
+                        </div>
+
+                        <div
+                            v-if="form.genres.length"
+                            class="confirm-field"
+                        >
+                            <span class="confirm-label">Genres</span>
+
+                            <div class="confirm-tags">
+                                <span
+                                    v-for="genre in form.genres"
+                                    :key="genre"
+                                    class="confirm-tag"
+                                >
+                                    {{ genre }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div
+                            v-if="form.languages.length"
+                            class="confirm-field"
+                        >
+                            <span class="confirm-label">Languages</span>
+
+                            <div class="confirm-tags">
+                                <span
+                                    v-for="language in form.languages"
+                                    :key="language"
+                                    class="confirm-tag"
+                                >
+                                    {{ language }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div
+                            v-if="form.description"
+                            class="confirm-field confirm-description"
+                        >
+                            <span class="confirm-label">Description</span>
+
+                            <p>{{ form.description }}</p>
+                        </div>
+
+                        <div
+                            v-if="form.poster"
+                            class="confirm-field"
+                        >
+                            <span class="confirm-label">Poster</span>
+                            <span>Cover image selected</span>
+                        </div>
+
+                        <div
+                            v-if="form.tmdbId"
+                            class="confirm-field"
+                        >
+                            <span class="confirm-label">TMDB ID</span>
+                            <span>{{ form.tmdbId }}</span>
+                        </div>
+
+                    </div>
+                </div>
+
+                <p
+                    v-if="error"
+                    class="error"
+                >
+                    {{ error }}
+                </p>
+
+                <div class="form-actions confirm-actions">
+
+                    <button
+                        type="button"
+                        class="secondary-button"
+                        :disabled="saving"
+                        @click="closeConfirmModal"
+                    >
+                        Back to edit
+                    </button>
+
+                    <button
+                        type="button"
+                        class="primary-button"
+                        :disabled="saving"
+                        @click="saveMedia"
+                    >
+                        {{ saving ? "Adding..." : "Confirm & Add" }}
+                    </button>
+
+                </div>
+
+            </div>
+        </div>
     </div>
 </template>
 
@@ -671,6 +860,9 @@ const form = reactive({
 
 });
 
+const uploadedCoverUrl = ref("");
+const coverUploadError = ref("");
+const uploadingCover = ref(false);
 const categorySelected = ref(false);
 
 const showDetailedFields = ref(false);
@@ -678,6 +870,24 @@ const showDetailedFields = ref(false);
 const saving = ref(false);
 
 const error = ref("");
+
+const showConfirmModal = ref(false);
+
+
+function openConfirmModal() {
+    if (saving.value || !isFormValid.value) {
+        return;
+    }
+
+    error.value = "";
+    showConfirmModal.value = true;
+}
+
+function closeConfirmModal() {
+    if (saving.value) return;
+
+    showConfirmModal.value = false;
+}
 
 /* ============================================================
 
@@ -742,7 +952,7 @@ const recentGenres = ref([]);
 
 const recentLanguages = ref([]);
 
-const RECENT_LIMIT = 10;
+const RECENT_LIMIT = 3;
 
 const STORAGE_KEYS = {
 
@@ -822,6 +1032,10 @@ const categoryLabel = computed(() => {
 
         case "BOOK": return "Book";
 
+        case "COMIC": return "Comic";
+
+        case "MUSIC": return "Music";
+
         default: return "";
 
     }
@@ -860,6 +1074,9 @@ function resetFormMetadata() {
     form.releaseYear = null;
 
     form.poster = "";
+
+    uploadedCoverUrl.value = "";
+	coverUploadError.value = "";
 
     form.genres = [];
 
@@ -1067,6 +1284,28 @@ function tmdbPoster(path) {
 
    ============================================================ \*/
 
+async function searchTmdbFromTitle() {
+    const title = form.title.trim();
+
+    if (!title) return;
+
+    openTmdbImport();
+    tmdbSearch.value = title;
+
+    await searchTmdb();
+}
+
+async function searchGoogleBooksFromTitle() {
+    const title = form.title.trim();
+
+    if (!title) return;
+
+    openGoogleBooksImport();
+    googleBooksSearch.value = title;
+
+    await searchGoogleBooksApi();
+}
+
 async function importTmdbItems() {
     if (form.category === "MOVIE" && !selectedTmdbMovie.value) return;
     if (form.category === "TV_SHOW" && !selectedTmdbTvShow.value) return;
@@ -1194,6 +1433,7 @@ async function importTmdbItems() {
             router.push({
                 name: "media",
                 params: { id: firstCreatedMediaId },
+                query: { category: form.category },
             });
         }
     } catch (importError) {
@@ -1460,7 +1700,8 @@ async function saveMedia() {
 
     try {
 
-        const media = await createMedia({
+        const poster = uploadedCoverUrl.value || form.poster.trim() || null;
+        const media = await createMedia({
 
             category: form.category,
 
@@ -1472,7 +1713,7 @@ async function saveMedia() {
 
             releaseYear: form.releaseYear ? Number(form.releaseYear) : null,
 
-            poster: form.poster.trim() || null,
+            poster,
 
             genres: [...form.genres],
 
@@ -1488,11 +1729,15 @@ async function saveMedia() {
 
         form.languages.forEach((language) => saveRecentValue(STORAGE_KEYS.languages, language));
 
-        router.push({
+        showConfirmModal.value = false;
+
+        router.push({
 
             name: "media",
 
             params: { id: media.id },
+
+            query: { category: form.category },
 
         });
 
@@ -1508,6 +1753,42 @@ async function saveMedia() {
 
     }
 
+}
+
+async function handleCoverUpload(event) {
+    const file = event?.target?.files?.[0];
+    if (!file) return;
+
+    coverUploadError.value = "";
+    uploadingCover.value = true;
+
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('http://localhost:3000/media/upload-cover', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+            },
+            body: formData,
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data?.message || 'Upload failed.');
+        }
+
+        uploadedCoverUrl.value = data.url.startsWith('http') ? data.url : `http://localhost:3000${data.url}`;
+        form.poster = "";
+    } catch (error) {
+        console.error('Cover upload failed:', error);
+        uploadedCoverUrl.value = "";
+        coverUploadError.value = error.message || 'Failed to upload cover photo.';
+    } finally {
+        uploadingCover.value = false;
+        event.target.value = '';
+    }
 }
 
 onMounted(() => {
@@ -1548,7 +1829,7 @@ onMounted(() => {
 
 .category-section { margin-top: 35px; }
 .category-section h2 { margin: 0 0 18px; color: var(--text-h); font-size: 18px; }
-.category-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.category-buttons { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
 .category-button {
     display: flex;
     flex-direction: column;
@@ -1608,6 +1889,28 @@ onMounted(() => {
 .media-form textarea { min-height: 110px; padding: 10px 38px 10px 11px; resize: vertical; }
 .media-form input::placeholder, .media-form textarea::placeholder { color: var(--text-muted); }
 .media-form input:focus, .media-form textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.upload-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.upload-status {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+.upload-error {
+    color: #f87171;
+    font-size: 12px;
+}
+.cover-preview {
+    display: block;
+    width: 120px;
+    max-height: 180px;
+    object-fit: cover;
+    border-radius: var(--radius-small);
+    border: 1px solid var(--border);
+    margin-top: 8px;
+}
 
 .clear-button {
     position: absolute;
@@ -1630,31 +1933,6 @@ onMounted(() => {
 }
 .clear-button:hover { color: var(--text-h); background: var(--bg-hover); }
 .textarea-clear { top: 14px; transform: none; }
-
-.external-search {
-    padding: 14px;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-small);
-}
-.external-search-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.external-search-header > div { display: flex; flex-direction: column; gap: 3px; }
-.external-search-header strong { color: var(--text-h); font-size: 13px; }
-.external-search-header span { color: var(--text-muted); font-size: 11px; }
-.search-button, .search-tmdb-button {
-    min-height: 38px;
-    padding: 8px 14px;
-    color: #fff;
-    background: var(--accent);
-    border: 1px solid var(--accent);
-    border-radius: var(--radius-small);
-    font: inherit;
-    font-size: 13px;
-    cursor: pointer;
-}
-.search-button:hover, .search-tmdb-button:hover { background: var(--accent-hover); }
-.search-button:disabled, .search-tmdb-button:disabled { opacity: 0.5; cursor: not-allowed; }
-.search-button.compact { flex-shrink: 0; }
 
 .details-toggle {
     display: flex;
@@ -1751,9 +2029,9 @@ onMounted(() => {
 }
 .tmdb-result:hover { background: var(--bg-hover); border-color: var(--border); }
 .tmdb-result img { width: 48px; height: 70px; flex-shrink: 0; object-fit: cover; border-radius: 3px; }
-.tmdb-result-content { display: flex; flex: 1; flex-direction: column; align-items: flex-start; gap: 4px; }
-.tmdb-result-content strong { color: var(--text-h); font-size: 13px; }
-.tmdb-result-content span { color: var(--text-muted); font-size: 11px; }
+.tmdb-result-content { display: flex; flex: 1 1 auto; flex-direction: column; align-items: flex-start; min-width: 0; gap: 4px; }
+.tmdb-result-content strong { display: block; width: 100%; color: var(--text-h); font-size: 13px; overflow-wrap: anywhere; word-break: break-word; }
+.tmdb-result-content span { display: block; width: 100%; color: var(--text-muted); font-size: 11px; overflow-wrap: anywhere; }
 .tmdb-result-content button { margin-top: 3px; padding: 5px 8px; color: var(--accent); background: transparent; border: 1px solid var(--accent); border-radius: var(--radius-small); font: inherit; font-size: 11px; cursor: pointer; }
 .tmdb-result-content button:hover { color: #fff; background: var(--accent); }
 .tmdb-selected h4 { margin: 0 0 10px; color: var(--text-h); font-size: 14px; }
@@ -1779,7 +2057,112 @@ onMounted(() => {
 /* =========================================================
    SHARED IMPORT MODAL IMPROVEMENTS
    ========================================================= */
+.title-search {
+    display: flex;
+    margin-top: -10px;
+}
 
+.title-search-button {
+    min-height: 32px;
+    padding: 5px 10px;
+    color: var(--accent);
+    background: transparent;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-small);
+    font: inherit;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.title-search-button:hover {
+    color: #fff;
+    background: var(--accent);
+}
+
+.title-search-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+/* =========================================================
+   CONFIRM MEDIA MODAL
+   ========================================================= */
+
+.confirm-modal {
+    max-width: 650px;
+}
+
+.confirm-content {
+    display: flex;
+    gap: 20px;
+    margin-top: 16px;
+}
+
+.confirm-poster {
+    flex: 0 0 130px;
+}
+
+.confirm-poster img {
+    display: block;
+    width: 130px;
+    max-height: 195px;
+    object-fit: cover;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+}
+
+.confirm-main {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 13px;
+    min-width: 0;
+}
+
+.confirm-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.confirm-label {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.confirm-field strong {
+    color: var(--text-h);
+    font-size: 14px;
+}
+
+.confirm-description p {
+    margin: 0;
+    max-height: 120px;
+    overflow-y: auto;
+    color: var(--text);
+    line-height: 1.5;
+}
+
+.confirm-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.confirm-tag {
+    padding: 4px 7px;
+    color: var(--text-secondary);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 11px;
+}
+
+.confirm-actions {
+    margin-top: 18px;
+}
 .modal-subtitle {
     margin: 3px 0 0;
     color: var(--text-muted);
@@ -1819,7 +2202,7 @@ onMounted(() => {
     align-items: flex-start;
     gap: 12px;
     width: 100%;
-    min-height: 82px;
+    box-sizing: border-box;
     padding: 8px;
     color: var(--text);
     background: transparent;
@@ -1847,46 +2230,44 @@ onMounted(() => {
     flex-direction: column;
     align-items: flex-start;
     min-width: 0;
+    height: auto;
     gap: 4px;
     padding-top: 1px;
+    overflow: visible;
 }
 
 .google-books-results .tmdb-result-content strong {
     display: block;
     width: 100%;
+    margin: 0;
     color: var(--text-h);
     font-size: 13px;
     line-height: 1.35;
+    white-space: normal;
     overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .google-books-results .tmdb-result-content span {
     display: block;
+    width: 100%;
     color: var(--text-muted);
     font-size: 11px;
     line-height: 1.3;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .google-books-results .tmdb-result-content button {
     position: static;
     display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    align-self: flex-start;
     flex: 0 0 auto;
+    align-self: flex-end;
     width: auto;
     min-height: 28px;
     margin: 3px 0 0;
     padding: 4px 9px;
-    color: var(--accent);
-    background: transparent;
-    border: 1px solid var(--accent);
-    border-radius: var(--radius-small);
-    font: inherit;
-    font-size: 11px;
-    line-height: 1.2;
     white-space: nowrap;
-    cursor: pointer;
 }
 
 .google-books-results .tmdb-result-content button:hover {
@@ -1974,6 +2355,48 @@ onMounted(() => {
 /* Make modal content comfortable on smaller screens */
 
 @media (max-width: 600px) {
+    .add-media {
+        padding-bottom: 25px;
+    }
+
+    .category-buttons {
+        grid-template-columns: 1fr;
+    }
+
+    .category-button {
+        min-height: 80px;
+        flex-direction: row;
+        justify-content: flex-start;
+    }
+
+    .category-icon {
+        font-size: 24px;
+    }
+
+    .tmdb-search-row {
+        flex-direction: column;
+    }
+
+    .search-tmdb-button {
+        width: 100%;
+    }
+
+    .form-actions {
+        flex-direction: column-reverse;
+    }
+
+    .form-actions button {
+        width: 100%;
+    }
+
+    .modal-backdrop {
+        padding: 10px;
+    }
+
+    .modal {
+        max-height: calc(100vh - 20px);
+        padding: 15px;
+    }
 
     .selected-book {
         gap: 12px;
@@ -1990,20 +2413,18 @@ onMounted(() => {
         font-size: 14px;
     }
 
+    .confirm-content {
+        gap: 12px;
+    }
+
+    .confirm-poster {
+        flex-basis: 90px;
+    }
+
+    .confirm-poster img {
+        width: 90px;
+        max-height: 135px;
+    }
 }
 
-@media (max-width: 600px) {
-    .add-media { padding-bottom: 25px; }
-    .category-buttons { grid-template-columns: 1fr; }
-    .category-button { min-height: 80px; flex-direction: row; justify-content: flex-start; }
-    .category-icon { font-size: 24px; }
-    .external-search-header { align-items: flex-start; flex-direction: column; }
-    .search-button.compact { width: 100%; }
-    .tmdb-search-row { flex-direction: column; }
-    .search-tmdb-button { width: 100%; }
-    .form-actions { flex-direction: column-reverse; }
-    .form-actions button { width: 100%; }
-    .modal-backdrop { padding: 10px; }
-    .modal { max-height: calc(100vh - 20px); padding: 15px; }
-}
 </style>

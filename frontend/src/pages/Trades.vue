@@ -19,21 +19,22 @@
         class="trade-card"
       >
         <div class="card-header">
-          <div>
-            <h3>Trade #{{ trade.id }}</h3>
-            <p>
-              {{ trade.viewerRole === "buyer" ? "Buying from" : "Selling to" }}
-              {{ trade.viewerRole === "buyer" ? trade.seller.username : trade.buyer.username }}
-            </p>
-          </div>
-
+          <h3>Trade #{{ trade.id }}</h3>
           <TradeStatus :status="trade.status" />
         </div>
 
-        <p class="meta">{{ trade.type }} • {{ trade.items.length }} item(s)</p>
+        <p class="relationship">
+          {{ trade.viewerRole === "buyer" ? "Buying from" : "Selling to" }}:
+          <strong>{{ trade.viewerRole === "buyer" ? trade.seller.username : trade.buyer.username }}</strong>
+        </p>
+
+        <div class="meta-row">
+          <span>Type: <strong>{{ trade.type }}</strong></span>
+          <span>Items: <strong>{{ trade.items.length }}</strong></span>
+        </div>
 
         <p class="items-preview">
-          {{ trade.items.map((item) => item.title).join(", ") }}
+          {{ trade.items.map((item) => tradeItemPreview(item)).join(" · ") }}
         </p>
 
         <p v-if="trade.lastMessage" class="last-message">
@@ -49,6 +50,7 @@ import { onMounted, ref } from "vue";
 import Breadcrumbs from "../components/layout/Breadcrumbs.vue";
 import TradeStatus from "../components/trade/TradeStatus.vue";
 import { getTrades } from "../api/tradeAPI.js";
+import { formatComicVolumes } from "../utils/comicVolumes.js";
 
 const loading = ref(true);
 const trades = ref([]);
@@ -60,52 +62,108 @@ async function loadTrades() {
 }
 
 onMounted(loadTrades);
+
+function tradeItemPreview(item) {
+  const volumes = formatComicVolumes(
+    item.volumes ?? [],
+  );
+
+  return volumes
+    ? `${item.title} (${volumes})`
+    : item.title;
+}
 </script>
 
 <style scoped>
+.page {
+  text-align: left;
+}
+
 .trade-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.6rem;
 }
 
 .trade-card {
   display: block;
-  padding: 1rem;
-  background: var(--code-bg);
-  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
   color: inherit;
   text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .trade-card:hover {
-  background: var(--accent-bg);
+  background: var(--bg-hover);
+  border-color: var(--border-light);
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
-  gap: 1rem;
-  align-items: flex-start;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .card-header h3 {
-  margin: 0 0 0.35rem;
+  margin: 0;
+  font-size: 0.98rem;
+  color: var(--text-h);
 }
 
-.card-header p,
-.meta,
-.items-preview,
+.relationship {
+  margin: 0.35rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.relationship strong {
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+.meta-row {
+  display: flex;
+  gap: 1.1rem;
+  margin: 0.3rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.meta-row strong {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.items-preview {
+  margin: 0.35rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .last-message {
   margin: 0.35rem 0 0;
-}
-
-.meta,
-.last-message {
-  color: #bbb;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .empty {
-  color: #aaa;
+  color: var(--text-muted);
+}
+
+@media (max-width: 600px) {
+  .items-preview,
+  .last-message {
+    white-space: normal;
+  }
 }
 </style>

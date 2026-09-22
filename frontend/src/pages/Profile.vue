@@ -39,7 +39,7 @@
 import { useRouter } from "vue-router";
 import { useAuth } from "../composables/useAuth";
 
-import BreadCrumbs from "../components/layout/BreadCrumbs.vue";
+import BreadCrumbs from "../components/layout/Breadcrumbs.vue";
 
 const router = useRouter();
 

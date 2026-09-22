@@ -28,7 +28,7 @@
             <!-- Format -->
             <div class="group">
                 <label for="format-select">
-                    Format
+                    Available formats
                 </label>
 
                 <select
@@ -37,7 +37,7 @@
                     v-model="selectedFormat"
                     @change="emitFormat"
                 >
-                    <option value="ALL">All formats</option>
+                    <option value="ALL">Show all</option>
                     <option value="DVD">DVD</option>
                     <option value="BLURAY">Blu-ray</option>
                     <option value="UHD_4K">4K UHD</option>
@@ -49,8 +49,18 @@
                     @change="emitFormat"
                 >
                     <option value="ALL">All formats</option>
-                    <option value="SOFTCOVER">Softcover</option>
-                    <option value="HARDCOVER">Hardcover</option>
+                    <option value="SOFT_COVER">Softcover</option>
+                    <option value="HARD_COVER">Hardcover</option>
+                </select>
+                <select
+                    v-else-if="props.category === 'MUSIC'"
+                    id="format-select"
+                    v-model="selectedFormat"
+                    @change="emitFormat"
+                >
+                    <option value="ALL">All formats</option>
+                    <option value="CD">CD</option>
+                    <option value="VINYL">Vinyl</option>
                 </select>
             </div>
 
@@ -197,7 +207,7 @@ const emit = defineEmits([
     "update:viewMode",
     "update:displayMode",
 ]);
-const isOpen = ref(true);
+const isOpen = ref(false);
 
 const selectedFormat = ref(props.format);
 const selectedCollection = ref(props.collection);
@@ -304,12 +314,12 @@ function setDisplay(mode) {
 
 .filter-toggle {
     width: 100%;
-    min-height: 42px;
+    min-height: 34px;
 
     display: flex;
     align-items: center;
 
-    padding: 8px 12px;
+    padding: 6px 10px;
 
     color: var(--text-h);
     background: var(--bg-secondary);
@@ -353,25 +363,25 @@ function setDisplay(mode) {
     align-items: flex-end;
     flex-wrap: wrap;
 
-    gap: 12px;
+    gap: 8px;
 
     margin-top: 8px;
 
-    padding: 12px;
+    padding: 9px;
 
     background: var(--bg-secondary);
 
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: var(--radius-small);
 }
 
 .group {
     display: flex;
     flex-direction: column;
 
-    gap: 5px;
+    gap: 4px;
 
-    min-width: 145px;
+    min-width: 125px;
 }
 
 .group label {
@@ -379,15 +389,15 @@ function setDisplay(mode) {
 
     color: var(--text-secondary);
 
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
 }
 
 .group select {
     width: 100%;
-    height: 38px;
+    height: 32px;
 
-    padding: 6px 10px;
+    padding: 5px 8px;
 }
 
 
@@ -396,13 +406,13 @@ function setDisplay(mode) {
 .button-group {
     display: flex;
   
-    height: 38px;
+    height: 32px;
 }
 
 .button-group button {
-    height: 38px;
+    height: 32px;
 
-    padding: 6px 13px;
+    padding: 5px 10px;
 
     color: var(--text-secondary);
     background: var(--bg-card);

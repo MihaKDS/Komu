@@ -40,10 +40,12 @@ const label = computed(() => {
 .trade-status {
   display: inline-flex;
   align-items: center;
-  padding: 0.35rem 0.75rem;
+  flex: 0 0 auto;
+  padding: 0.2rem 0.6rem;
   border-radius: 999px;
-  font-size: 0.85rem;
+  font-size: 0.72rem;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .requested,

@@ -186,6 +186,14 @@
 
                     </div>
 
+                    <ComicVolumesField
+                        v-if="copy.media?.category === 'COMIC'"
+                        v-model="form.volumes"
+                        label="Volumes"
+                        hint="Numbers sort numerically; text stays safe."
+                        placeholder="Add volumes like 1, 2, 2.5, Special"
+                        :disabled="saving"
+                    />
 
                     <!-- Condition -->
 
@@ -322,7 +330,13 @@
                     <button
                         type="button"
                         class="primary-button"
-                        :disabled="saving"
+                        :disabled="
+                            saving ||
+                            (
+                                copy.media?.category === 'COMIC' &&
+                                form.volumes.length === 0
+                            )
+                        "
                         @click="saveCopy"
                     >
                         {{ saving ? "Saving..." : "Save" }}
@@ -379,6 +393,7 @@ import {
 } from "vue-router";
 
 import Breadcrumbs from "../layout/Breadcrumbs.vue";
+import ComicVolumesField from "./ComicVolumesField.vue";
 
 import {
     getCopyById,
@@ -386,8 +401,6 @@ import {
     deleteCopyById,
     splitCopyById,
 } from "../../api/copyAPI.js";
-
-
 const route = useRoute();
 const router = useRouter();
 
@@ -417,6 +430,7 @@ const form = reactive({
     condition: "GOOD",
 
     canRent: false,
+    volumes: [],
 });
 
 
@@ -461,6 +475,11 @@ function mapCopyToForm(data) {
 
     form.canRent =
         data.canRent ?? false;
+
+    form.volumes =
+        Array.isArray(data.volumes)
+            ? [...data.volumes]
+            : [];
 
 }
 
@@ -547,6 +566,11 @@ async function saveCopy() {
 
         canRent:
             form.canRent,
+
+        volumes:
+            copy.value.media?.category === "COMIC"
+                ? form.volumes
+                : undefined,
 
     };
 
@@ -711,12 +735,12 @@ onMounted(loadCopy);
 .edit-copy {
     width: 100%;
 
-    padding: 24px;
+    padding: 20px;
 
     color: var(--text);
-    background: var(--accent-bg);
+    background: var(--bg-secondary);
 
-    border: 2px solid var(--border);
+    border: 1px solid var(--border);
     border-radius: var(--radius);
 
     box-shadow: var(--shadow);
@@ -770,7 +794,7 @@ onMounted(loadCopy);
 
     background: var(--bg);
 
-    border: 2px solid var(--border);
+    border: 1px solid var(--border);
     border-radius: var(--radius-small);
 }
 
@@ -872,7 +896,7 @@ onMounted(loadCopy);
     color: var(--text-secondary);
     background: var(--bg-secondary);
 
-    border: 2px solid var(--border);
+    border: 1px solid var(--border);
     border-radius: var(--radius-small);
 
     font-size: 13px;
@@ -890,7 +914,7 @@ onMounted(loadCopy);
     color: var(--text-h);
     background: var(--accent);
 
-    border: 2px solid var(--border);
+    border: 1px solid var(--border);
     border-radius: 4px;
 
     font-size: 11px;
@@ -942,10 +966,10 @@ onMounted(loadCopy);
 
     padding: 8px 10px;
 
-    color: var(--text-h);
-    background: var(--bg);
+    color: var(--field-text);
+    background: var(--field-bg);
 
-    border: 2px solid var(--border);
+    border: 1px solid #b8c0ca;
     border-radius: var(--radius-small);
 
     font: inherit;
@@ -991,7 +1015,7 @@ onMounted(loadCopy);
 
     background: var(--bg-secondary);
 
-    border: 2px solid var(--border);
+    border: 1px solid var(--border);
     border-radius: var(--radius-small);
 }
 
@@ -1060,7 +1084,7 @@ onMounted(loadCopy);
     margin-top: 24px;
     padding-top: 16px;
 
-    border-top: 2px solid var(--border);
+    border-top: 1px solid var(--border);
 }
 
 .primary-button,
@@ -1092,7 +1116,7 @@ onMounted(loadCopy);
     color: var(--text);
     background: var(--bg-secondary);
 
-    border: 2px solid var(--border);
+    border: 1px solid var(--border);
 }
 
 .secondary-button:hover {
@@ -1164,7 +1188,9 @@ onMounted(loadCopy);
     }
 
     .edit-copy {
-        padding: 18px;
+        padding: 12px 8px;
+        margin-left: -4px;
+        margin-right: -4px;
     }
 
     .page-header {
@@ -1182,6 +1208,21 @@ onMounted(loadCopy);
 
     .media-reference-title {
         flex-wrap: wrap;
+    }
+
+    .field select,
+    .field textarea,
+    .price-input input {
+        padding: 6px 8px;
+        font-size: 14px;
+    }
+
+    .field select {
+        height: 36px;
+    }
+
+    .field textarea {
+        min-height: 54px;
     }
 
     .rent-fields {

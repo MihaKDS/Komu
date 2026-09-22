@@ -199,6 +199,14 @@
                     <option value="BOOK">
                         Books
                     </option>
+
+                    <option value="COMIC">
+                        Comics
+                    </option>
+
+                    <option value="MUSIC">
+                        Music
+                    </option>
                 </select>
 
             </div>
@@ -375,6 +383,14 @@
 
                     <option value="BOOK">
                         Book
+                    </option>
+
+                    <option value="COMIC">
+                        Comic
+                    </option>
+
+                    <option value="MUSIC">
+                        Music
                     </option>
                 </select>
             </label>
@@ -596,6 +612,14 @@
 
                     <option value="BOOK">
                         Book
+                    </option>
+
+                    <option value="COMIC">
+                        Comic
+                    </option>
+
+                    <option value="MUSIC">
+                        Music
                     </option>
                 </select>
             </label>
@@ -1033,6 +1057,14 @@
 
                     <option value="BOOK">
                         Book
+                    </option>
+
+                    <option value="COMIC">
+                        Comic
+                    </option>
+
+                    <option value="MUSIC">
+                        Music
                     </option>
                 </select>
             </label>
@@ -1741,6 +1773,10 @@ function categoryLabel(category) {
         TV_SHOW: "TV Show",
 
         BOOK: "Book",
+
+        COMIC: "Comic",
+
+        MUSIC: "Music",
 
     };
 
@@ -3362,6 +3398,8 @@ async function importTmdbMovies() {
 
     height: 75px;
 
+    flex-shrink: 0;
+
     object-fit: cover;
 
 }
@@ -3371,20 +3409,41 @@ async function importTmdbMovies() {
 
     display: flex;
 
-    flex: 1;
+    flex: 1 1 auto;
 
     flex-direction: column;
+
+    min-width: 0;
 
     gap: 5px;
 
 }
 
 
+.tmdb-result-content strong {
+
+    display: block;
+
+    width: 100%;
+
+    overflow-wrap: anywhere;
+
+    word-break: break-word;
+
+}
+
+
 .tmdb-result-content span {
+
+    display: block;
+
+    width: 100%;
 
     color: var(--text-muted);
 
     font-size: 12px;
+
+    overflow-wrap: anywhere;
 
 }
 

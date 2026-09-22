@@ -10,6 +10,7 @@ const {
 
 import Breadcrumbs from "../components/layout/Breadcrumbs.vue";
 import AddCopyDialog from "../components/ui/AddCopyDialog.vue";
+import { formatComicVolumesForCopy } from "../utils/comicVolumes.js";
 
 import { getMedia } from "../api/mediaAPI.js";
 import EditCopy from "../components/ui/EditCopy.vue";
@@ -65,7 +66,7 @@ function posterSource(poster, category) {
             : `/posters/${poster}`;
     }
 
-    if (category === "BOOK" || category === "COMIC") {
+    if (category === "BOOK" || category === "COMIC" || category === "MUSIC") {
         return "/posters/book-placeholder.png";
     }
 
@@ -99,6 +100,8 @@ function mediaHasFormat(media, format) {
         DVD: media.dvd,
         BLURAY: media.bluray,
         UHD_4K: media.fourk,
+        CD: media.cd,
+        VINYL: media.vinyl,
     };
     return Boolean(map[format]);
 }
@@ -106,6 +109,10 @@ function mediaHasFormat(media, format) {
 const filteredCollectionMedias = computed(() => {
     return sortedCollectionMedias.value.filter((m) => mediaHasFormat(m, collectionFormat.value));
 });
+
+function comicVolumesLabel(copy) {
+    return formatComicVolumesForCopy(copy);
+}
 </script>
 
 <template>
@@ -216,8 +223,15 @@ const filteredCollectionMedias = computed(() => {
 
                     <div>
                         <h3 v-if="mediaDetails.media.category === 'COMIC'">
-                            {{ mediaDetails.media.title }}: {{ copy.title }}
+                            {{ mediaDetails.media.title }}
                         </h3>
+
+                        <p
+                            v-if="comicVolumesLabel(copy)"
+                            class="comic-volumes"
+                        >
+                            {{ comicVolumesLabel(copy) }}
+                        </p>
 
                         <span class="copy-edition">
                             {{ copy.edition }}
@@ -390,6 +404,13 @@ const filteredCollectionMedias = computed(() => {
                             {{ copy.edition }}
                         </span>
                     </div>
+
+                    <p
+                        v-if="comicVolumesLabel(copy)"
+                        class="comic-volumes"
+                    >
+                        {{ comicVolumesLabel(copy) }}
+                    </p>
                     
 
                     <div class="seller-offers">
@@ -834,6 +855,13 @@ button:active,
 
 .copy-info strong {
     color: var(--text);
+}
+
+.comic-volumes {
+    margin: 0 0 6px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
 }
 
 .status-available {

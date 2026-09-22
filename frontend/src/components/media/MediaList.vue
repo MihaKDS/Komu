@@ -59,7 +59,7 @@
                   Collection
               </template>
 
-              <template v-else>
+              <template v-if="!media.isCollectionGroup">
                   {{ media.releaseYear }} • {{ media.category }}
               </template>
           </p>
@@ -71,18 +71,17 @@
           >
               {{ media.collectionSize }}
               {{ media.collectionSize === 1 ? 'title' : 'titles' }}
+              <span v-if="media.collectionCopies != null">· {{ media.collectionCopies }} copies</span>
           </p>
 
-
           <p
-              v-else-if="
+              v-if="
                   !props.compact &&
-                  media.availableCopies != null
+                  comicVolumesSummary(media)
               "
-              class="available"
+              class="comic-volumes"
           >
-              {{ media.availableCopies }}
-              available for sale
+              {{ comicVolumesSummary(media) }}
           </p>
 
 
@@ -114,27 +113,59 @@
           >
 
               <span
-                  v-if="media.dvd"
+                  v-if="media.category === 'MOVIE' || media.category === 'TV_SHOW'"
                   class="format"
               >
                   DVD
-                  <strong>{{ media.dvd }}</strong>
+                  <strong>{{ media.dvd ?? 0 }}</strong>
               </span>
 
               <span
-                  v-if="media.bluray"
+                  v-if="media.category === 'MOVIE' || media.category === 'TV_SHOW'"
                   class="format"
               >
                   Blu-ray
-                  <strong>{{ media.bluray }}</strong>
+                  <strong>{{ media.bluray ?? 0 }}</strong>
               </span>
 
               <span
-                  v-if="media.fourk"
+                  v-if="media.category === 'MOVIE' || media.category === 'TV_SHOW'"
                   class="format"
               >
                   UHD
-                  <strong>{{ media.fourk }}</strong>
+                  <strong>{{ media.fourk ?? 0 }}</strong>
+              </span>
+
+              <span
+                  v-if="media.category === 'MUSIC'"
+                  class="format"
+              >
+                  CD
+                  <strong>{{ media.cd ?? 0 }}</strong>
+              </span>
+
+              <span
+                  v-if="media.category === 'MUSIC'"
+                  class="format"
+              >
+                  Vinyl
+                  <strong>{{ media.vinyl ?? 0 }}</strong>
+              </span>
+
+              <span
+                  v-if="media.category === 'BOOK' || media.category === 'COMIC'"
+                  class="format"
+              >
+                  Softcover
+                  <strong>{{ media.softcover ?? 0 }}</strong>
+              </span>
+
+              <span
+                  v-if="media.category === 'BOOK' || media.category === 'COMIC'"
+                  class="format"
+              >
+                  Hardcover
+                  <strong>{{ media.hardcover ?? 0 }}</strong>
               </span>
 
           </div>
@@ -146,6 +177,10 @@
 
 <script setup>
 import { RouterLink, useRouter } from 'vue-router';
+import {
+  collectComicVolumeValuesFromCopies,
+  formatComicVolumes,
+} from "../../utils/comicVolumes.js";
 
 const emit = defineEmits(['toggle-select']);
 const router = useRouter();
@@ -189,7 +224,7 @@ function posterSource(poster, category) {
             : `/posters/${poster}`;
     }
 
-    if (category === "BOOK" || category === "COMIC") {
+    if (category === "BOOK" || category === "COMIC" || category === "MUSIC") {
         return "/posters/book-placeholder.png";
     }
 
@@ -233,6 +268,38 @@ function openTrade(tradeId) {
     },
   });
 }
+
+function comicVolumesSummary(media) {
+  if (
+    media.category !== "COMIC" ||
+    media.isCollectionGroup ||
+    !Array.isArray(media.copies)
+  ) {
+    return "";
+  }
+
+  return formatComicVolumes(
+    collectComicVolumeValuesFromCopies(
+      media.copies,
+    ),
+  );
+}
+
+function mediaCopyCount(media) {
+  if (Array.isArray(media.copies)) {
+    return media.copies.filter((copy) => copy.isArchived !== true).length;
+  }
+
+  return [
+    media.dvd,
+    media.bluray,
+    media.fourk,
+    media.softcover,
+    media.hardcover,
+    media.cd,
+    media.vinyl,
+  ].reduce((total, count) => total + (Number(count) || 0), 0);
+}
 </script>
 
 <style scoped>
@@ -245,18 +312,18 @@ function openTrade(tradeId) {
 
 .media-row {
   display: grid;
-  grid-template-columns: 120px 1fr;
-  gap: 1rem;
-  padding: 1rem;
-  background: var(--border);
-  border-radius: 12px;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 12px;
+  padding: 8px 10px;
+  background: var(--bg-card);
+  border-radius: var(--radius-small);
   text-decoration: none;
   color: inherit;
-  border: 2px solid rgba(104, 104, 104, 0.25);
+  border: 1px solid var(--border);
 }
 
 .media-row:hover {
-  background: var(--code-bg);
+  background: var(--bg-hover);
 }
 
 /* compact variant */
@@ -273,19 +340,18 @@ function openTrade(tradeId) {
 }
 
 .media-row.current {
-  box-shadow: 0 6px 16px rgba(0,0,0,0.45);
-  border: 2px solid rgba(63,140,255,0.25);
+  border-color: var(--accent-border);
 }
 
 .media-row.selected {
-  border: 2px solid rgba(76, 175, 80, 0.65);
+  border-color: var(--accent);
 }
 
 .poster {
-  width: 90px;
-  height: 140px;
+  width: 48px;
+  height: 68px;
   object-fit: cover;
-  border-radius: 10px;
+  border-radius: 3px;
 }
 .row-content {
     min-width: 0;
@@ -335,6 +401,10 @@ function openTrade(tradeId) {
     font-weight: 500;
 }
 
+.collection-summary span {
+    color: var(--text-muted);
+}
+
 
 .available {
     margin: 7px 0 0;
@@ -342,6 +412,21 @@ function openTrade(tradeId) {
     color: var(--text-secondary);
 
     font-size: 13px;
+}
+
+.copy-count {
+    margin: 5px 0 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.comic-volumes {
+    margin: 7px 0 0;
+
+    color: var(--text-secondary);
+
+    font-size: 13px;
+    font-weight: 500;
 }
 
 
