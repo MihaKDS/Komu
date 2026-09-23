@@ -352,6 +352,7 @@
                     </button>
 
                     <button
+                        v-if="!hasBoxSet"
                         type="button"
                         class="delete-button"
                         :disabled="saving"

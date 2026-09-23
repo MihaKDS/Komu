@@ -71,6 +71,14 @@
             </p>
 
             <p
+                v-else-if="props.mode === 'collection'"
+                class="copy-count"
+            >
+                {{ copyCount }}
+                {{ copyCount === 1 ? "physical copy" : "physical copies" }}
+            </p>
+
+            <p
                 v-if="comicVolumesSummary"
                 class="comic-volumes"
             >

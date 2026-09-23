@@ -95,9 +95,6 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { useRouter } from "vue-router";
-
-const router = useRouter();
 
 import Breadcrumbs from "../components/layout/Breadcrumbs.vue";
 import MediaGrid from "../components/media/MediaGrid.vue";
@@ -113,25 +110,16 @@ const loading = ref(true);
 
 const search = ref("");
 const showAddMedia = ref(false);
-const groupByCollection = ref(true);
+const groupByCollection = ref(false);
 const selectedFormat = ref("ALL");
-const viewMode = ref("list");
+const viewMode = ref("grid");
 
 const selectedCategory = ref("MOVIE");
 
 const copies = ref([]);
-const mediaMap = ref(new Map());
 
 onMounted(async () => {
     copies.value = await getMyCopies();
-    // also load global media counts to detect if any title (or collection group) is being sold or rented
-    try {
-        const all = await import('../api/mediaAPI.js').then(m => m.getAllMedia());
-        // build a map by media id
-        mediaMap.value = new Map(all.map(item => [item.id, item]));
-    } catch (err) {
-        mediaMap.value = new Map();
-    }
     loading.value = false;
 });
 
@@ -173,7 +161,7 @@ function pickTrade(primary, candidate) {
 
 function tradeStatusLabel(activeTrade) {
     if (!activeTrade) {
-        return "Available";
+        return null;
     }
 
     switch (activeTrade.status) {
@@ -221,6 +209,10 @@ const filteredMedia = computed(() => {
                 dvd: 0,
                 bluray: 0,
                 fourk: 0,
+                softcover: 0,
+                hardcover: 0,
+                cd: 0,
+                vinyl: 0,
                 copies: [],
                 activeTrade: null,
             });
@@ -240,22 +232,32 @@ const filteredMedia = computed(() => {
             case "UHD_4K":
                 item.fourk++;
                 break;
+            case "SOFT_COVER":
+                item.softcover++;
+                break;
+            case "HARD_COVER":
+                item.hardcover++;
+                break;
+            case "CD":
+                item.cd++;
+                break;
+            case "VINYL":
+                item.vinyl++;
+                break;
         }
     }
 
     const flat = [...grouped.values()].filter(matchesFormat);
     if (!groupByCollection.value) {
     return flat
-      .map(m => ({
-        ...m,
-        hasSell: mediaMap.value.get(m.id)?.hasSell ?? false,
-        hasRent: mediaMap.value.get(m.id)?.hasRent ?? false,
-        tradeId: m.activeTrade?.id ?? null,
-        tradeStatusLabel: tradeStatusLabel(m.activeTrade),
+      .map((media) => ({
+        ...media,
+        tradeId: media.activeTrade?.id ?? null,
+        tradeStatusLabel: tradeStatusLabel(media.activeTrade),
       }))
       .filter((media) =>
         media.title.toLowerCase().includes(searchValue),
-    );
+      );
     }
 
     const byCollection = new Map();
@@ -298,8 +300,6 @@ const filteredMedia = computed(() => {
                     0,
                 ),
                 id: g.medias[0].id,
-                hasSell: g.medias.some(m => mediaMap.value.get(m.id)?.hasSell) || false,
-                hasRent: g.medias.some(m => mediaMap.value.get(m.id)?.hasRent) || false,
                 activeTrade: g.medias.reduce((selected, media) => pickTrade(selected, media.activeTrade), null),
             };
             representative.tradeId = representative.activeTrade?.id ?? null;
@@ -327,20 +327,6 @@ const totalCopies = computed(() =>
   copies.value.filter(copy => copy.isArchived !== true).length
 );
 
-function openMedia(filteredMedia) {
-
-    router.push({
-        name: "media",
-        params: {
-            id: filteredMedia.id
-        },
-        query: {
-            from: "collection",
-            title: filteredMedia.title
-        }
-    });
-
-}
 </script>
 
 <style scoped>

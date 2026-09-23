@@ -75,6 +75,7 @@
                 </button>
 
                 <button
+                    v-if="canDeleteSelected"
                     type="button"
                     class="danger-button"
                     @click="deleteSelected"

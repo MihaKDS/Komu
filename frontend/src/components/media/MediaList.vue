@@ -75,6 +75,14 @@
           </p>
 
           <p
+              v-else-if="!props.compact && props.mode === 'collection'"
+              class="collection-summary"
+          >
+              {{ mediaCopyCount(media) }}
+              {{ mediaCopyCount(media) === 1 ? 'physical copy' : 'physical copies' }}
+          </p>
+
+          <p
               v-if="
                   !props.compact &&
                   comicVolumesSummary(media)

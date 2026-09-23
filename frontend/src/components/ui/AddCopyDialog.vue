@@ -65,14 +65,74 @@
 
     <section class="form-section">
 
-        <ComicVolumesField
+        <div
             v-if="props.media.category === 'COMIC'"
+            class="option-row"
+        >
+            <label class="checkbox-label">
+                <input
+                    v-model="form.hasVolumes"
+                    type="checkbox"
+                >
+
+                <span>
+                    Add as a volume-based comic copy
+                </span>
+            </label>
+
+            <p class="option-hint">
+                Leave unchecked to add one normal comic copy.
+            </p>
+        </div>
+
+        <ComicVolumesField
+            v-if="props.media.category === 'COMIC' && form.hasVolumes"
             v-model="form.volumes"
             label="Volumes"
             hint="Numbers sort numerically; text stays safe."
             placeholder="Add volumes like 1, 2, 2.5, Special"
             :auto-suggest-next="true"
         />
+
+        <div
+            v-if="mediaCollection"
+            class="collection-membership"
+        >
+            <p>
+                This title is part of <strong>{{ mediaCollection.title }}</strong>.
+            </p>
+
+            <button
+                type="button"
+                class="secondary-button"
+                :disabled="addingCollection || !collectionMembershipLoaded"
+                @click="addEntireCollection"
+            >
+                {{
+                    addingCollection
+                        ? "Adding collection..."
+                        : "Add entire collection"
+                }}
+            </button>
+
+            <p
+                v-if="collectionMembershipLoaded"
+                class="option-hint"
+            >
+                {{
+                    missingCollectionMedia.length
+                        ? `Adds ${missingCollectionMedia.length} title${missingCollectionMedia.length === 1 ? "" : "s"} you do not already own.`
+                        : "You already own every title in this collection."
+                }}
+            </p>
+        </div>
+
+        <p
+            v-if="saveError"
+            class="form-error"
+        >
+            {{ saveError }}
+        </p>
 
         <!-- 4K -->
 
@@ -187,6 +247,7 @@
                     !form.existingBoxSetId ||
                     (
                         props.media.category === 'COMIC' &&
+                        form.hasVolumes &&
                         form.volumes.length === 0
                     )
                 "
@@ -213,7 +274,7 @@
 
 <script setup>
 import { reactive, computed, onMounted, ref } from "vue";
-import { createCopy } from "../../api/copyAPI";
+import { createCopy, getMyCopies } from "../../api/copyAPI";
 import { getMyBoxSets } from "../../api/boxsetAPI";
 import MediaSearch from "../media/MediaSearch.vue";
 import ComicVolumesField from "./ComicVolumesField.vue";
@@ -223,11 +284,19 @@ const props = defineProps({
         type: Object,
         required: true,
     },
+    mediaCollection: {
+        type: Object,
+        default: null,
+    },
 });
 
 const emit = defineEmits(["close", "saved"]);
 
 const existingBoxSets = ref([]);
+const ownedMediaIds = ref(new Set());
+const collectionMembershipLoaded = ref(false);
+const addingCollection = ref(false);
+const saveError = ref("");
 
 const form = reactive({
     edition: "BLURAY",
@@ -244,9 +313,21 @@ const form = reactive({
     boxSetSellPrice: null,
     boxSetCanRent: false,
     volumes: [],
+    hasVolumes: false,
 });
 
 const is4K = computed(() => form.edition === "UHD_4K");
+const mediaCollection = computed(() => props.mediaCollection);
+const missingCollectionMedia = computed(() => {
+    if (!mediaCollection.value?.medias) {
+        return [];
+    }
+
+    return mediaCollection.value.medias.filter(
+        (media) => !ownedMediaIds.value.has(media.id),
+    );
+});
+
 onMounted(async () => {
     if(props.media.category === "BOOK" || props.media.category === "COMIC") {
         form.edition = "SOFT_COVER";
@@ -256,10 +337,27 @@ onMounted(async () => {
     } catch (err) {
         console.error(err);
     }
+
+    if (mediaCollection.value) {
+        try {
+            const copies = await getMyCopies();
+            ownedMediaIds.value = new Set(
+                copies.map((copy) => copy.mediaId),
+            );
+            collectionMembershipLoaded.value = true;
+        } catch (err) {
+            console.error("Failed to load collection membership:", err);
+            saveError.value =
+                err.message ||
+                "Unable to check which collection titles you already own.";
+        }
+    }
 });
 
 async function saveCopy() {
     try {
+        saveError.value = "";
+
         if (form.partOfBox && form.boxSetMode === 'existing' && !form.existingBoxSetId) {
             return;
         }
@@ -269,7 +367,7 @@ async function saveCopy() {
             includesBluRay: form.includesBluRay,
             partOfBox: form.partOfBox,
             mediaIds: form.items.map(item => item.id),
-            volumes: props.media.category === "COMIC"
+            volumes: props.media.category === "COMIC" && form.hasVolumes
                 ? form.volumes
                 : undefined,
             existingBoxSetId: form.boxSetMode === 'existing' && form.existingBoxSetId ? Number(form.existingBoxSetId) : undefined,
@@ -284,8 +382,42 @@ async function saveCopy() {
         emit("close");
     } catch (err) {
         console.error(err);
+        saveError.value =
+            err.message ||
+            "Unable to add this copy to your collection.";
     }
 };
+
+async function addEntireCollection() {
+    if (
+        !collectionMembershipLoaded.value ||
+        missingCollectionMedia.value.length === 0
+    ) {
+        return;
+    }
+
+    addingCollection.value = true;
+    saveError.value = "";
+
+    try {
+        await createCopy({
+            edition: form.edition,
+            includesBluRay: form.includesBluRay,
+            partOfBox: false,
+            mediaIds: missingCollectionMedia.value.map((media) => media.id),
+        });
+
+        emit("saved");
+        emit("close");
+    } catch (err) {
+        console.error("Failed to add media collection:", err);
+        saveError.value =
+            err.message ||
+            "Unable to add this collection to your collection.";
+    } finally {
+        addingCollection.value = false;
+    }
+}
 
 function addItem(media) {
     form.items.push(media);
@@ -453,6 +585,42 @@ input:focus {
     height: 16px;
 
     accent-color: var(--accent);
+}
+
+.option-hint,
+.form-error {
+    margin: 8px 0 0;
+
+    color: var(--text-muted);
+
+    font-size: 12px;
+}
+
+.form-error {
+    color: var(--danger);
+}
+
+.collection-membership {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
+    gap: 8px 12px;
+    padding: 12px;
+
+    background: var(--bg-secondary);
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+}
+
+.collection-membership p {
+    width: 100%;
+    margin: 0;
+}
+
+.collection-membership .option-hint {
+    margin: 0;
 }
 
 

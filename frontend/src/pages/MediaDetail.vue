@@ -561,6 +561,7 @@ function comicVolumesLabel(copy) {
 >
     <AddCopyDialog
         :media="mediaDetails.media"
+        :media-collection="mediaDetails.collection"
         @close="showAddCopy = false"
         @saved="loadMedia"
     />
