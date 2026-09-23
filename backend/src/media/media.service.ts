@@ -235,6 +235,16 @@ export class MediaService {
           dto.tmdbId !== undefined
             ? dto.tmdbId
             : undefined,
+
+        genres:
+          dto.genres !== undefined
+            ? dto.genres
+            : undefined,
+
+        languages:
+          dto.languages !== undefined
+            ? dto.languages
+            : undefined,
       },
 
       include: {

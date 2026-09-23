@@ -26,14 +26,14 @@ export class UpdateMediaDto {
   @IsString()
   description?: string | null;
 
-  @IsArray()
   @IsOptional()
-  @IsString()
+  @IsArray()
+  @IsString({ each: true })
   languages?: string[];
 
-  @IsArray()
   @IsOptional()
-  @IsString()
+  @IsArray()
+  @IsString({ each: true })
   genres?: string[];
 
 

@@ -178,16 +178,28 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
     dto: CreateCopyDto,
     userId: number,
   ) {
-    return this.prisma.copy.create({
-      data: {
-        mediaId: dto.mediaIds[0],
-        userId,
-        title: dto.title ?? null,
-        volumes: this.normalizeVolumes(dto.volumes),
-        edition: dto.edition,
-        includesBluRay: dto.includesBluRay,
-      },
-    });
+    const copyData = dto.mediaIds.map((mediaId) => ({
+      mediaId,
+      userId,
+      title: dto.title ?? null,
+      volumes: this.normalizeVolumes(dto.volumes),
+      edition: dto.edition,
+      includesBluRay: dto.includesBluRay,
+    }));
+
+    if (copyData.length === 1) {
+      return this.prisma.copy.create({
+        data: copyData[0],
+      });
+    }
+
+    return this.prisma.$transaction(
+      copyData.map((data) =>
+        this.prisma.copy.create({
+          data,
+        }),
+      ),
+    );
   }
   
   async findOne(id: number, userId: number) {
