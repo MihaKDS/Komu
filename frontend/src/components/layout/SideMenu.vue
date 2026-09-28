@@ -28,12 +28,20 @@
                     📦Collection
                 </RouterLink>                        
                 <RouterLink
+                    :to="{ path: '/lists' }"
+                    @click="$emit('close-menu')"
+                    class="nav"
+                >
+                    📋Lists
+                </RouterLink>
+                <RouterLink
                     :to="{ path: '/trades' }"
                     @click="$emit('close-menu')"
                     class="nav"
                 >
-                    🤝Trades
+                    🔄Trades
                 </RouterLink>
+                <hr>
                 <RouterLink
                     :to="{ path: '/add-media' }"
                     @click="$emit('close-menu')"
@@ -42,14 +50,20 @@
                     ➕Add Media
                 </RouterLink>
                 <RouterLink
+                    :to="{ path: '/add-media' }"
+                    @click="$emit('close-menu')"
+                    class="nav"
+                >
+                    ✏️Edit Collection
+                </RouterLink>
+                <RouterLink
                     v-if="user && ['admin', 'miha'].includes(user.username)"
                     :to="{ path: '/edit-media' }"
                     @click="$emit('close-menu')"
                     class="nav"
                 >
-                    ✏️Edit Media
+                    ⚙️Edit Media
                 </RouterLink>
-                <hr>
                     <div class="header-user">
 
                         <span v-if="loading" class="loading">

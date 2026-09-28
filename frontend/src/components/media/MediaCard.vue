@@ -1,11 +1,13 @@
 <template>
-<RouterLink
-    :to="mediaLink"
-    class="media-card-link"
->
-    <article
-        :class="['media-card', { 'is-collection': media.isCollectionGroup }]"
+<div class="media-card-shell">
+    <component
+        :is="props.readOnly ? 'div' : RouterLink"
+        v-bind="props.readOnly ? {} : { to: mediaLink }"
+        class="media-card-link"
     >
+        <article
+            :class="['media-card', { 'is-collection': media.isCollectionGroup }]"
+        >
 
         <img
             :src="posterSource(props.media.poster, props.category)"
@@ -147,19 +149,48 @@
 
         </div>
 
-    </article>
-</RouterLink>
+        </article>
+    </component>
+
+    <ListMenu
+        v-if="!media.isCollectionGroup && !props.readOnly"
+        class="card-list-menu"
+        :media-id="media.id"
+        :category="media.category"
+    />
+
+    <button
+        v-else-if="media.isCollectionGroup"
+        type="button"
+        class="collection-open-trigger"
+        :aria-label="`Open ${media.title} contents`"
+        @click.stop.prevent="showCollectionContents = true"
+    >
+        <span aria-hidden="true">›</span>
+    </button>
+
+    <CollectionContentsModal
+        v-if="media.isCollectionGroup"
+        v-model="showCollectionContents"
+        :collection-name="media.title"
+        :media-items="media.collectionMedias ?? []"
+        :read-only="props.readOnly"
+    />
+</div>
 </template>
 
 <script setup>
-import { useRouter } from "vue-router";
-import { computed } from "vue";
+import { RouterLink, useRouter } from "vue-router";
+import { computed, ref } from "vue";
 import {
     collectComicVolumeValuesFromCopies,
     formatComicVolumes,
 } from "../../utils/comicVolumes.js";
+import ListMenu from "../ui/ListMenu.vue";
+import CollectionContentsModal from "../ui/CollectionContentsModal.vue";
 
 const router = useRouter();
+const showCollectionContents = ref(false);
 
 const props = defineProps({
     media: {
@@ -180,6 +211,10 @@ const props = defineProps({
     fromContext: {
         type: String,
         default: null,
+    },
+    readOnly: {
+        type: Boolean,
+        default: false,
     },
 
 });
@@ -267,6 +302,41 @@ const copyCount = computed(() => {
 
     color: inherit;
     text-decoration: none;
+}
+
+.media-card-shell {
+    position: relative;
+    min-width: 0;
+}
+
+.card-list-menu {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+}
+
+.collection-open-trigger {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    z-index: 3;
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    color: #fff;
+    background: rgba(20, 24, 32, 0.72);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-small);
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.collection-open-trigger:hover,
+.collection-open-trigger:focus-visible {
+    background: rgba(20, 24, 32, 0.94);
 }
 
 .media-card {

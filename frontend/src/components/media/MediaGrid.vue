@@ -8,6 +8,7 @@
     :mode="mode"
     :category="category"
     :fromContext="fromContext"
+    :read-only="readOnly"
 />
 
     </section>
@@ -33,6 +34,10 @@ const props = defineProps({
     fromContext: {
         type: String,
         default: null,
+    },
+    readOnly: {
+        type: Boolean,
+        default: false,
     },
 
 });

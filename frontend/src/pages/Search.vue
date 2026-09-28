@@ -20,6 +20,7 @@
         <FilterBar
             :category="selectedCategory"
             :format="selectedFormat"
+            marketplaceSearch
             :collection="collectionFilter"
             :viewMode="viewMode"
             :displayMode="displayMode"
@@ -137,17 +138,11 @@ watch(
             .toString()
             .toUpperCase();
 
-        /*
-         * Format and collection filters currently
-         * only apply to movies.
-         *
-         * Reset them when switching category.
-         */
         if (selectedCategory.value !== "MOVIE") {
-            selectedFormat.value = "ALL";
             collectionFilter.value = "ALL";
             displayMode.value = "singles";
         }
+        selectedFormat.value = "ALL";
     }
 );
 
@@ -183,8 +178,14 @@ function shouldShowMedia(mediaItem) {
      * Format
      */
 
-    if (selectedFormat.value !== "ALL") {
+    if (selectedFormat.value === "ON_SALE" && !mediaItem.hasSell) {
+        return false;
+    }
 
+    if (
+        selectedFormat.value !== "ALL" &&
+        selectedFormat.value !== "ON_SALE"
+    ) {
         const map = {
             DVD: mediaItem.dvd,
             BLURAY: mediaItem.bluray,
@@ -391,6 +392,19 @@ const groupedMedia = computed(() => {
 
                 collectionSize:
                     group.medias.length,
+
+                collectionMedias:
+                    media.value
+                        .filter(
+                            (mediaItem) =>
+                                mediaItem.mediaCollection?.id ===
+                                group.medias[0].mediaCollection?.id,
+                        )
+                        .sort(
+                            (a, b) =>
+                                (a.collectionPosition ?? 0) -
+                                (b.collectionPosition ?? 0),
+                        ),
 
                 collectionCopies:
                     group.medias.reduce(

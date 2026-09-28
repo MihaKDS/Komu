@@ -16,6 +16,13 @@ import { getMedia } from "../api/mediaAPI.js";
 import EditCopy from "../components/ui/EditCopy.vue";
 import MediaList from "../components/media/MediaList.vue";
 import MediaGrid from "../components/media/MediaGrid.vue";
+import ListMenu from "../components/ui/ListMenu.vue";
+import {
+    mediaListEntries,
+    loadMyLists,
+    resetMyLists,
+    updateMediaList,
+} from "../services/listsService.js";
 
 const route = useRoute();
 const router = useRouter();
@@ -23,6 +30,10 @@ const mediaDetails = ref(null);
 const showAddCopy = ref(false);
 const showEditCopy = ref(false);
 const idEditCopy = ref(null);
+const progressDraft = ref("0");
+const noteDraft = ref("");
+const listProgressError = ref("");
+const savingListProgress = ref(false);
 
 // Get the current context from where user came
 const currentContext = computed(() => route.query.from || 'search');
@@ -75,6 +86,21 @@ function posterSource(poster, category) {
 
 onMounted(loadMedia);
 watch(
+    () => user.value?.id,
+    (userId) => {
+        if (!userId) {
+            resetMyLists();
+            return;
+        }
+
+        loadMyLists().catch((error) => {
+            listProgressError.value =
+                error.message || "Unable to load your list status.";
+        });
+    },
+    { immediate: true },
+);
+watch(
     () => route.params.id,
     loadMedia
 );
@@ -112,6 +138,99 @@ const filteredCollectionMedias = computed(() => {
 
 function comicVolumesLabel(copy) {
     return formatComicVolumesForCopy(copy);
+}
+
+const currentListEntry = computed(() =>
+    mediaListEntries.value.find(
+        (entry) => entry.mediaId === Number(route.params.id),
+    ) ?? null,
+);
+
+const progressType = computed(() => {
+    const category = mediaDetails.value?.media.category;
+    if (category === "TV_SHOW") return "Episode";
+    if (category === "BOOK" || category === "COMIC") return "Chapter";
+    return null;
+});
+
+const listStatusLabel = computed(() => {
+    const status = currentListEntry.value?.status;
+    if (status === "TO_WATCH") {
+        return ["BOOK", "COMIC"].includes(mediaDetails.value?.media.category)
+            ? "To Read"
+            : "To Watch";
+    }
+    return ["BOOK", "COMIC"].includes(mediaDetails.value?.media.category)
+        ? "Reading"
+        : "Watching";
+});
+
+watch(currentListEntry, (entry) => {
+    progressDraft.value = String(entry?.progress ?? 0);
+    noteDraft.value = entry?.note ?? "";
+}, { immediate: true });
+
+async function saveProgress(value = progressDraft.value) {
+    const progress = Number(value);
+    if (!currentListEntry.value || !Number.isInteger(progress) || progress < 0) {
+        listProgressError.value = "Progress must be a whole number of 0 or more.";
+        return;
+    }
+
+    savingListProgress.value = true;
+    listProgressError.value = "";
+    try {
+        await updateMediaList(Number(route.params.id), {
+            status: currentListEntry.value.status,
+            progress,
+        });
+        progressDraft.value = String(progress);
+    } catch (error) {
+        listProgressError.value =
+            error.message || "Unable to save progress.";
+    } finally {
+        savingListProgress.value = false;
+    }
+}
+
+function changeProgress(amount) {
+    const current = Number(progressDraft.value) || 0;
+    const next = Math.max(0, current + amount);
+    progressDraft.value = String(next);
+    saveProgress(next);
+}
+
+async function saveListNote() {
+    if (!currentListEntry.value) return;
+    savingListProgress.value = true;
+    listProgressError.value = "";
+    try {
+        await updateMediaList(Number(route.params.id), {
+            status: currentListEntry.value.status,
+            note: noteDraft.value.trim() || null,
+        });
+    } catch (error) {
+        listProgressError.value =
+            error.message || "Unable to save note.";
+    } finally {
+        savingListProgress.value = false;
+    }
+}
+
+async function markListCompleted() {
+    if (!currentListEntry.value) return;
+    savingListProgress.value = true;
+    listProgressError.value = "";
+    try {
+        await updateMediaList(Number(route.params.id), {
+            status: "COMPLETED",
+        });
+    } catch (error) {
+        listProgressError.value =
+            error.message || "Unable to mark this media completed.";
+    } finally {
+        savingListProgress.value = false;
+    }
 }
 </script>
 
@@ -170,14 +289,19 @@ function comicVolumesLabel(copy) {
                 {{ mediaDetails.media.description }}
             </p>
 
-            <button
-                v-if="user"
-                type="button"
-                class="add-copy-button"
-                @click="showAddCopy = true"
-            >
-                Add to collection
-            </button>
+            <div v-if="user" class="media-actions">
+                <button
+                    type="button"
+                    class="add-copy-button"
+                    @click="showAddCopy = true"
+                >
+                    Add to collection
+                </button>
+                <ListMenu
+                    :media-id="mediaDetails.media.id"
+                    :category="mediaDetails.media.category"
+                />
+            </div>
 
         </div>
 
@@ -187,6 +311,80 @@ function comicVolumesLabel(copy) {
     <!-- =====================================================
          YOUR COPIES
          ===================================================== -->
+
+<section
+    v-if="currentListEntry && ['TO_WATCH', 'WATCHING'].includes(currentListEntry.status)"
+    class="detail-section list-progress-section"
+>
+    <h2>{{ listStatusLabel }}</h2>
+
+    <div v-if="progressType" class="progress-controls">
+        <label :for="`media-progress-${mediaDetails.media.id}`">
+            {{ progressType }}
+        </label>
+        <button
+            type="button"
+            class="progress-stepper"
+            :disabled="savingListProgress || Number(progressDraft) <= 0"
+            aria-label="Decrease progress"
+            @click="changeProgress(-1)"
+        >
+            −
+        </button>
+        <input
+            :id="`media-progress-${mediaDetails.media.id}`"
+            v-model="progressDraft"
+            type="number"
+            min="0"
+            step="1"
+            :disabled="savingListProgress"
+            @change="saveProgress()"
+        >
+        <button
+            type="button"
+            class="progress-stepper"
+            :disabled="savingListProgress"
+            aria-label="Increase progress"
+            @click="changeProgress(1)"
+        >
+            +
+        </button>
+    </div>
+
+    <label class="list-note">
+        Note
+        <textarea
+            v-model="noteDraft"
+            maxlength="500"
+            rows="2"
+            :disabled="savingListProgress"
+            placeholder="Optional note"
+        />
+    </label>
+
+    <div class="list-progress-actions">
+        <button
+            type="button"
+            class="save-list-note"
+            :disabled="savingListProgress"
+            @click="saveListNote"
+        >
+            Save Note
+        </button>
+        <button
+            v-if="currentListEntry.status === 'WATCHING'"
+            type="button"
+            class="complete-list-button"
+            :disabled="savingListProgress"
+            @click="markListCompleted"
+        >
+            Completed ✓
+        </button>
+    </div>
+    <p v-if="listProgressError" class="list-progress-error">
+        {{ listProgressError }}
+    </p>
+</section>
 
 <section
     v-if="user"
@@ -705,6 +903,106 @@ button:active,
     margin-top: auto;
 }
 
+.media-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: auto;
+}
+
+.media-actions .add-copy-button {
+    margin-top: 0;
+}
+
+.list-progress-section {
+    padding: 14px 16px;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.list-progress-section h2 {
+    margin: 0 0 12px;
+    color: var(--text-h);
+    font-size: 17px;
+}
+
+.progress-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.progress-controls label {
+    margin-right: auto;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.progress-controls input {
+    width: 76px;
+    min-height: 36px;
+    padding: 6px 8px;
+    color: var(--field-text);
+    background: var(--field-bg);
+    border: 1px solid #b8c0ca;
+    border-radius: var(--radius-small);
+    font: inherit;
+}
+
+.progress-stepper {
+    width: 36px;
+    min-height: 36px;
+    padding: 0;
+    font-size: 18px;
+}
+
+.list-note {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.list-note textarea {
+    width: 100%;
+    min-height: 54px;
+    resize: vertical;
+    padding: 8px 10px;
+    color: var(--field-text);
+    background: var(--field-bg);
+    border: 1px solid #b8c0ca;
+    border-radius: var(--radius-small);
+    font: inherit;
+    box-sizing: border-box;
+}
+
+.list-progress-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.save-list-note {
+    color: var(--text-h);
+    background: var(--bg-secondary);
+    border-color: var(--border);
+}
+
+.complete-list-button {
+    color: #fff;
+    background: var(--accent);
+}
+
+.list-progress-error {
+    margin: 8px 0 0;
+    color: var(--danger);
+    font-size: 12px;
+}
+
 /* =========================================================
    SECTIONS
    ========================================================= */
@@ -868,6 +1166,22 @@ button:active,
 .status-available {
     color: var(--success);
     font-weight: 700;
+}
+
+.media-actions {
+    width: 100%;
+}
+
+.media-actions .add-copy-button {
+    flex: 1;
+}
+
+.list-progress-actions {
+    flex-direction: column;
+}
+
+.list-progress-actions button {
+    width: 100%;
 }
 
 .copy-footer {

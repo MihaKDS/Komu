@@ -6,7 +6,7 @@
         :class="{ active: category === props.selected }"
         @click="select(category)"
     >
-        {{ category }}
+        {{ props.labels[category] ?? category }}
 
         <span
             v-if="props.counts?.[category] != null"
@@ -32,6 +32,10 @@ const props = defineProps({
         required: true
     },
     counts: {
+        type: Object,
+        default: () => ({}),
+    },
+    labels: {
         type: Object,
         default: () => ({}),
     },

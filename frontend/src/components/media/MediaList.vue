@@ -1,9 +1,13 @@
 ﻿<template>
   <section class="media-list">
-    <RouterLink
+    <div
       v-for="media in mediaList"
       :key="media.id"
-      :to="mediaLink(media)"
+      :class="['media-list-item', { 'has-collection-control': media.isCollectionGroup }]"
+    >
+    <component
+      :is="props.readOnly ? 'div' : RouterLink"
+      v-bind="props.readOnly ? {} : { to: mediaLink(media) }"
       :class="['media-row', { compact: props.compact, current: media.id === props.currentId, selected: isSelected(media.id) }]"
       :fromContext="props.fromContext"
     >
@@ -179,19 +183,42 @@
           </div>
 
       </div>
-    </RouterLink>
+    </component>
+
+    <button
+      v-if="media.isCollectionGroup"
+      type="button"
+      class="collection-open-trigger"
+      :aria-label="`Open ${media.title} contents`"
+      @click.stop.prevent="openCollectionId = media.id"
+    >
+      <span aria-hidden="true">›</span>
+    </button>
+
+    <CollectionContentsModal
+      v-if="media.isCollectionGroup"
+      :model-value="openCollectionId === media.id"
+      :collection-name="media.title"
+      :media-items="media.collectionMedias ?? []"
+      :read-only="props.readOnly"
+      @close="openCollectionId = null"
+    />
+    </div>
   </section>
 </template>
 
 <script setup>
+import { ref } from "vue";
 import { RouterLink, useRouter } from 'vue-router';
 import {
   collectComicVolumeValuesFromCopies,
   formatComicVolumes,
 } from "../../utils/comicVolumes.js";
+import CollectionContentsModal from "../ui/CollectionContentsModal.vue";
 
 const emit = defineEmits(['toggle-select']);
 const router = useRouter();
+const openCollectionId = ref(null);
 
 const props = defineProps({
   mediaList: {
@@ -222,6 +249,10 @@ const props = defineProps({
   category: {
     type: String,
     default: null,
+  },
+  readOnly: {
+    type: Boolean,
+    default: false,
   },
 });
 
@@ -328,6 +359,41 @@ function mediaCopyCount(media) {
   text-decoration: none;
   color: inherit;
   border: 1px solid var(--border);
+}
+
+.media-list-item {
+  position: relative;
+  min-width: 0;
+}
+
+.media-list-item.has-collection-control .media-row {
+  padding-right: 50px;
+}
+
+.collection-open-trigger {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: var(--text-h);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  font-size: 26px;
+  line-height: 1;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.collection-open-trigger:hover,
+.collection-open-trigger:focus-visible {
+  background: var(--bg-hover);
+  border-color: var(--border-light);
 }
 
 .media-row:hover {

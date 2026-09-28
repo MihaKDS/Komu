@@ -94,39 +94,6 @@
             :auto-suggest-next="true"
         />
 
-        <div
-            v-if="mediaCollection"
-            class="collection-membership"
-        >
-            <p>
-                This title is part of <strong>{{ mediaCollection.title }}</strong>.
-            </p>
-
-            <button
-                type="button"
-                class="secondary-button"
-                :disabled="addingCollection || !collectionMembershipLoaded"
-                @click="addEntireCollection"
-            >
-                {{
-                    addingCollection
-                        ? "Adding collection..."
-                        : "Add entire collection"
-                }}
-            </button>
-
-            <p
-                v-if="collectionMembershipLoaded"
-                class="option-hint"
-            >
-                {{
-                    missingCollectionMedia.length
-                        ? `Adds ${missingCollectionMedia.length} title${missingCollectionMedia.length === 1 ? "" : "s"} you do not already own.`
-                        : "You already own every title in this collection."
-                }}
-            </p>
-        </div>
-
         <p
             v-if="saveError"
             class="form-error"
@@ -180,6 +147,22 @@
             class="boxset-section"
         >
 
+            <div
+                v-if="mediaCollection"
+                class="collection-membership"
+            >
+                <p>
+                    This title is part of <strong>{{ mediaCollection.title }}</strong>.
+                </p>
+
+                <button
+                    type="button"
+                    class="secondary-button"
+                    @click="importCollectionIntoBoxSet"
+                >
+                    Import collection into box set
+                </button>
+            </div>
 
             <!-- Items -->
 
@@ -203,7 +186,7 @@
 
                     <div
                         v-for="item in form.items"
-                        :key="item.mediaId"
+                        :key="item.id"
                         class="box-item"
                     >
 
@@ -214,6 +197,15 @@
                         <span>
                             {{ item.releaseYear }}
                         </span>
+
+                        <button
+                            type="button"
+                            class="remove-box-item"
+                            :aria-label="`Remove ${item.title} from box set`"
+                            @click="removeItem(item)"
+                        >
+                            Remove
+                        </button>
 
                     </div>
 
@@ -243,8 +235,13 @@
                 class="primary-button"
                 :disabled="
                     form.partOfBox &&
-                    form.boxSetMode === 'existing' &&
-                    !form.existingBoxSetId ||
+                    (
+                        form.items.length === 0 ||
+                        (
+                            form.boxSetMode === 'existing' &&
+                            !form.existingBoxSetId
+                        )
+                    ) ||
                     (
                         props.media.category === 'COMIC' &&
                         form.hasVolumes &&
@@ -274,7 +271,7 @@
 
 <script setup>
 import { reactive, computed, onMounted, ref } from "vue";
-import { createCopy, getMyCopies } from "../../api/copyAPI";
+import { createCopy } from "../../api/copyAPI";
 import { getMyBoxSets } from "../../api/boxsetAPI";
 import MediaSearch from "../media/MediaSearch.vue";
 import ComicVolumesField from "./ComicVolumesField.vue";
@@ -293,9 +290,6 @@ const props = defineProps({
 const emit = defineEmits(["close", "saved"]);
 
 const existingBoxSets = ref([]);
-const ownedMediaIds = ref(new Set());
-const collectionMembershipLoaded = ref(false);
-const addingCollection = ref(false);
 const saveError = ref("");
 
 const form = reactive({
@@ -318,15 +312,6 @@ const form = reactive({
 
 const is4K = computed(() => form.edition === "UHD_4K");
 const mediaCollection = computed(() => props.mediaCollection);
-const missingCollectionMedia = computed(() => {
-    if (!mediaCollection.value?.medias) {
-        return [];
-    }
-
-    return mediaCollection.value.medias.filter(
-        (media) => !ownedMediaIds.value.has(media.id),
-    );
-});
 
 onMounted(async () => {
     if(props.media.category === "BOOK" || props.media.category === "COMIC") {
@@ -336,21 +321,6 @@ onMounted(async () => {
         existingBoxSets.value = await getMyBoxSets();
     } catch (err) {
         console.error(err);
-    }
-
-    if (mediaCollection.value) {
-        try {
-            const copies = await getMyCopies();
-            ownedMediaIds.value = new Set(
-                copies.map((copy) => copy.mediaId),
-            );
-            collectionMembershipLoaded.value = true;
-        } catch (err) {
-            console.error("Failed to load collection membership:", err);
-            saveError.value =
-                err.message ||
-                "Unable to check which collection titles you already own.";
-        }
     }
 });
 
@@ -388,39 +358,35 @@ async function saveCopy() {
     }
 };
 
-async function addEntireCollection() {
-    if (
-        !collectionMembershipLoaded.value ||
-        missingCollectionMedia.value.length === 0
-    ) {
+function importCollectionIntoBoxSet() {
+    if (!mediaCollection.value?.medias) {
         return;
     }
 
-    addingCollection.value = true;
-    saveError.value = "";
+    const selectedIds = new Set(
+        form.items.map((item) => item.id),
+    );
 
-    try {
-        await createCopy({
-            edition: form.edition,
-            includesBluRay: form.includesBluRay,
-            partOfBox: false,
-            mediaIds: missingCollectionMedia.value.map((media) => media.id),
-        });
-
-        emit("saved");
-        emit("close");
-    } catch (err) {
-        console.error("Failed to add media collection:", err);
-        saveError.value =
-            err.message ||
-            "Unable to add this collection to your collection.";
-    } finally {
-        addingCollection.value = false;
+    for (const media of mediaCollection.value.medias) {
+        if (!selectedIds.has(media.id)) {
+            form.items.push(media);
+            selectedIds.add(media.id);
+        }
     }
+
+    form.boxSetName = mediaCollection.value.title;
 }
 
 function addItem(media) {
-    form.items.push(media);
+    if (!form.items.some((item) => item.id === media.id)) {
+        form.items.push(media);
+    }
+}
+
+function removeItem(media) {
+    form.items = form.items.filter(
+        (item) => item.id !== media.id,
+    );
 }
 </script>
 <style scoped>
@@ -619,11 +585,6 @@ input:focus {
     margin: 0;
 }
 
-.collection-membership .option-hint {
-    margin: 0;
-}
-
-
 /* Volumes */
 
 .volume-input {
@@ -792,6 +753,7 @@ input:focus {
 
 .box-item {
     display: flex;
+    align-items: center;
     justify-content: space-between;
 
     gap: 10px;
@@ -811,6 +773,31 @@ input:focus {
 
 .box-item span:last-child {
     color: var(--text-muted);
+}
+
+.box-item span:first-child {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.remove-box-item {
+    flex-shrink: 0;
+    padding: 4px 8px;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.remove-box-item:hover {
+    color: var(--text-h);
+    background: var(--bg-hover);
 }
 
 

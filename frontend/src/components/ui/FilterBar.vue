@@ -28,7 +28,7 @@
             <!-- Format -->
             <div class="group">
                 <label for="format-select">
-                    Available formats
+                    {{ props.marketplaceSearch ? "Search by" : "Available formats" }}
                 </label>
 
                 <select
@@ -38,9 +38,10 @@
                     @change="emitFormat"
                 >
                     <option value="ALL">Show all</option>
+                    <option v-if="props.marketplaceSearch || props.showOnSale" value="ON_SALE">On sale</option>
                     <option value="DVD">DVD</option>
                     <option value="BLURAY">Blu-ray</option>
-                    <option value="UHD_4K">4K UHD</option>
+                    <option value="UHD_4K">4K</option>
                 </select>
                 <select
                     v-else-if="props.category === 'BOOK' || props.category === 'COMIC'"
@@ -48,9 +49,10 @@
                     v-model="selectedFormat"
                     @change="emitFormat"
                 >
-                    <option value="ALL">All formats</option>
-                    <option value="SOFT_COVER">Softcover</option>
+                    <option value="ALL">Show all</option>
+                    <option v-if="props.marketplaceSearch || props.showOnSale" value="ON_SALE">On sale</option>
                     <option value="HARD_COVER">Hardcover</option>
+                    <option value="SOFT_COVER">Softcover</option>
                 </select>
                 <select
                     v-else-if="props.category === 'MUSIC'"
@@ -58,7 +60,8 @@
                     v-model="selectedFormat"
                     @change="emitFormat"
                 >
-                    <option value="ALL">All formats</option>
+                    <option value="ALL">Show all</option>
+                    <option v-if="props.marketplaceSearch || props.showOnSale" value="ON_SALE">On sale</option>
                     <option value="CD">CD</option>
                     <option value="VINYL">Vinyl</option>
                 </select>
@@ -199,6 +202,14 @@ const props = defineProps({
         type: String,
         default: "MOVIE",
     },
+    marketplaceSearch: {
+        type: Boolean,
+        default: false,
+    },
+    showOnSale: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const emit = defineEmits([
@@ -219,7 +230,14 @@ const filterSummary = computed(() => {
     const parts = [];
 
     if (selectedFormat.value !== "ALL") {
-        parts.push(selectedFormat.value);
+        const labels = {
+            ON_SALE: "On sale",
+            UHD_4K: "4K",
+            SOFT_COVER: "Softcover",
+            HARD_COVER: "Hardcover",
+            BLURAY: "Blu-ray",
+        };
+        parts.push(labels[selectedFormat.value] || selectedFormat.value);
     }
 
     if (selectedCollection.value === "IN_COLLECTION") {

@@ -53,7 +53,7 @@ const showBackButton = ref(false);
 
 // Pages that are directly accessible from Home (one route away)
 // Don't show back button on these pages
-const mainPages = ['Search', 'Collection', 'Lists', 'Profile', 'trades', 'CollectionEdit', 'EditMedia', 'AddMedia'];
+const mainPages = ['Search', 'Collection', 'Lists', 'Profile', 'trades', 'EditMedia', 'AddMedia'];
 
 // Track navigation history to enable proper back functionality
 onMounted(() => {

@@ -10,6 +10,13 @@
             >
                 Collection edit
             </RouterLink>
+            <button
+                type="button"
+                class="collection-share-button"
+                @click="showShareDialog = true"
+            >
+                Share Collection
+            </button>
         </div>
 
         <CategorySelector
@@ -29,6 +36,7 @@
             :viewMode="viewMode"
             :displayMode="groupByCollection ? 'collections' : 'singles'"
             :showCollectionFilter="false"
+            showOnSale
             @update:format="selectedFormat = $event"
             @update:viewMode="viewMode = $event"
             @update:displayMode="groupByCollection = $event === 'collections'"
@@ -91,6 +99,7 @@
         v-if="showAddMedia"
         @close="showAddMedia = false"
     />
+    <ShareCollectionDialog v-model="showShareDialog" />
 </template>
 
 <script setup>
@@ -103,6 +112,7 @@ import CategorySelector from "../components/ui/CategorySelector.vue";
 import FilterBar from "../components/ui/FilterBar.vue";
 import SearchBar from "../components/ui/SearchBar.vue";
 import AddMedia from "../components/ui/AddMedia.vue";
+import ShareCollectionDialog from "../components/ui/ShareCollectionDialog.vue";
 
 import { getMyCopies } from "../api/copyAPI.js";
 
@@ -110,6 +120,7 @@ const loading = ref(true);
 
 const search = ref("");
 const showAddMedia = ref(false);
+const showShareDialog = ref(false);
 const groupByCollection = ref(false);
 const selectedFormat = ref("ALL");
 const viewMode = ref("grid");
@@ -180,6 +191,10 @@ function matchesFormat(media) {
         return true;
     }
 
+    if (selectedFormat.value === "ON_SALE") {
+        return media.copies.some(isCurrentlyForSale);
+    }
+
     const formats = {
         DVD: media.dvd,
         BLURAY: media.bluray,
@@ -191,6 +206,18 @@ function matchesFormat(media) {
     };
 
     return Boolean(formats[selectedFormat.value]);
+}
+
+function isCurrentlyForSale(copy) {
+    const isReserved =
+        copy.activeTrade?.status === "ACCEPTED" ||
+        copy.activeTrade?.status === "RENTING";
+
+    return (
+        copy.isArchived !== true &&
+        !isReserved &&
+        (copy.canSell || copy.boxSet?.canSell)
+    );
 }
 
 const filteredMedia = computed(() => {
@@ -272,6 +299,7 @@ const filteredMedia = computed(() => {
                 key,
                 title,
                 medias: [],
+                mediaCollection: col,
                 matchesSearch: false,
             });
         }
@@ -295,6 +323,7 @@ const filteredMedia = computed(() => {
                 title: g.title,
                 isCollectionGroup: true,
                 collectionSize: g.medias.length,
+                collectionMedias: g.medias,
                 collectionCopies: g.medias.reduce(
                     (total, media) => total + media.copies.length,
                     0,
@@ -360,6 +389,24 @@ const totalCopies = computed(() =>
     border-color: var(--border-light);
 }
 
+.collection-share-button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 6px 9px;
+    color: var(--text-h);
+    background: var(--accent-bg);
+    border: 1px solid var(--accent-border);
+    border-radius: var(--radius-small);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.collection-share-button:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent);
+}
+
 .add-media-button {
     margin-top: 1rem;
 }
@@ -367,6 +414,7 @@ const totalCopies = computed(() =>
 @media (max-width: 600px) {
     .collection-title-row {
         align-items: flex-start;
+        flex-wrap: wrap;
     }
 
     .collection-title-row h1 {

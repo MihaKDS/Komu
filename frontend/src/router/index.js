@@ -17,6 +17,7 @@ import Login from '../pages/Login.vue'
 import Register from "../pages/Register.vue";
 import AddMedia from "../components/ui/AddMedia.vue";
 import CollectionEdit from "../pages/CollectionEdit.vue";
+import SharedCollection from "../pages/SharedCollection.vue";
 import EditCopy from "../components/ui/EditCopy.vue";
 import EditMedia from "../components/ui/EditMedia.vue";
 
@@ -54,6 +55,15 @@ const routes = [
             title: "Collection",
             breadcrumb: "My Collection",
             requiresAuth: true
+        }
+    },
+    {
+        path: "/share/:token",
+        name: "SharedCollection",
+        component: SharedCollection,
+        meta: {
+            title: "Shared Collection",
+            breadcrumb: "Shared Collection",
         }
     },
     //collection edit route
