@@ -28,6 +28,7 @@ model Media {
   updatedAt           DateTime @updatedAt
 
   copies              Copy[]
+  lists               MediaList[]
 }
 
 model MediaCollection {
@@ -58,6 +59,39 @@ model User {
   tradesAsBuyer Trade[] @relation("TradeBuyer")
   tradesAsSeller Trade[] @relation("TradeSeller")
   tradeMessages TradeMessage[]
+  mediaLists     MediaList[]
+  collectionShare CollectionShare?
+}
+
+model MediaList {
+  id        Int        @id @default(autoincrement())
+  userId    Int
+  mediaId   Int
+  status    ListStatus
+  progress  Int?
+  note      String?    @db.VarChar(500)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  media     Media      @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mediaId])
+  @@index([userId, status])
+  @@map("Lists")
+}
+
+model CollectionShare {
+  id         Int           @id @default(autoincrement())
+  userId     Int           @unique
+  token      String        @unique
+  duration   ShareDuration
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model BoxSet {
@@ -183,6 +217,21 @@ enum TradeStatus {
   RENTING
   COMPLETED
 }
+
+enum ListStatus {
+  WISHLIST
+  TO_WATCH
+  WATCHING
+  COMPLETED
+}
+
+enum ShareDuration {
+  ONE_HOUR
+  ONE_DAY
+  SEVEN_DAYS
+  THIRTY_DAYS
+}
+
 enum MediaApprovalStatus {
   PENDING
   APPROVED
