@@ -115,6 +115,9 @@ export class GoogleBooksService {
               ?.slice(0, 4),
           ) || null,
 
+        publishedDate:
+          book.volumeInfo?.publishedDate ?? null,
+
         language:
           book.volumeInfo?.language ?? null,
 
@@ -124,6 +127,16 @@ export class GoogleBooksService {
         poster:
           book.volumeInfo?.imageLinks
             ?.thumbnail ?? null,
+
+        isbn10:
+          book.volumeInfo?.industryIdentifiers?.find(
+            (item) => item.type === 'ISBN_10',
+          )?.identifier ?? null,
+
+        isbn13:
+          book.volumeInfo?.industryIdentifiers?.find(
+            (item) => item.type === 'ISBN_13',
+          )?.identifier ?? null,
       }),
     );
   }
@@ -214,6 +227,9 @@ export class GoogleBooksService {
           volumeInfo.publishedDate
             ?.slice(0, 4),
         ) || null,
+
+      publishedDate:
+        volumeInfo.publishedDate ?? null,
 
       language:
         volumeInfo.language ?? null,

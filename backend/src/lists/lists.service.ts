@@ -43,6 +43,11 @@ export class ListsService {
       },
     };
     const existing = await this.prisma.mediaList.findUnique({ where });
+    const note = dto.note === undefined ? undefined : dto.note?.trim() || null;
+    const resultingNote = note === undefined ? existing?.note : note;
+    const isReview = dto.isReview === undefined
+      ? resultingNote ? undefined : false
+      : dto.isReview && Boolean(resultingNote);
     const status =
       dto.progress !== undefined && existing?.status === 'TO_WATCH'
         ? 'WATCHING'
@@ -55,12 +60,14 @@ export class ListsService {
         mediaId,
         status,
         progress: dto.progress ?? null,
-        note: dto.note ?? null,
+        note: note ?? null,
+        isReview: isReview ?? false,
       },
       update: {
         status,
         progress: dto.progress === undefined ? undefined : dto.progress,
-        note: dto.note === undefined ? undefined : dto.note,
+        note,
+        isReview,
       },
       include: { media: true },
     });

@@ -81,6 +81,36 @@ describe('ListsService', () => {
     );
   });
 
+  it('only saves a review flag when a note exists', async () => {
+    prisma.mediaList.findUnique.mockResolvedValue({
+      status: 'WATCHING',
+      note: 'A thoughtful note',
+    });
+
+    await service.upsert(12, 7, {
+      status: 'COMPLETED',
+      isReview: true,
+    });
+
+    expect(prisma.mediaList.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({ isReview: true }),
+      }),
+    );
+
+    await service.upsert(12, 7, {
+      status: 'COMPLETED',
+      note: null,
+      isReview: true,
+    });
+
+    expect(prisma.mediaList.upsert).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({ note: null, isReview: false }),
+      }),
+    );
+  });
+
   it('rejects media that does not exist', async () => {
     prisma.media.findUnique.mockResolvedValue(null);
 

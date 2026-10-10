@@ -1,5 +1,5 @@
 import { ListStatus } from '@prisma/client';
-import { IsEnum, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 
 export class UpdateMediaListDto {
   @IsEnum(ListStatus)
@@ -14,4 +14,8 @@ export class UpdateMediaListDto {
   @IsString()
   @MaxLength(500)
   note?: string | null;
+
+  @IsOptional()
+  @IsBoolean()
+  isReview?: boolean;
 }

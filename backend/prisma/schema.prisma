@@ -70,6 +70,7 @@ model MediaList {
   status    ListStatus
   progress  Int?
   note      String?    @db.VarChar(500)
+  isReview  Boolean    @default(false)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 

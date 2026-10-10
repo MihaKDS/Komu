@@ -107,7 +107,25 @@ async findByMediaId(mediaId: number): Promise<PublicCopyDto[]> {
       include: {
         media: {
           include: {
-            mediaCollection: true,
+            mediaCollection: {
+              include: {
+                medias: {
+                  select: {
+                    id: true,
+                    title: true,
+                    poster: true,
+                    category: true,
+                    releaseYear: true,
+                    collectionPosition: true,
+                  },
+                  orderBy: [
+                    { collectionPosition: 'asc' },
+                    { releaseYear: 'asc' },
+                    { title: 'asc' },
+                  ],
+                },
+              },
+            },
           },
         },
         boxSet: true,
