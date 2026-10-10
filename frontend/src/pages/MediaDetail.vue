@@ -32,6 +32,7 @@ const showEditCopy = ref(false);
 const idEditCopy = ref(null);
 const progressDraft = ref("0");
 const noteDraft = ref("");
+const reviewDraft = ref(false);
 const listProgressError = ref("");
 const savingListProgress = ref(false);
 
@@ -155,6 +156,7 @@ const progressType = computed(() => {
 
 const listStatusLabel = computed(() => {
     const status = currentListEntry.value?.status;
+    if (status === "COMPLETED") return "Completed";
     if (status === "TO_WATCH") {
         return ["BOOK", "COMIC"].includes(mediaDetails.value?.media.category)
             ? "To Read"
@@ -168,6 +170,7 @@ const listStatusLabel = computed(() => {
 watch(currentListEntry, (entry) => {
     progressDraft.value = String(entry?.progress ?? 0);
     noteDraft.value = entry?.note ?? "";
+    reviewDraft.value = entry?.isReview ?? false;
 }, { immediate: true });
 
 async function saveProgress(value = progressDraft.value) {
@@ -208,6 +211,9 @@ async function saveListNote() {
         await updateMediaList(Number(route.params.id), {
             status: currentListEntry.value.status,
             note: noteDraft.value.trim() || null,
+            ...(currentListEntry.value.status === "COMPLETED"
+                ? { isReview: reviewDraft.value }
+                : {}),
         });
     } catch (error) {
         listProgressError.value =
@@ -224,6 +230,8 @@ async function markListCompleted() {
     try {
         await updateMediaList(Number(route.params.id), {
             status: "COMPLETED",
+            note: noteDraft.value.trim() || null,
+            isReview: reviewDraft.value,
         });
     } catch (error) {
         listProgressError.value =
@@ -313,12 +321,12 @@ async function markListCompleted() {
          ===================================================== -->
 
 <section
-    v-if="currentListEntry && ['TO_WATCH', 'WATCHING'].includes(currentListEntry.status)"
+    v-if="currentListEntry && ['TO_WATCH', 'WATCHING', 'COMPLETED'].includes(currentListEntry.status)"
     class="detail-section list-progress-section"
 >
     <h2>{{ listStatusLabel }}</h2>
 
-    <div v-if="progressType" class="progress-controls">
+    <div v-if="progressType && currentListEntry.status !== 'COMPLETED'" class="progress-controls">
         <label :for="`media-progress-${mediaDetails.media.id}`">
             {{ progressType }}
         </label>
@@ -371,6 +379,19 @@ async function markListCompleted() {
         >
             Save Note
         </button>
+        <label
+            v-if="currentListEntry.status === 'WATCHING' || currentListEntry.status === 'COMPLETED'"
+            class="review-toggle"
+        >
+            <input
+                v-model="reviewDraft"
+                type="checkbox"
+                :disabled="savingListProgress || !noteDraft.trim()"
+            >
+            {{ currentListEntry.status === 'WATCHING'
+                ? 'Save note as a review'
+                : 'Show note as a review' }}
+        </label>
         <button
             v-if="currentListEntry.status === 'WATCHING'"
             type="button"
@@ -981,9 +1002,18 @@ button:active,
 
 .list-progress-actions {
     display: flex;
+    align-items: center;
     justify-content: space-between;
     gap: 8px;
     margin-top: 10px;
+}
+
+.review-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    font-size: 13px;
 }
 
 .save-list-note {

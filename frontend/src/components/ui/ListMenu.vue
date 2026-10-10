@@ -58,7 +58,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useAuth } from "../../composables/useAuth.js";
-import { openListMenuId } from "../../services/listMenuState.js";
+import { listStatusLabel, openListMenuId } from "../../services/listMenuState.js";
 import {
     deleteMediaList,
     loadMyLists,
@@ -126,18 +126,7 @@ watch(
 );
 
 function statusLabel(status) {
-    if (status === "WISHLIST") return "Wishlist";
-    if (status === "TO_WATCH") {
-        return ["BOOK", "COMIC"].includes(props.category) ? "To Read" : "To Watch";
-    }
-    if (status === "WATCHING") {
-        return ["BOOK", "COMIC"].includes(props.category) ? "Reading" : "Watching";
-    }
-    if (status === "COMPLETED") {
-        if (["BOOK", "COMIC"].includes(props.category)) return "Finished";
-        if (["MOVIE", "TV_SHOW"].includes(props.category)) return "Watched";
-    }
-    return "Completed";
+    return listStatusLabel(status, props.category);
 }
 
 async function toggleMenu() {

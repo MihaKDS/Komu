@@ -76,13 +76,12 @@
                     </button>
 
                     <button
-                        v-if="form.category === 'BOOK'"
+                        v-if="['BOOK', 'COMIC'].includes(form.category)"
                         type="button"
                         class="title-search-button"
-                        :disabled="!form.title.trim()"
                         @click="searchGoogleBooksFromTitle"
                     >
-                        Search books
+                        Search Google Books
                     </button>
                 </div>
 
@@ -436,7 +435,7 @@
                     <div>
                         <h2>Google Books Import</h2>
                         <p class="modal-subtitle">
-                            Search by title, author, or ISBN.
+                            Search by title, series, author, ISBN, or other Google Books terms.
                         </p>
                     </div>
 
@@ -457,7 +456,7 @@
                                 v-model="googleBooksSearch"
                                 type="text"
                                 class="search-input"
-                                placeholder="Search books..."
+                                :placeholder="form.category === 'COMIC' ? 'Search comics or manga...' : 'Search books...'"
                                 autocomplete="off"
                                 @keyup.enter="searchGoogleBooksApi"
                             >
@@ -513,7 +512,11 @@
                                 </span>
 
                                 <span v-if="book.releaseYear">
-                                    {{ book.releaseYear }}
+                                    {{ book.publishedDate || book.releaseYear }}
+                                </span>
+
+                                <span v-if="book.isbn13 || book.isbn10">
+                                    ISBN: {{ book.isbn13 || book.isbn10 }}
                                 </span>
 
                                 <button
@@ -533,7 +536,7 @@
                         "
                         class="modal-empty"
                     >
-                        No books found.
+                        No results found.
                     </p>
 
                 </template>
@@ -544,7 +547,7 @@
                     class="google-book-selected"
                 >
                     <div class="selected-book-header">
-                        <h4>Selected book</h4>
+                        <h4>Selected {{ form.category === 'COMIC' ? 'comic' : 'book' }}</h4>
                     </div>
 
                     <div class="selected-book">
@@ -569,8 +572,8 @@
                             </p>
 
                             <p v-if="selectedGoogleBook.releaseYear">
-                                <strong>Year:</strong>
-                                {{ selectedGoogleBook.releaseYear }}
+                                <strong>Published:</strong>
+                                {{ selectedGoogleBook.publishedDate || selectedGoogleBook.releaseYear }}
                             </p>
 
                             <p v-if="selectedGoogleBook.language">
@@ -617,7 +620,7 @@
                             class="primary-button"
                             @click="importGoogleBook"
                         >
-                            Import book
+                            Import {{ form.category === 'COMIC' ? 'comic' : 'book' }}
                         </button>
                     </div>
                 </div>
@@ -1298,12 +1301,12 @@ async function searchTmdbFromTitle() {
 async function searchGoogleBooksFromTitle() {
     const title = form.title.trim();
 
-    if (!title) return;
-
     openGoogleBooksImport();
-    googleBooksSearch.value = title;
 
-    await searchGoogleBooksApi();
+    if (title) {
+        googleBooksSearch.value = title;
+        await searchGoogleBooksApi();
+    }
 }
 
 async function importTmdbItems() {

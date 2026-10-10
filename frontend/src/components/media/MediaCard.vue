@@ -137,12 +137,12 @@
                 </div>
 
                 <div v-if="media.category === 'BOOK' || media.category === 'COMIC'" class="format">
-                    <span>SOFT</span>
+                    <span>SF</span>
                     <strong>{{ media.softcover ?? 0 }}</strong>
                 </div>
 
                 <div v-if="media.category === 'BOOK' || media.category === 'COMIC'" class="format">
-                    <span>HARD</span>
+                    <span>HR</span>
                     <strong>{{ media.hardcover ?? 0 }}</strong>
                 </div>
             </div>
@@ -166,6 +166,9 @@
         :aria-label="`Open ${media.title} contents`"
         @click.stop.prevent="showCollectionContents = true"
     >
+        <span v-if="collectionStatus" class="collection-status">
+            {{ listStatusLabel(collectionStatus, media.category) }}
+        </span>
         <span aria-hidden="true">›</span>
     </button>
 
@@ -181,16 +184,20 @@
 
 <script setup>
 import { RouterLink, useRouter } from "vue-router";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import {
     collectComicVolumeValuesFromCopies,
     formatComicVolumes,
 } from "../../utils/comicVolumes.js";
 import ListMenu from "../ui/ListMenu.vue";
 import CollectionContentsModal from "../ui/CollectionContentsModal.vue";
+import { useAuth } from "../../composables/useAuth.js";
+import { listStatusLabel } from "../../services/listMenuState.js";
+import { loadMyLists, mediaListEntries } from "../../services/listsService.js";
 
 const router = useRouter();
 const showCollectionContents = ref(false);
+const { user } = useAuth();
 
 const props = defineProps({
     media: {
@@ -294,6 +301,30 @@ const copyCount = computed(() => {
         props.media.vinyl,
     ].reduce((total, count) => total + (Number(count) || 0), 0);
 });
+
+const collectionStatus = computed(() => {
+    if (!user.value || props.readOnly || !Array.isArray(props.media.collectionMedias) || props.media.collectionMedias.length === 0) {
+        return null;
+    }
+
+    const statuses = props.media.collectionMedias.map((child) =>
+        mediaListEntries.value.find((entry) => entry.mediaId === child.id)?.status,
+    );
+
+    return statuses[0] && statuses.every((status) => status === statuses[0])
+        ? statuses[0]
+        : null;
+});
+
+watch(
+    () => user.value?.id,
+    (userId) => {
+        if (userId) {
+        loadMyLists().catch(() => {});
+        }
+    },
+    { immediate: true },
+);
 </script>
 
 <style scoped>
@@ -322,14 +353,15 @@ const copyCount = computed(() => {
     z-index: 3;
     display: grid;
     place-items: center;
-    width: 38px;
+    min-width: 38px;
     height: 38px;
-    padding: 0;
+    padding: 0 9px;
     color: #fff;
     background: rgba(20, 24, 32, 0.72);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-small);
-    font-size: 28px;
+    font-size: 12px;
+    font-weight: 600;
     line-height: 1;
     cursor: pointer;
 }
@@ -337,6 +369,10 @@ const copyCount = computed(() => {
 .collection-open-trigger:hover,
 .collection-open-trigger:focus-visible {
     background: rgba(20, 24, 32, 0.94);
+}
+
+.collection-open-trigger:has(.collection-status) > span:not(.collection-status) {
+    display: none;
 }
 
 .media-card {

@@ -5,22 +5,27 @@
 
         <p v-if="loading" class="loading">Loading lists...</p>
         <p v-else-if="error" class="lists-error">{{ error }}</p>
-        <p v-else-if="mediaListEntries.length === 0" class="empty">
-            Your lists are empty.
-        </p>
+        <CategorySelector
+            v-if="!loading && !error"
+            class="list-tabs"
+            :categories="sections.map((section) => section.status)"
+            :selected="selectedStatus"
+            :labels="tabLabels"
+            :counts="listCounts"
+            @change="selectedStatus = $event"
+        />
 
         <section
-            v-for="section in sections"
-            :key="section.status"
+            v-if="!loading && !error"
             class="list-section"
         >
-            <h2>{{ section.title }}</h2>
-            <p v-if="!entriesByStatus[section.status].length" class="empty-section">
-                No media in this list.
+            <h2>{{ selectedSection.title }}</h2>
+            <p v-if="selectedEntries.length === 0" class="empty-section">
+                No media in your {{ selectedSection.emptyLabel }} list.
             </p>
 
             <div
-                v-for="entry in entriesByStatus[section.status]"
+                v-for="entry in selectedEntries"
                 :key="entry.id"
                 class="list-row"
             >
@@ -45,7 +50,10 @@
                     >
                         {{ progressLabel(entry) }}
                     </p>
-                    <p v-if="entry.note" class="list-note-preview">
+                    <p
+                        v-if="entry.note && (entry.status !== 'COMPLETED' || entry.isReview)"
+                        class="list-note-preview"
+                    >
                         {{ entry.note }}
                     </p>
                 </div>
@@ -65,6 +73,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import Breadcrumbs from "../components/layout/Breadcrumbs.vue";
+import CategorySelector from "../components/ui/CategorySelector.vue";
 import {
     deleteMediaList,
     loadMyLists,
@@ -74,13 +83,21 @@ import {
 const loading = ref(true);
 const error = ref("");
 const removingId = ref(null);
+const selectedStatus = ref("WISHLIST");
 
 const sections = [
-    { status: "WISHLIST", title: "Wishlist" },
-    { status: "TO_WATCH", title: "To Watch / To Read" },
-    { status: "WATCHING", title: "Watching / Reading" },
-    { status: "COMPLETED", title: "Completed" },
+    { status: "WISHLIST", title: "Wishlist", emptyLabel: "Wishlist" },
+    { status: "TO_WATCH", title: "To Watch / To Read", emptyLabel: "To Watch / To Read" },
+    { status: "WATCHING", title: "Watching / Reading", emptyLabel: "Watching / Reading" },
+    { status: "COMPLETED", title: "Completed", emptyLabel: "Completed" },
 ];
+
+const tabLabels = {
+    WISHLIST: "Wishlist",
+    TO_WATCH: "To Watch",
+    WATCHING: "Watching",
+    COMPLETED: "Completed",
+};
 
 const entriesByStatus = computed(() => {
     const grouped = {
@@ -94,6 +111,23 @@ const entriesByStatus = computed(() => {
     }
     return grouped;
 });
+
+const selectedSection = computed(() =>
+    sections.find((section) => section.status === selectedStatus.value) ?? sections[0],
+);
+
+const selectedEntries = computed(() =>
+    entriesByStatus.value[selectedStatus.value] ?? [],
+);
+
+const listCounts = computed(() =>
+    Object.fromEntries(
+        sections.map((section) => [
+            section.status,
+            entriesByStatus.value[section.status].length,
+        ]),
+    ),
+);
 
 onMounted(async () => {
     try {
@@ -149,6 +183,10 @@ async function removeEntry(mediaId) {
 
 .list-section {
     margin-top: 24px;
+}
+
+.list-tabs {
+    margin-top: 18px;
 }
 
 .list-section h2 {

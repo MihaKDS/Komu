@@ -192,6 +192,9 @@
       :aria-label="`Open ${media.title} contents`"
       @click.stop.prevent="openCollectionId = media.id"
     >
+      <span v-if="collectionStatus(media)" class="collection-status">
+        {{ listStatusLabel(collectionStatus(media), media.category) }}
+      </span>
       <span aria-hidden="true">›</span>
     </button>
 
@@ -208,17 +211,21 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import { RouterLink, useRouter } from 'vue-router';
 import {
   collectComicVolumeValuesFromCopies,
   formatComicVolumes,
 } from "../../utils/comicVolumes.js";
 import CollectionContentsModal from "../ui/CollectionContentsModal.vue";
+import { useAuth } from "../../composables/useAuth.js";
+import { listStatusLabel } from "../../services/listMenuState.js";
+import { loadMyLists, mediaListEntries } from "../../services/listsService.js";
 
 const emit = defineEmits(['toggle-select']);
 const router = useRouter();
 const openCollectionId = ref(null);
+const { user } = useAuth();
 
 const props = defineProps({
   mediaList: {
@@ -339,6 +346,30 @@ function mediaCopyCount(media) {
     media.vinyl,
   ].reduce((total, count) => total + (Number(count) || 0), 0);
 }
+
+function collectionStatus(media) {
+  if (!user.value || props.readOnly || !Array.isArray(media.collectionMedias) || media.collectionMedias.length === 0) {
+    return null;
+  }
+
+  const statuses = media.collectionMedias.map((child) =>
+    mediaListEntries.value.find((entry) => entry.mediaId === child.id)?.status,
+  );
+
+  return statuses[0] && statuses.every((status) => status === statuses[0])
+    ? statuses[0]
+    : null;
+}
+
+watch(
+  () => user.value?.id,
+  (userId) => {
+    if (userId) {
+    loadMyLists().catch(() => {});
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <style scoped>
@@ -377,14 +408,15 @@ function mediaCopyCount(media) {
   z-index: 2;
   display: grid;
   place-items: center;
-  width: 36px;
+  min-width: 36px;
   height: 36px;
-  padding: 0;
+  padding: 0 9px;
   color: var(--text-h);
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-small);
-  font-size: 26px;
+  font-size: 12px;
+  font-weight: 600;
   line-height: 1;
   transform: translateY(-50%);
   cursor: pointer;
@@ -394,6 +426,10 @@ function mediaCopyCount(media) {
 .collection-open-trigger:focus-visible {
   background: var(--bg-hover);
   border-color: var(--border-light);
+}
+
+.collection-open-trigger:has(.collection-status) > span:not(.collection-status) {
+  display: none;
 }
 
 .media-row:hover {

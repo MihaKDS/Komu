@@ -50,14 +50,13 @@
                     ➕Add Media
                 </RouterLink>
                 <RouterLink
-                    :to="{ path: '/add-media' }"
+                    :to="{ path: '/collection/edit' }"
                     @click="$emit('close-menu')"
                     class="nav"
                 >
                     ✏️Edit Collection
                 </RouterLink>
                 <RouterLink
-                    v-if="user && ['admin', 'miha'].includes(user.username)"
                     :to="{ path: '/edit-media' }"
                     @click="$emit('close-menu')"
                     class="nav"

@@ -323,7 +323,9 @@ const filteredMedia = computed(() => {
                 title: g.title,
                 isCollectionGroup: true,
                 collectionSize: g.medias.length,
-                collectionMedias: g.medias,
+                // Statuses must represent every child in the collection, not
+                // only the titles for which this owner has a copy.
+                collectionMedias: g.mediaCollection?.medias ?? g.medias,
                 collectionCopies: g.medias.reduce(
                     (total, media) => total + media.copies.length,
                     0,

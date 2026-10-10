@@ -1,5 +1,5 @@
-﻿//const API_URL = "http://localhost:3000";
-const API_URL = "/api";
+﻿const API_URL = "http://localhost:3000";
+//const API_URL = "/api";
 
 async function readErrorMessage(response) {
   const contentType = response.headers.get("content-type") || "";
