@@ -1,106 +1,38 @@
 <template>
-    <aside
-        class="side-menu"
-        :class="{ open: isOpen }"
-    >
-        <nav class="nav">          
-           <!-- <RouterLink
-                :to="{ path: '/search', query: { category: 'COMIC' } }"
-                @click="$emit('close-menu')"
-                class="nav"
-                :class="{ active: isSearchCategory('COMIC') }"
-            >
-                📖Comics
-            </RouterLink>-->            
-            <RouterLink
-                :to="{ path: '/' }"
-                @click="$emit('close-menu')"
-                class="nav"
-            >
-                🔍Search
-            </RouterLink>                        
+    <aside class="side-menu" :class="{ open: isOpen }">
+        <nav class="nav">
+            <RouterLink :to="{ path: '/' }" @click="$emit('close-menu')" class="nav-link">
+                🏠Home
+            </RouterLink>
+
+            <div class="category-links" aria-label="Browse categories">
+                <RouterLink
+                    v-for="category in categories"
+                    :key="category.value"
+                    :to="{ path: '/search', query: { category: category.value } }"
+                    @click="$emit('close-menu')"
+                    class="nav-link category-link"
+                >
+                    {{ category.icon }}{{ category.label }}
+                </RouterLink>
+            </div>
+
+            <hr class="section-divider">
+
             <div v-if="user">
-                <RouterLink
-                    :to="{ path: '/collection' }"
-                    @click="$emit('close-menu')"
-                    class="nav"
-                >
+                <RouterLink :to="{ path: '/collection' }" @click="$emit('close-menu')" class="nav-link">
                     📦Collection
-                </RouterLink>                        
-                <RouterLink
-                    :to="{ path: '/lists' }"
-                    @click="$emit('close-menu')"
-                    class="nav"
-                >
+                </RouterLink>
+                <RouterLink :to="{ path: '/lists' }" @click="$emit('close-menu')" class="nav-link">
                     📋Lists
                 </RouterLink>
-                <RouterLink
-                    :to="{ path: '/trades' }"
-                    @click="$emit('close-menu')"
-                    class="nav"
-                >
+                <RouterLink :to="{ path: '/trades' }" @click="$emit('close-menu')" class="nav-link">
                     🔄Trades
                 </RouterLink>
-                <hr>
-                <RouterLink
-                    :to="{ path: '/add-media' }"
-                    @click="$emit('close-menu')"
-                    class="nav"
-                >
-                    ➕Add Media
-                </RouterLink>
-                <RouterLink
-                    :to="{ path: '/collection/edit' }"
-                    @click="$emit('close-menu')"
-                    class="nav"
-                >
-                    ✏️Edit Collection
-                </RouterLink>
-                <RouterLink
-                    :to="{ path: '/edit-media' }"
-                    @click="$emit('close-menu')"
-                    class="nav"
-                >
-                    ⚙️Edit Media
-                </RouterLink>
-                    <div class="header-user">
-
-                        <span v-if="loading" class="loading">
-                            Loading...
-                        </span>
-
-                        <template v-else-if="user">
-
-                            <RouterLink
-                                :to="{ path: '/profile' }"
-                                @click="$emit('close-menu')"
-                                class="nav"
-                            >
-                                👤Profile
-                            </RouterLink>
-
-                        </template>
-
-                        <RouterLink
-                            v-else
-                            to="/login"
-                            class="nav"
-                        >
-                            Login
-                        </RouterLink>
-
-                    </div>
             </div>
-            <div v-else>
-                <hr>
-                <RouterLink
-                    :to="{ path: '/login' }"
-                    @click="$emit('close-menu')"
-                    class="nav"
-                >
-                    Login
-                </RouterLink>
-            </div>
+            <RouterLink v-else :to="{ path: '/login' }" @click="$emit('close-menu')" class="nav-link">
+                Login
+            </RouterLink>
         </nav>
     </aside>
 </template>
@@ -108,28 +40,18 @@
 <script setup>
 import { useAuth } from '../../composables/useAuth'
 
-import { useRoute } from "vue-router";
+const categories = [
+    { label: 'Books', value: 'BOOK', icon: '📚' },
+    { label: 'Comics', value: 'COMIC', icon: '📖' },
+    { label: 'Music', value: 'MUSIC', icon: '🎵' },
+    { label: 'Movies', value: 'MOVIE', icon: '🎬' },
+    { label: 'TV Shows', value: 'TV_SHOW', icon: '📺' },
+]
 
-const route = useRoute();
-function isSearchCategory(category) {
-    return (
-        route.path === "/search" &&
-        route.query.category === category
-    );
-}
+const { user } = useAuth()
 
-const {
-  user,
-  loading,
-  logout,
-} = useAuth()
-
-defineEmits([
-    "close-menu"
-]);
-defineProps({
-    isOpen: Boolean
-});
+defineEmits(['close-menu'])
+defineProps({ isOpen: Boolean })
 </script>
 
 <style scoped>
@@ -137,28 +59,18 @@ defineProps({
     position: fixed;
     top: 0;
     left: max(0px, calc((100vw - 1126px) / 2 - 1px));
-
     width: 250px;
     height: 100vh;
-
     background-color: var(--border);
     border-right: 1px solid var(--border);
-
     z-index: 900;
-
     transform: translateX(-100%);
     opacity: 0;
     pointer-events: none;
-
     overflow-y: auto;
     overflow-x: hidden;
-
-    transition:
-        transform 0.3s ease,
-        opacity 0.2s ease;
-
-    /* Better scrolling on touch devices */
     -webkit-overflow-scrolling: touch;
+    transition: transform 0.3s ease, opacity 0.2s ease;
 }
 
 .side-menu.open {
@@ -176,45 +88,36 @@ nav {
     flex-direction: column;
 }
 
-.nav a {
-    padding: 1rem;
-
+.nav-link {
+    display: block;
+    padding: .8rem 1rem;
     color: var(--text-h);
     text-decoration: none;
-
     transition: background-color 0.15s ease;
 }
 
-.nav a:hover {
-    background-color: #585858;
+.nav-link:hover,
+.nav-link.router-link-active {
+    background-color: #3a3a3a;
     border-radius: 8px;
     width: 96%;
     margin-left: 2%;
 }
 
-.nav .active {
-    background: #3a3a3a;
-    border-radius: 8px;
-    width: 96%;
-    margin-left: 2%;
-}
-.logoutBtn {
-    display: inline-flex;
-    align-items: center;
-
-    color: var(--text-h);
-    background: var(--danger-bg);
-
-    border: 1px solid var(--social-bg);
-    border-radius: 8px;
-
-    text-decoration: none;
-
+.category-links {
+    display: flex;
+    flex-direction: column;
 }
 
-.logoutBtn:hover {
-    color: var(--text-h);
-    background: var(--bg-hover);
-    border-color: var(--border-light);
+.category-link {
+    padding-top: .55rem;
+    padding-bottom: .55rem;
+}
+
+.section-divider {
+    width: calc(100% - 2rem);
+    margin: .6rem 1rem;
+    border: 0;
+    border-top: 1px solid var(--border-light, #666);
 }
 </style>

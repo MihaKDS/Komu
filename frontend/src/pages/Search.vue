@@ -48,6 +48,18 @@
             :category="selectedCategory"
           />
 
+          <div
+              v-if="resultsLoaded"
+              class="add-media-card"
+              :class="{ 'empty-results': displayedMedia.length === 0 }"
+          >
+              <span>Can't find your media?</span>
+              <button type="button" @click="goToAddMedia">
+                  <span aria-hidden="true">＋</span>
+                  Add Media
+              </button>
+          </div>
+
         </section>
 
     </div>
@@ -55,7 +67,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useAuth } from "../composables/useAuth";
 
 import Breadcrumbs from "../components/layout/Breadcrumbs.vue";
@@ -68,9 +80,11 @@ import { getAllMedia } from "../api/mediaAPI.js";
 import { getMyCopies } from "../api/copyAPI.js";
 
 const route = useRoute();
+const router = useRouter();
 const auth = useAuth();
 
 const media = ref([]);
+const resultsLoaded = ref(false);
 const ownedMediaIds = ref(new Set());
 
 const searchText = ref("");
@@ -153,6 +167,13 @@ watch(
 
 function searchMedia(search) {
     searchText.value = search;
+}
+
+function goToAddMedia() {
+    router.push({
+        name: "AddMedia",
+        query: { category: selectedCategory.value, title: searchText.value },
+    });
 }
 
 
@@ -520,6 +541,8 @@ onMounted(async () => {
         loadOwnedMedia(),
     ]);
 
+    resultsLoaded.value = true;
+
 });
 </script>
 
@@ -640,6 +663,53 @@ onMounted(async () => {
     width: 100%;
 
     margin-top: 20px;
+}
+
+.add-media-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: fit-content;
+    max-width: 100%;
+    margin: 20px auto 0;
+    padding: 12px 14px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    background: var(--bg-secondary);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+}
+
+.add-media-card.empty-results {
+    margin-top: 12px;
+    border-style: solid;
+}
+
+.add-media-card button {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 40px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+    background: var(--bg-card);
+    color: var(--text-h);
+    cursor: pointer;
+}
+
+.add-media-card button:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-border);
+}
+
+@media (max-width: 600px) {
+    .add-media-card {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 10px 12px;
+    }
 }
 
 

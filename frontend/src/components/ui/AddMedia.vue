@@ -1798,6 +1798,11 @@ onMounted(() => {
 
     loadRecentValues();
 
+    if (route.query.category) {
+        form.category = String(route.query.category).toUpperCase();
+        categorySelected.value = true;
+    }
+
     if (route.query.title) {
 
         form.title = String(route.query.title);

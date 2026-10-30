@@ -102,6 +102,38 @@
                     </span>
                 </RouterLink>
 
+                <RouterLink to="/add-media" class="account-button">
+                    <span class="sector-icon">➕</span>
+                    <span>
+                        <strong>Add Media</strong>
+                        <small>Add a title to Komu</small>
+                    </span>
+                </RouterLink>
+
+                <RouterLink to="/collection/edit" class="account-button">
+                    <span class="sector-icon">✏️</span>
+                    <span>
+                        <strong>Edit Collection</strong>
+                        <small>Manage your collection items</small>
+                    </span>
+                </RouterLink>
+
+                <RouterLink to="/edit-media" class="account-button">
+                    <span class="sector-icon">⚙️</span>
+                    <span>
+                        <strong>Edit Media</strong>
+                        <small>Manage media entries</small>
+                    </span>
+                </RouterLink>
+
+                <RouterLink to="/profile" class="account-button">
+                    <span class="sector-icon">👤</span>
+                    <span>
+                        <strong>Profile</strong>
+                        <small>Your account and activity</small>
+                    </span>
+                </RouterLink>
+
 
                 <RouterLink
                     to="/trades"
@@ -127,20 +159,6 @@
                         <small>Your watchlist and wishlist</small>
                     </span>
                 </RouterLink>-->
-
-
-                <RouterLink
-                    to="/profile"
-                    class="account-button"
-                >
-                    <span class="sector-icon">👤</span>
-
-                    <span>
-                        <strong>Profile</strong>
-                        <small>Your account and activity</small>
-                    </span>
-                </RouterLink>
-
             </div>
 
         </section>
