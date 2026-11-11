@@ -204,6 +204,10 @@ const boxSetCategory = computed(() => {
 async function loadBoxSet() {
   boxSet.value = await getBoxSetById(route.params.id);
   syncBoxSetForm();
+  if (route.query.edit === 'true' && canEdit.value) {
+    isEditing.value = true;
+    syncBoxSetForm();
+  }
 }
 
 function addItem(media) {

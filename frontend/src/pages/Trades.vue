@@ -3,6 +3,16 @@
     <Breadcrumbs title="Trades" />
     <h1>Trades</h1>
 
+    <aside class="trading-notice" aria-labelledby="trading-notice-heading">
+      <div class="notice-heading">
+        <h2 id="trading-notice-heading">Trading notice</h2>
+        <span class="beta-badge">Beta</span>
+      </div>
+      <p>
+        Trading is experimental and provided as-is. Trades are arranged directly between users. Be cautious when dealing with people you don't know, as scams may occur. Komu does not guarantee the safety or completion of trades.
+      </p>
+    </aside>
+
     <div v-if="loading" class="empty">
       Loading...
     </div>
@@ -77,6 +87,45 @@ function tradeItemPreview(item) {
 <style scoped>
 .page {
   text-align: left;
+}
+
+.trading-notice {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.9rem;
+  background: var(--accent-bg);
+  border: 1px solid var(--border-light);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-small);
+}
+
+.notice-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.notice-heading h2 {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.beta-badge {
+  padding: 0.12rem 0.4rem;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+
+.trading-notice p {
+  margin: 0.35rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.5;
 }
 
 .trade-list {

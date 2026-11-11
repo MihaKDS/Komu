@@ -220,6 +220,10 @@ function close() {
     color: var(--accent-hover);
 }
 
+.media-row-link:hover {
+    text-decoration: none;
+}
+
 .media-title,
 .media-subtitle {
     overflow: hidden;

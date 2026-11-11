@@ -5,9 +5,25 @@
                 🏠Home
             </RouterLink>
 
-            <div class="category-links" aria-label="Browse categories">
+            <hr class="section-divider">
+
+            <div class="category-links" aria-label="Featured categories">
                 <RouterLink
-                    v-for="category in categories"
+                    v-for="category in featuredCategories"
+                    :key="category.value"
+                    :to="{ path: '/search', query: { category: category.value } }"
+                    @click="$emit('close-menu')"
+                    class="nav-link category-link"
+                >
+                    {{ category.icon }}{{ category.label }}
+                </RouterLink>
+            </div>
+
+            <hr class="section-divider">
+
+            <div class="category-links" aria-label="More categories">
+                <RouterLink
+                    v-for="category in otherCategories"
                     :key="category.value"
                     :to="{ path: '/search', query: { category: category.value } }"
                     @click="$emit('close-menu')"
@@ -29,6 +45,9 @@
                 <RouterLink :to="{ path: '/trades' }" @click="$emit('close-menu')" class="nav-link">
                     🔄Trades
                 </RouterLink>
+                <RouterLink :to="{ path: '/profile' }" @click="$emit('close-menu')" class="nav-link">
+                    👤 Profile
+                </RouterLink>
             </div>
             <RouterLink v-else :to="{ path: '/login' }" @click="$emit('close-menu')" class="nav-link">
                 Login
@@ -40,12 +59,14 @@
 <script setup>
 import { useAuth } from '../../composables/useAuth'
 
-const categories = [
+const featuredCategories = [
+    { label: 'Movies', value: 'MOVIE', icon: '🎬' },
+    { label: 'TV Shows', value: 'TV_SHOW', icon: '📺' },
+]
+const otherCategories = [
     { label: 'Books', value: 'BOOK', icon: '📚' },
     { label: 'Comics', value: 'COMIC', icon: '📖' },
     { label: 'Music', value: 'MUSIC', icon: '🎵' },
-    { label: 'Movies', value: 'MOVIE', icon: '🎬' },
-    { label: 'TV Shows', value: 'TV_SHOW', icon: '📺' },
 ]
 
 const { user } = useAuth()

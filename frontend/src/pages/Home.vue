@@ -12,44 +12,7 @@
             <section class="home-search">
                 <AllMediaSearch />
             </section>
-            <div class="sectors">
-
-                <RouterLink
-                    :to="{ path: '/search', query: { category: 'BOOK' } }"
-                    class="sector-button"
-                >
-                    <span class="sector-icon">📚</span>
-
-                    <span>
-                        <strong>Books</strong>
-                        <small>Browse books</small>
-                    </span>
-                </RouterLink>
-
-                <RouterLink
-                    :to="{ path: '/search', query: { category: 'COMIC' } }"
-                    class="sector-button"
-                >
-                    <span class="sector-icon">📖</span>
-
-                    <span>
-                        <strong>Comics</strong>
-                        <small>Browse comics</small>
-                    </span>
-                </RouterLink>
-
-                <RouterLink
-                    :to="{ path: '/search', query: { category: 'MUSIC' } }"
-                    class="sector-button"
-                >
-                    <span class="sector-icon">🎵</span>
-
-                    <span>
-                        <strong>Music</strong>
-                        <small>Browse music</small>
-                    </span>
-                </RouterLink>
-
+            <div class="featured-sectors">
                 <RouterLink
                     :to="{ path: '/search', query: { category: 'MOVIE' } }"
                     class="sector-button"
@@ -77,6 +40,43 @@
 
             </div>
 
+            <hr class="browse-divider">
+
+            <div class="sectors">
+                <RouterLink
+                    :to="{ path: '/search', query: { category: 'BOOK' } }"
+                    class="sector-button"
+                >
+                    <span class="sector-icon">📚</span>
+                    <span>
+                        <strong>Books</strong>
+                        <small>Browse books</small>
+                    </span>
+                </RouterLink>
+
+                <RouterLink
+                    :to="{ path: '/search', query: { category: 'COMIC' } }"
+                    class="sector-button"
+                >
+                    <span class="sector-icon">📖</span>
+                    <span>
+                        <strong>Comics</strong>
+                        <small>Browse comics</small>
+                    </span>
+                </RouterLink>
+
+                <RouterLink
+                    :to="{ path: '/search', query: { category: 'MUSIC' } }"
+                    class="sector-button"
+                >
+                    <span class="sector-icon">🎵</span>
+                    <span>
+                        <strong>Music</strong>
+                        <small>Browse music</small>
+                    </span>
+                </RouterLink>
+            </div>
+
         </section>
 
 
@@ -89,7 +89,6 @@
             <h2>Your Komu</h2>
 
             <div class="account-links">
-
                 <RouterLink
                     to="/collection"
                     class="account-button"
@@ -101,39 +100,6 @@
                         <small>Manage your collection</small>
                     </span>
                 </RouterLink>
-
-                <RouterLink to="/add-media" class="account-button">
-                    <span class="sector-icon">➕</span>
-                    <span>
-                        <strong>Add Media</strong>
-                        <small>Add a title to Komu</small>
-                    </span>
-                </RouterLink>
-
-                <RouterLink to="/collection/edit" class="account-button">
-                    <span class="sector-icon">✏️</span>
-                    <span>
-                        <strong>Edit Collection</strong>
-                        <small>Manage your collection items</small>
-                    </span>
-                </RouterLink>
-
-                <RouterLink to="/edit-media" class="account-button">
-                    <span class="sector-icon">⚙️</span>
-                    <span>
-                        <strong>Edit Media</strong>
-                        <small>Manage media entries</small>
-                    </span>
-                </RouterLink>
-
-                <RouterLink to="/profile" class="account-button">
-                    <span class="sector-icon">👤</span>
-                    <span>
-                        <strong>Profile</strong>
-                        <small>Your account and activity</small>
-                    </span>
-                </RouterLink>
-
 
                 <RouterLink
                     to="/trades"
@@ -147,18 +113,52 @@
                     </span>
                 </RouterLink>
 
-
-               <!-- <RouterLink
+                <RouterLink
                     to="/lists"
                     class="account-button"
                 >
                     <span class="sector-icon">📋</span>
-
                     <span>
                         <strong>Lists</strong>
                         <small>Your watchlist and wishlist</small>
                     </span>
-                </RouterLink>-->
+                </RouterLink>
+            </div>
+
+            <hr class="account-divider">
+
+            <div class="account-actions">
+                <RouterLink to="/add-media" class="account-button">
+                    <span class="sector-icon">➕</span>
+                    <span>
+                        <strong>Add Media</strong>
+                        <small>Add a title to Komu</small>
+                    </span>
+                </RouterLink>
+
+                <RouterLink to="/edit-media" class="account-button">
+                    <span class="sector-icon">⚙️</span>
+                    <span>
+                        <strong>Edit Media</strong>
+                        <small>Manage media entries</small>
+                    </span>
+                </RouterLink>
+
+                <RouterLink to="/collection/edit" class="account-button">
+                    <span class="sector-icon">✏️</span>
+                    <span>
+                        <strong>Edit Collection</strong>
+                        <small>Manage your collection items</small>
+                    </span>
+                </RouterLink>
+
+                <RouterLink to="/profile" class="account-button">
+                    <span class="sector-icon">👤</span>
+                    <span>
+                        <strong>Profile</strong>
+                        <small>Your account and activity</small>
+                    </span>
+                </RouterLink>
             </div>
 
         </section>
@@ -217,13 +217,21 @@ const {
 
 /* Browse buttons */
 
-.sectors {
+.sectors,
+.featured-sectors {
     display: grid;
-
-    grid-template-columns:
-        repeat(3, minmax(0, 1fr));
-
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
+}
+
+.featured-sectors {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.browse-divider {
+    margin: 16px 0;
+    border: 0;
+    border-top: 1px solid var(--border);
 }
 
 .sector-button,
@@ -329,6 +337,18 @@ const {
 
     gap: 12px;
 }
+
+.account-divider {
+    margin: 16px 0;
+    border: 0;
+    border-top: 1px solid var(--border);
+}
+
+.account-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
 /* Home search */
 
 .home-search {
@@ -408,11 +428,13 @@ const {
         margin-bottom: 28px;
     }
 
-    .sectors {
+    .sectors,
+    .featured-sectors {
         grid-template-columns: 1fr;
     }
 
-    .account-links {
+    .account-links,
+    .account-actions {
         grid-template-columns: 1fr;
     }
 

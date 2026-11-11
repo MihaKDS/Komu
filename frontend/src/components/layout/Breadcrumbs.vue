@@ -19,12 +19,13 @@
                 <RouterLink
                     v-if="item.to"
                     :to="item.to"
+                    :title="item.label"
                 >
-                    {{ item.label }}
+                    {{ displayBreadcrumbLabel(item.label) }}
                 </RouterLink>
 
-                <span v-else>
-                    {{ item.label }}
+                <span v-else :title="item.label">
+                    {{ displayBreadcrumbLabel(item.label) }}
                 </span>
 
                 <span
@@ -66,6 +67,11 @@ onMounted(() => {
 
 function goBack() {
     router.back();
+}
+
+function displayBreadcrumbLabel(label) {
+    const text = String(label ?? "");
+    return text.length > 12 ? `${text.slice(0, 12)}...` : text;
 }
 
 const showBreadcrumbs = computed(() => {

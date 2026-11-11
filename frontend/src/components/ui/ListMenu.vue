@@ -7,13 +7,13 @@
     >
         <button
             type="button"
-            :class="['list-menu-trigger', { 'has-status': currentEntry }]"
-            :aria-label="currentEntry ? `Manage lists: ${statusLabel(currentEntry.status)}` : 'Manage lists'"
+            :class="['list-menu-trigger', { 'has-status': currentEntry || emptyLabel }]"
+            :aria-label="currentEntry ? `Manage lists: ${statusLabel(currentEntry.status)}` : emptyLabel || 'Manage lists'"
             :aria-expanded="isOpen"
             @click="toggleMenu"
         >
             <span v-if="currentEntry">{{ statusLabel(currentEntry.status) }}</span>
-            <span v-else aria-hidden="true">⋮</span>
+            <span v-else>{{ emptyLabel || "⋮" }}</span>
         </button>
 
         <div
@@ -73,6 +73,10 @@ const props = defineProps({
     mediaId: {
         type: Number,
         required: true,
+    },
+    emptyLabel: {
+        type: String,
+        default: "",
     },
     category: {
         type: String,
