@@ -43,147 +43,38 @@
               <h3>
                   {{ media.title }}
               </h3>
-              <span> {{ media.releaseYear }}</span>
-
-              <span
-                  v-if="media.inCollection && !props.compact"
-                  class="badge collection-badge"
-              >
-                  In collection
-              </span>
+              <span> {{ releaseYearLabels.get(media.id) }}</span>
 
           </div>
 
-
-          <p
-              v-if="!props.compact"
-              class="meta"
-          >
-              <template v-if="media.isCollectionGroup">
-                  Collection
-              </template>
-
-              <template v-if="!media.isCollectionGroup">
-                  {{ media.releaseYear }} • {{ media.category }}
-              </template>
-          </p>
-
-
-          <p
-              v-if="!props.compact && media.isCollectionGroup"
-              class="collection-summary"
-          >
-              {{ media.collectionSize }}
-              {{ media.collectionSize === 1 ? 'title' : 'titles' }}
-              <span v-if="media.collectionCopies != null">· {{ media.collectionCopies }} copies</span>
-          </p>
-
-          <p
-              v-else-if="!props.compact && props.mode === 'collection'"
-              class="collection-summary"
-          >
-              {{ mediaCopyCount(media) }}
-              {{ mediaCopyCount(media) === 1 ? 'physical copy' : 'physical copies' }}
-          </p>
-
-          <p
-              v-if="
-                  !props.compact &&
-                  comicVolumesSummary(media)
-              "
-              class="comic-volumes"
-          >
-              {{ comicVolumesSummary(media) }}
-          </p>
-
-
-          <div
-              v-if="media.tradeStatusLabel"
-              class="trade-status"
-          >
+          <div v-if="rowStatuses(media).length || collectionStatus(media) || media.isCollectionGroup" class="row-statuses">
+              <span v-for="status in rowStatuses(media)" :key="status" class="status-tag">{{ status }}</span>
               <button
                   v-if="media.tradeId"
                   type="button"
-                  class="trade-status-link"
+                  class="status-tag status-action"
                   @click.stop.prevent="openTrade(media.tradeId)"
-              >
-                  {{ media.tradeStatusLabel }}
-              </button>
-
-              <span v-else>
-                  {{ media.tradeStatusLabel }}
+              >For trade</button>
+              <span v-else-if="media.isCollectionGroup && collectionStatus(media)" class="status-tag list-status">
+                  {{ listStatusLabel(collectionStatus(media), media.category) }}
               </span>
-          </div>
-
-
-          <div
-              v-if="
-                  !props.compact &&
-                  !media.isCollectionGroup
-              "
-              class="format-row"
-          >
-
-              <span
-                  v-if="media.category === 'MOVIE' || media.category === 'TV_SHOW'"
-                  class="format"
-              >
-                  DVD
-                  <strong>{{ media.dvd ?? 0 }}</strong>
+              <span v-if="media.isCollectionGroup" class="collection-summary-inline">
+                  {{ collectionTitleCount(media) }} {{ collectionTitleTerm(media) }}
+                  <template v-if="media.collectionCopies != null">· {{ media.collectionCopies }} {{ media.collectionCopies === 1 ? 'copy' : 'copies' }}</template>
               </span>
-
-              <span
-                  v-if="media.category === 'MOVIE' || media.category === 'TV_SHOW'"
-                  class="format"
-              >
-                  Blu-ray
-                  <strong>{{ media.bluray ?? 0 }}</strong>
-              </span>
-
-              <span
-                  v-if="media.category === 'MOVIE' || media.category === 'TV_SHOW'"
-                  class="format"
-              >
-                  UHD
-                  <strong>{{ media.fourk ?? 0 }}</strong>
-              </span>
-
-              <span
-                  v-if="media.category === 'MUSIC'"
-                  class="format"
-              >
-                  CD
-                  <strong>{{ media.cd ?? 0 }}</strong>
-              </span>
-
-              <span
-                  v-if="media.category === 'MUSIC'"
-                  class="format"
-              >
-                  Vinyl
-                  <strong>{{ media.vinyl ?? 0 }}</strong>
-              </span>
-
-              <span
-                  v-if="media.category === 'BOOK' || media.category === 'COMIC'"
-                  class="format"
-              >
-                  Softcover
-                  <strong>{{ media.softcover ?? 0 }}</strong>
-              </span>
-
-              <span
-                  v-if="media.category === 'BOOK' || media.category === 'COMIC'"
-                  class="format"
-              >
-                  Hardcover
-                  <strong>{{ media.hardcover ?? 0 }}</strong>
-              </span>
-
           </div>
 
       </div>
     </component>
+
+    <ListMenu
+      v-if="!media.isCollectionGroup && !props.readOnly"
+      class="media-list-menu"
+      :media-id="media.id"
+      :category="media.category"
+      empty-label="+ Add to list"
+      @click.stop
+    />
 
     <button
       v-if="media.isCollectionGroup"
@@ -192,9 +83,6 @@
       :aria-label="`Open ${media.title} contents`"
       @click.stop.prevent="openCollectionId = media.id"
     >
-      <span v-if="collectionStatus(media)" class="collection-status">
-        {{ listStatusLabel(collectionStatus(media), media.category) }}
-      </span>
       <span aria-hidden="true">›</span>
     </button>
 
@@ -211,13 +99,10 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { RouterLink, useRouter } from 'vue-router';
-import {
-  collectComicVolumeValuesFromCopies,
-  formatComicVolumes,
-} from "../../utils/comicVolumes.js";
 import CollectionContentsModal from "../ui/CollectionContentsModal.vue";
+import ListMenu from "../ui/ListMenu.vue";
 import { useAuth } from "../../composables/useAuth.js";
 import { listStatusLabel } from "../../services/listMenuState.js";
 import { loadMyLists, mediaListEntries } from "../../services/listsService.js";
@@ -262,6 +147,10 @@ const props = defineProps({
     default: false,
   },
 });
+
+const releaseYearLabels = computed(() =>
+  new Map(props.mediaList.map((media) => [media.id, releaseYearLabel(media)])),
+);
 
 function posterSource(poster, category) {
     if (poster) {
@@ -315,20 +204,40 @@ function openTrade(tradeId) {
   });
 }
 
-function comicVolumesSummary(media) {
-  if (
-    media.category !== "COMIC" ||
-    media.isCollectionGroup ||
-    !Array.isArray(media.copies)
-  ) {
-    return "";
+function collectionTitleCount(media) {
+  return Array.isArray(media.collectionMedias) ? media.collectionMedias.length : media.collectionSize;
+}
+
+function collectionTitleTerm(media) {
+  const terms = { MOVIE: "movies", TV_SHOW: "seasons", MUSIC: "albums", BOOK: "books", COMIC: "comics" };
+  const term = terms[media.category] ?? "titles";
+  return collectionTitleCount(media) === 1 ? term.replace(/s$/, "") : term;
+}
+
+function releaseYearLabel(media) {
+  if (!media.isCollectionGroup || !Array.isArray(media.collectionMedias)) {
+    return media.releaseYear;
   }
 
-  return formatComicVolumes(
-    collectComicVolumeValuesFromCopies(
-      media.copies,
-    ),
-  );
+  const years = media.collectionMedias
+    .map((item) => {
+      const value = item.releaseYear;
+      if (value == null || (typeof value === "string" && value.trim() === "")) {
+        return null;
+      }
+
+      const year = Number(value);
+      return Number.isInteger(year) && year >= 1000 && year <= 9999 ? year : null;
+    })
+    .filter((year) => year !== null);
+
+  if (years.length === 0) {
+    return media.releaseYear;
+  }
+
+  const firstYear = years[0];
+  const lastYear = years[years.length - 1];
+  return firstYear === lastYear ? String(firstYear) : `${firstYear} - ${lastYear}`;
 }
 
 function mediaCopyCount(media) {
@@ -345,6 +254,24 @@ function mediaCopyCount(media) {
     media.cd,
     media.vinyl,
   ].reduce((total, count) => total + (Number(count) || 0), 0);
+}
+
+function rowStatuses(media) {
+  const children = media.isCollectionGroup && Array.isArray(media.collectionMedias)
+    ? media.collectionMedias
+    : [media];
+  const owned = media.inCollection || mediaCopyCount(media) > 0 || children.some((item) =>
+    item.inCollection || (Array.isArray(item.copies) && item.copies.some((copy) => copy.isArchived !== true)),
+  );
+  const forSale = media.hasSell || children.some((item) =>
+    item.hasSell || item.copies?.some((copy) => copy.isArchived !== true && (copy.canSell || copy.boxSet?.canSell)),
+  );
+  const forTrade = media.activeTrade || media.tradeStatusLabel || children.some((item) => item.activeTrade || item.tradeStatusLabel);
+  return [
+    ...(owned ? ["Owned"] : []),
+    ...(forSale ? ["For sale"] : []),
+    ...(!media.tradeId && forTrade ? ["For trade"] : []),
+  ];
 }
 
 function collectionStatus(media) {
@@ -401,6 +328,13 @@ watch(
   padding-right: 50px;
 }
 
+.media-list-menu {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+}
+
 .collection-open-trigger {
   position: absolute;
   top: 50%;
@@ -426,10 +360,6 @@ watch(
 .collection-open-trigger:focus-visible {
   background: var(--bg-hover);
   border-color: var(--border-light);
-}
-
-.collection-open-trigger:has(.collection-status) > span:not(.collection-status) {
-  display: none;
 }
 
 .media-row:hover {
@@ -492,144 +422,59 @@ watch(
     overflow-wrap: anywhere;
 }
 
-
-.meta {
-    margin: 5px 0 0;
-
-    color: var(--text-muted);
-
-    font-size: 13px;
+.row-statuses {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 7px;
 }
 
-
-.collection-summary {
-    margin: 6px 0 0;
-
-    color: var(--text-secondary);
-
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.collection-summary span {
-    color: var(--text-muted);
-}
-
-
-.available {
-    margin: 7px 0 0;
-
-    color: var(--text-secondary);
-
-    font-size: 13px;
-}
-
-.copy-count {
-    margin: 5px 0 0;
-    color: var(--text-secondary);
-    font-size: 12px;
-}
-
-.comic-volumes {
-    margin: 7px 0 0;
-
-    color: var(--text-secondary);
-
-    font-size: 13px;
-    font-weight: 500;
-}
-
-
-/* Collection / ownership */
-
-.badge {
+.status-tag {
     display: inline-flex;
     align-items: center;
-
-    padding: 3px 7px;
-
-    color: var(--text-secondary);
-
-    background: var(--accent-bg);
-
-    border: 1px solid var(--accent-border);
+    padding: 3px 6px;
+    color: #fff;
+    background: rgba(20, 24, 32, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 999px;
-
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
+    line-height: 1;
     white-space: nowrap;
 }
 
-
-/* Formats */
-
-.format-row {
-    display: flex;
-    flex-wrap: wrap;
-
-    gap: 6px;
-
-    margin-top: 9px;
-}
-
-
-.format {
-    display: inline-flex;
-    align-items: center;
-
-    gap: 4px;
-
-    padding: 3px 7px;
-
-    color: var(--text-secondary);
-    background: var(--bg-secondary);
-
-    border: 1px solid var(--border);
-    border-radius: 5px;
-
-    font-size: 11px;
-}
-
-
-.format strong {
-    color: var(--text-h);
-
-    font-weight: 600;
-}
-
-
-/* Trade */
-
-.trade-status {
-    margin-top: 8px;
-}
-
-
-.trade-status-link,
-.trade-status span {
-    display: inline-flex;
-    align-items: center;
-
-    padding: 4px 8px;
-
-    color: var(--text-secondary);
-    background: var(--bg-secondary);
-
-    border: 1px solid var(--border);
-    border-radius: 5px;
-
-    font-size: 12px;
-}
-
-
-.trade-status-link {
+.status-action {
+    font-family: inherit;
     cursor: pointer;
 }
 
+.status-action:hover {
+    background: rgba(20, 24, 32, 0.96);
+}
 
-.trade-status-link:hover {
-    color: var(--text-h);
-    background: var(--bg-hover);
+.row-statuses :deep(.list-menu) {
+    display: inline-flex;
+}
+
+.row-statuses :deep(.list-menu-trigger) {
+    min-height: 0;
+    padding: 3px 6px;
+    color: #fff;
+    background: rgba(20, 24, 32, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+
+.collection-summary-inline {
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
 }
 
 </style>

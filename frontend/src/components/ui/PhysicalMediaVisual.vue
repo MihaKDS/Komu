@@ -1,5 +1,5 @@
 <template>
-    <div :class="['physical-media-visual', `physical-media-${normalizedType}`, `physical-media-category-${normalizedCategory}`, `physical-media-format-${normalizedFormatClass}`]" aria-hidden="true">
+    <div :class="['physical-media-visual', `physical-media-${normalizedType}`, `physical-media-category-${normalizedCategory}`, `physical-media-format-${normalizedFormatClass}`, `physical-media-variant-${variant}`]" aria-hidden="true">
         <div class="case-front">
             <img class="case-frame" :src="caseFrameImage" alt="">
             <img class="case-cover" :style="coverStyle" :src="coverImage" :alt="coverAlt" loading="lazy">
@@ -42,6 +42,11 @@ const props = defineProps({
     coverAlt: {
         type: String,
         default: "Media cover",
+    },
+    variant: {
+        type: String,
+        default: "copy",
+        validator: (value) => ["copy", "collection"].includes(value),
     },
 });
 
@@ -97,6 +102,10 @@ const coverStyle = computed(() => {
     return undefined;
 });
 const caseFrameImage = computed(() => {
+    if (props.variant === "collection" && normalizedCategory.value === "MOVIE") {
+        return bluRayBoxSet;
+    }
+
     if (normalizedCategory.value === "MUSIC") {
         return normalizedFormat.value === "VINYL" ? vinylCase : cdCase;
     }
@@ -124,6 +133,14 @@ const caseFrameImage = computed(() => {
     width: var(--case-width);
     height: var(--case-height);
     isolation: isolate;
+}
+
+.physical-media-variant-collection {
+    --case-width: 100%;
+    --case-height: 100%;
+
+    width: 100%;
+    height: 100%;
 }
 
 .physical-media-category-book,

@@ -85,7 +85,14 @@
 
                     <div class="media-reference-title">
 
-                        <strong>
+                        <RouterLink
+                            v-if="copy.media?.id"
+                            class="media-reference-link"
+                            :to="{ name: 'media', params: { id: copy.media.id }, query: { from: 'collection' } }"
+                        >
+                            <strong>{{ copy.media?.title || "Unknown media" }}</strong>
+                        </RouterLink>
+                        <strong v-else>
                             {{ copy.media?.title || "Unknown media" }}
                         </strong>
 
@@ -806,6 +813,17 @@ onMounted(loadCopy);
     gap: 8px;
 
     min-width: 0;
+}
+
+.media-reference-link {
+    min-width: 0;
+    color: inherit;
+    text-decoration: none;
+}
+
+.media-reference-link:hover strong,
+.media-reference-link:focus-visible strong {
+    text-decoration: underline;
 }
 
 .media-reference strong {

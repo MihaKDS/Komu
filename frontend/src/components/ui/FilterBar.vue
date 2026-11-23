@@ -129,7 +129,7 @@
 
 
             <!-- Display -->
-            <div class="group">
+            <div v-if="showDisplayToggle" class="group">
                 <label>
                     Display
                 </label>
@@ -195,6 +195,10 @@ const props = defineProps({
     },
 
     showViewToggle: {
+        type: Boolean,
+        default: true,
+    },
+    showDisplayToggle: {
         type: Boolean,
         default: true,
     },

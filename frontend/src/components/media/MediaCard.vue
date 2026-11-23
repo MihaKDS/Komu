@@ -5,15 +5,26 @@
         v-bind="props.readOnly ? {} : { to: mediaLink }"
         class="media-card-link"
     >
-        <article
-            :class="['media-card', { 'is-collection': media.isCollectionGroup }]"
-        >
-
-        <img
-            :src="posterSource(props.media.poster, props.category)"
-            :alt="props.media.title"
-            class="media-poster"
-        >
+        <article :class="['media-card', { 'is-collection': media.isCollectionGroup }]">
+        <div class="poster-wrap">
+            <div v-if="media.isCollectionGroup" class="collection-visual-wrap">
+                <PhysicalMediaVisual
+                    variant="collection"
+                    type="BOXSET"
+                    format="BLURAY"
+                    category="MOVIE"
+                    :cover-image="posterSource(media.poster, media.category)"
+                    :cover-alt="media.title"
+                />
+            </div>
+            <img v-else :src="posterSource(props.media.poster, props.category)" :alt="props.media.title" class="media-poster">
+            <span v-if="media.isCollectionGroup" class="collection-count">
+                {{ collectionTitleCount }} {{ collectionTerm }}
+            </span>
+            <div v-if="coverStatuses.length" class="cover-statuses">
+                <button v-for="status in coverStatuses" :key="status" type="button" class="cover-status" :class="{ 'is-action': status === 'For trade' && media.tradeId }" @click.stop.prevent="status === 'For trade' && media.tradeId ? openTrade(media.tradeId) : undefined">{{ status }}</button>
+            </div>
+        </div>
 
         <div class="content">
 
@@ -23,129 +34,13 @@
                     {{ media.title }}
                 </h3>
 
-                <div class="badges">
-                    <span
-                        v-if="media.inCollection"
-                        class="collection-badge"
-                    >
-                        In collection
-                    </span>
-
-                    <span
-                        v-if="media.hasSell"
-                        class="sell-badge"
-                    >
-                        Selling
-                    </span>
-
-                    <span
-                        v-if="media.hasRent"
-                        class="rent-badge"
-                    >
-                        Renting
-                    </span>
-                </div>
-
             </div>
 
 
             <p class="year">
-                {{
-                    media.isCollectionGroup
-                        ? "Collection"
-                        : media.releaseYear
-                }}
+                {{ releaseYearLabel }}
             </p>
 
-
-            <p
-                v-if="media.isCollectionGroup"
-                class="collection-summary"
-            >
-                {{ media.collectionSize }}
-                {{ media.collectionSize === 1 ? "title" : "titles" }}
-            </p>
-
-
-            <p v-if="media.isCollectionGroup" class="copy-count">
-                {{ media.isCollectionGroup ? media.collectionCopies : copyCount }}
-                {{ (media.isCollectionGroup ? media.collectionCopies : copyCount) === 1 ? "physical copy" : "physical copies" }}
-            </p>
-
-            <p
-                v-else-if="props.mode === 'collection'"
-                class="copy-count"
-            >
-                {{ copyCount }}
-                {{ copyCount === 1 ? "physical copy" : "physical copies" }}
-            </p>
-
-            <p
-                v-if="comicVolumesSummary"
-                class="comic-volumes"
-            >
-                {{ comicVolumesSummary }}
-            </p>
-
-
-            <div
-                v-if="media.tradeStatusLabel"
-                class="trade-status"
-            >
-                <button
-                    v-if="media.tradeId"
-                    type="button"
-                    class="trade-status-link"
-                    @click.stop.prevent="openTrade(media.tradeId)"
-                >
-                    {{ media.tradeStatusLabel }}
-                </button>
-
-                <span v-else>
-                    {{ media.tradeStatusLabel }}
-                </span>
-            </div>
-
-
-            <div
-                v-if="!media.isCollectionGroup && (media.category === 'MOVIE' || media.category === 'TV_SHOW' || media.category === 'MUSIC' || media.category === 'BOOK' || media.category === 'COMIC')"
-                class="media-formats"
-            >
-                <div v-if="media.category === 'MOVIE' || media.category === 'TV_SHOW'" class="format">
-                    <span>DVD</span>
-                    <strong>{{ media.dvd ?? 0 }}</strong>
-                </div>
-
-                <div v-if="media.category === 'MOVIE' || media.category === 'TV_SHOW'" class="format">
-                    <span>BR</span>
-                    <strong>{{ media.bluray ?? 0 }}</strong>
-                </div>
-
-                <div v-if="media.category === 'MOVIE' || media.category === 'TV_SHOW'" class="format">
-                    <span>UHD</span>
-                    <strong>{{ media.fourk ?? 0 }}</strong>
-                </div>
-
-                <div v-if="media.category === 'MUSIC'" class="format">
-                    <span>CD</span>
-                    <strong>{{ media.cd ?? 0 }}</strong>
-                </div>
-
-                <div v-if="media.category === 'MUSIC'" class="format">
-                    <span>VINYL</span>
-                    <strong>{{ media.vinyl ?? 0 }}</strong>
-                </div>
-
-                <div v-if="media.category === 'BOOK' || media.category === 'COMIC'" class="format">
-                    <span>SF</span>
-                    <strong>{{ media.softcover ?? 0 }}</strong>
-                </div>
-
-                <div v-if="media.category === 'BOOK' || media.category === 'COMIC'" class="format">
-                    <span>HR</span>
-                    <strong>{{ media.hardcover ?? 0 }}</strong>
-                </div>
-            </div>
 
         </div>
 
@@ -191,6 +86,7 @@ import {
 } from "../../utils/comicVolumes.js";
 import ListMenu from "../ui/ListMenu.vue";
 import CollectionContentsModal from "../ui/CollectionContentsModal.vue";
+import PhysicalMediaVisual from "../ui/PhysicalMediaVisual.vue";
 import { useAuth } from "../../composables/useAuth.js";
 import { listStatusLabel } from "../../services/listMenuState.js";
 import { loadMyLists, mediaListEntries } from "../../services/listsService.js";
@@ -302,6 +198,54 @@ const copyCount = computed(() => {
     ].reduce((total, count) => total + (Number(count) || 0), 0);
 });
 
+const collectionTerm = computed(() => {
+    const terms = { MOVIE: "movies", TV_SHOW: "seasons", MUSIC: "albums", BOOK: "books", COMIC: "comics" };
+    const term = terms[props.media.category] ?? "titles";
+    return `${collectionTitleCount.value === 1 ? term.replace(/s$/, "") : term}`;
+});
+
+const collectionTitleCount = computed(() =>
+    Array.isArray(props.media.collectionMedias)
+        ? props.media.collectionMedias.length
+        : props.media.collectionSize,
+);
+
+const releaseYearLabel = computed(() => {
+    if (!props.media.isCollectionGroup || !Array.isArray(props.media.collectionMedias)) {
+        return props.media.releaseYear;
+    }
+
+    const years = props.media.collectionMedias
+        .map((item) => {
+            const value = item.releaseYear;
+            if (value == null || (typeof value === "string" && value.trim() === "")) {
+                return null;
+            }
+
+            const year = Number(value);
+            return Number.isInteger(year) && year >= 1000 && year <= 9999 ? year : null;
+        })
+        .filter((year) => year !== null);
+
+    if (years.length === 0) {
+        return props.media.releaseYear;
+    }
+
+    const firstYear = years[0];
+    const lastYear = years[years.length - 1];
+    return firstYear === lastYear ? String(firstYear) : `${firstYear} - ${lastYear}`;
+});
+
+const owned = computed(() => {
+    return Boolean(props.media.inCollection);
+});
+
+const coverStatuses = computed(() => [
+    ...(owned.value ? ["Owned"] : []),
+    ...((props.media.hasSell || props.media.collectionMedias?.some((item) => item.hasSell || item.copies?.some((copy) => copy.isArchived !== true && (copy.canSell || copy.boxSet?.canSell)))) ? ["For sale"] : []),
+    ...((props.media.activeTrade || props.media.tradeStatusLabel || props.media.collectionMedias?.some((item) => item.activeTrade || item.tradeStatusLabel)) ? ["For trade"] : []),
+]);
+
 const collectionStatus = computed(() => {
     if (!user.value || props.readOnly || !Array.isArray(props.media.collectionMedias) || props.media.collectionMedias.length === 0) {
         return null;
@@ -388,6 +332,27 @@ watch(
     text-align: left;
 }
 
+.poster-wrap {
+    position: relative;
+    isolation: isolate;
+}
+
+.media-card.is-collection .poster-wrap::before,
+.media-card.is-collection .poster-wrap::after {
+    position: absolute;
+    z-index: -1;
+    inset: 5px -4px 5px 4px;
+    content: "";
+    border: 1px solid #3a465b;
+    border-radius: 3px;
+    background: #222b3b;
+}
+
+.media-card.is-collection .poster-wrap::after {
+    inset: 9px -7px 9px 7px;
+    background: #1e2737;
+}
+
 .media-card:hover {
     color: inherit;
 
@@ -414,11 +379,67 @@ watch(
 
     width: 100%;
 
-    aspect-ratio: 5 / 6;
+    aspect-ratio: 3 / 4;
 
-    object-fit: contain;
+    object-fit: cover;
 
     background: var(--bg-secondary);
+}
+
+.collection-visual-wrap {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    background: var(--bg-secondary);
+}
+
+.collection-visual-wrap :deep(.physical-media-visual) {
+    width: 76%;
+    height: 86%;
+}
+
+.collection-count,
+.cover-status {
+    color: #fff;
+    background: rgba(20, 24, 32, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.collection-count {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    padding: 5px 7px;
+}
+
+.cover-statuses {
+    position: absolute;
+    right: 7px;
+    bottom: 7px;
+    left: 7px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.cover-status {
+    padding: 4px 6px;
+    font-family: inherit;
+    cursor: default;
+}
+
+.cover-status.is-action {
+    cursor: pointer;
+}
+
+.cover-status.is-action:hover {
+    background: rgba(20, 24, 32, 0.96);
 }
 
 
@@ -426,6 +447,7 @@ watch(
 
 .content {
     padding: 10px;
+    min-height: 72px;
 }
 
 .card-meta {
@@ -445,6 +467,8 @@ watch(
     text-overflow: ellipsis;
     display: -webkit-box;
     -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    min-height: 2.6em;
 }
 
 .badges {
@@ -493,11 +517,12 @@ watch(
 /* Metadata */
 
 .year {
-    margin: 6px 0 0;
+    margin: 2px 0 0;
 
     color: var(--text-muted);
 
     font-size: 13px;
+    min-height: 1em;
 }
 
 .collection-summary,
@@ -597,6 +622,10 @@ watch(
          * Don't let the poster become enormous
          * on small screens.
          */
+        aspect-ratio: 2 / 3;
+    }
+
+    .collection-visual-wrap {
         aspect-ratio: 2 / 3;
     }
 
