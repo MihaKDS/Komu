@@ -7,7 +7,7 @@
     >
         <article :class="['media-card', { 'is-collection': media.isCollectionGroup }]">
         <div class="poster-wrap">
-            <div v-if="media.isCollectionGroup" class="collection-visual-wrap">
+            <div v-if="media.isCollectionGroup && mode !== 'search'" class="collection-visual-wrap">
                 <PhysicalMediaVisual
                     variant="collection"
                     type="BOXSET"
